@@ -1,11 +1,10 @@
-from compliance_checker.ncei_timeseries import GliderCheck
+from cc_plugin_ncei.ncei_timeseries import NCEITimeSeries
 from pkg_resources import resource_filename
 from netCDF4 import Dataset
-from compliance_checker.base import DSPair
-from wicken.netcdf_dogma import NetCDFDogma
 import unittest
 
 static_files = {
+    'station_timeseries' : resource_filename('cc_plugin_ncei', 'tests/data/station_timeseries.nc'),
 }
 
 class TestNCEITimeSeries(unittest.TestCase):
@@ -25,18 +24,20 @@ class TestNCEITimeSeries(unittest.TestCase):
             return "%s ( %s )" % (name[-1], '.'.join(name[:-2]) + ":" + '.'.join(name[-2:]))
     __str__ = __repr__
     
-    def get_pair(self, nc_dataset):
+    def get_dataset(self, nc_dataset):
         '''
         Return a pairwise object for the dataset
         '''
-        print nc_dataset
         if isinstance(nc_dataset, basestring):
             nc_dataset = Dataset(nc_dataset, 'r')
             self.addCleanup(nc_dataset.close)
-        dogma = NetCDFDogma('nc', self.check.beliefs(), nc_dataset)
-        pair = DSPair(nc_dataset, dogma)
-        return pair
+        return nc_dataset
     
     def setUp(self):
-        self.check = GliderCheck()
+        self.check = NCEITimeSeries()
     
+    def test_dimension_check(self):
+        dataset = self.get_dataset(static_files['station_timeseries'])
+        result = self.check.check_dimensions(dataset)
+
+        self.assertEquals(result.value, (1, 1))

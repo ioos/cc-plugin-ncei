@@ -1,0 +1,8 @@
+include *.txt
+include README.md
+include LICENSE
+include cc_plugin_ncei/data/*.json
+include cc_plugin_ncei/data/*.xml
+include cc_plugin_ncei/data/templates/*.j2
+include cc_plugin_ncei/tests/data/*.nc
+include cc_plugin_ncei/tests/data/non-comp/*.nc
