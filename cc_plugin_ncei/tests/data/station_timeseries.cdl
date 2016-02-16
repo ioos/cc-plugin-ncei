@@ -91,13 +91,13 @@ variables:
 
 
 
-        :ncei_template_version = "NCEI_NetCDF_TimeSeries_Orthogonal_Template_v2.0" ; 
-        :featureType = "timeSeries" ; 
-        :title = "" ; 
-        :summary = "" ; 
-        :keywords = "" ; 
-        :Conventions = "CF-1.6, ACDD-1.3" ; 
-        :id = "" ; 
+       :ncei_template_version = "NCEI_NetCDF_TimeSeries_Orthogonal_Template_v2.0" ; 
+       :featureType = "timeSeries" ; 
+       :title = "Example Time Series Dataset" ; 
+       :summary = "This dataset is just for demonstration and testing purposes" ; 
+       :keywords = "examples" ; 
+       :Conventions = "CF-1.6, ACDD-1.3" ; 
+       :id = "" ; 
        :naming_authority = "" ; 
        :history = "" ; 
        :source = "" ; 

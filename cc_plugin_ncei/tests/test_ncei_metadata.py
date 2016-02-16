@@ -1,10 +1,15 @@
-from cc_plugin_ncei.ncei_timeseries import NCEITimeSeriesOrthogonal
+#!/usr/bin/env python
+#-*- coding: utf-8 -*-
+'''
+cc_plugin_ncei/tests/test_ncei_metadata.py
+'''
+from cc_plugin_ncei.ncei_timeseries import NCEIMetadataCheck
 from cc_plugin_ncei.tests.resources import STATIC_FILES
 from netCDF4 import Dataset
 import unittest
 
 
-class TestNCEITimeSeries(unittest.TestCase):
+class TestNCEIMetadata(unittest.TestCase):
     # @see
     # http://www.saltycrane.com/blog/2012/07/how-prevent-nose-unittest-using-docstring-when-verbosity-2/
     def shortDescription(self):
@@ -31,10 +36,15 @@ class TestNCEITimeSeries(unittest.TestCase):
         return nc_dataset
     
     def setUp(self):
-        self.check = NCEITimeSeriesOrthogonal()
-    
-    def test_dimension_check(self):
-        dataset = self.get_dataset(STATIC_FILES['station_timeseries'])
-        result = self.check.check_dimensions(dataset)
+        self.check = NCEIMetadataCheck()
 
-        self.assertEquals(result.value, (2, 2))
+
+    def test_required_attributes(self):
+        '''
+        Verifies the test checks the required attributes
+        '''
+        dataset = self.get_dataset(STATIC_FILES['station_timeseries'])
+        result = self.check.check_required_attributes(dataset)
+
+        self.assertEquals(result.value, (8, 8))
+
