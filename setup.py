@@ -32,7 +32,7 @@ setup(name                 = "cc-plugin-ncei",
         ],
     entry_points         = {
         'compliance_checker.suites': [
-            'ncei-timeseries-orthogonal = cc_plugin_ncei.ncei_timeseries:NCEITimeSeriesOrthogonal',
+            'ncei-timeseries-orthogonal = cc_plugin_ncei.ncei_timeseries:NCEITimeSeriesOrthogonal', 'ncei-grid = cc_plugin_ncei.ncei_grid:NCEIGrid',
         ]
     }
 )

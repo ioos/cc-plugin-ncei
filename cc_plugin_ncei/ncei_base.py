@@ -62,25 +62,6 @@ class NCEIBaseCheck(BaseNCCheck):
 
         return Result(BaseCheck.HIGH, (score, out_of), 'Dataset contains NCEI required and highly recommended attributes', messages)
 
-    def check_recommended_attributes(self, dataset):
-        '''
-        Verifies that the dataset contains the NCEI required and highly recommended global attributes
-        '''
-
-        out_of = 4
-        score = 0
-        messages = []
-        
-        for attribute in ('title', 'summary', 'keywords', 'source', 'uuid', 'id', 'creator_name', 'creator_url', 'creator_email', 'project', ):
-            test = getattr(dataset, attribute, '') != ''
-
-            if test:
-                score += 1
-            else:
-                messages.append('Dataset is missing the global attribute {}'.format(attribute))
-
-        return Result(BaseCheck.MEDIUM, (score, out_of), 'Dataset contains NCEI required and highly recommended attributes', messages)
-
     @score_group('Required Variables')
     def check_lat(self, dataset):
         #Checks if the lat variable is formed properly
@@ -476,7 +457,7 @@ class NCEIBaseCheck(BaseNCCheck):
         for name in dataset.variables:
             if hasattr(dataset.variables[name],'coordinates') and not hasattr(dataset.variables[name],'flag_meanings'):
                 #This is a science Variable.  Start Checks.
-                #Check 6) Units
+                #Check 1) Units
                 if hasattr(dataset.variables[name], 'units'):
                     units_check = True
                 else: 
@@ -484,7 +465,7 @@ class NCEIBaseCheck(BaseNCCheck):
                     units_check = False
                 results.append(Result(BaseCheck.HIGH, units_check, (name,'units'), msgs))
 
-                #Check 7) fill value
+                #Check 2) fill value
                 if hasattr(dataset.variables[name],'_FillValue'):
                     fill_check = True
                 else: 
@@ -492,7 +473,7 @@ class NCEIBaseCheck(BaseNCCheck):
                     fill_check = False
                 results.append(Result(BaseCheck.MEDIUM, fill_check, (name,'fill_value'), msgs))
 
-                #Check 8) Valid Min
+                #Check 3) Valid Min
                 if hasattr(dataset.variables[name], 'valid_min'):
                     min_check = True
                 else: 
@@ -500,7 +481,7 @@ class NCEIBaseCheck(BaseNCCheck):
                     min_check = False
                 results.append(Result(BaseCheck.MEDIUM, min_check, (name,'valid_min'), msgs))
 
-                #Check 9) Valid Max
+                #Check 4) Valid Max
                 if hasattr(dataset.variables[name], 'valid_max'):
                     max_check = True
                 else: 
@@ -508,7 +489,7 @@ class NCEIBaseCheck(BaseNCCheck):
                     max_check = False
                 results.append(Result(BaseCheck.MEDIUM, max_check, (name,'valid_max'), msgs))
 
-                #Check 10) Ancillary Variables
+                #Check 5) Ancillary Variables
                 if hasattr(dataset.variables[name], 'ancillary_variables'):
                     anci_check = True
                 else: 
@@ -516,7 +497,7 @@ class NCEIBaseCheck(BaseNCCheck):
                     anci_check = False
                 results.append(Result(BaseCheck.MEDIUM, anci_check, (name,'ancillary_variables'), msgs))
 
-                #Check 11) Comment
+                #Check 6) Comment
                 if hasattr(dataset.variables[name], 'comment'):
                     comment_check = True
                 else: 
@@ -524,7 +505,7 @@ class NCEIBaseCheck(BaseNCCheck):
                     comment_check = False
                 results.append(Result(BaseCheck.MEDIUM, comment_check, (name,'comment'), msgs))
      
-                #Check 12) Long Name
+                #Check 7) Long Name
                 if hasattr(dataset.variables[name], 'long_name'):
                     long_check = True
                 else: 
@@ -532,7 +513,7 @@ class NCEIBaseCheck(BaseNCCheck):
                     long_check = False
                 results.append(Result(BaseCheck.MEDIUM, long_check, (name,'long_name'), msgs)) 
             
-                #Check 13) NODC Name
+                #Check 8) NODC Name
                 if hasattr(dataset.variables[name], 'nodc_name'):
                     nodc_check = True
                 else: 
@@ -540,7 +521,7 @@ class NCEIBaseCheck(BaseNCCheck):
                     nodc_check = False
                 results.append(Result(BaseCheck.MEDIUM, nodc_check, (name,'nodc_name'), msgs))
              
-                #Check 14) scale_factor
+                #Check 9) scale_factor
                 level = BaseCheck.MEDIUM
                 if hasattr(dataset.variables[name], 'scale_factor'):
                     scale_check = (1,2)
@@ -557,7 +538,7 @@ class NCEIBaseCheck(BaseNCCheck):
                     error_reached = True
                 results.append(Result(level, scale_check, (name,'scale_factor'), msgs))
 
-                 #Check 14) offset
+                 #Check 10) offset
                 level = BaseCheck.MEDIUM
                 if hasattr(dataset.variables[name], 'add_offset'):
                     msgs = ['add_offset present, but the dtype is not the same as the data']
@@ -574,7 +555,7 @@ class NCEIBaseCheck(BaseNCCheck):
                     error_reached = True
                 results.append(Result(level, offset_check, (name,'add_offset'), msgs))
  
-                #Check 8) Grid Mapping
+                #Check 11) Grid Mapping
                 if hasattr(dataset.variables[name], 'grid_mapping'):
                     map_check = True
                 else: 
@@ -582,7 +563,7 @@ class NCEIBaseCheck(BaseNCCheck):
                     map_check = False
                 results.append(Result(BaseCheck.MEDIUM, map_check, (name,'grid_mapping'), msgs))
 
-                #Check 8) Source
+                #Check 12) Source
                 if hasattr(dataset.variables[name], 'source'):
                     source_check = True
                 else: 
@@ -590,7 +571,7 @@ class NCEIBaseCheck(BaseNCCheck):
                     source_check = False
                 results.append(Result(BaseCheck.MEDIUM, source_check, (name,'source'), msgs))
 
-                #Check 8) Reference
+                #Check 13) Reference
                 if hasattr(dataset.variables[name], 'reference'):
                     source_check = True
                 else: 
@@ -598,7 +579,7 @@ class NCEIBaseCheck(BaseNCCheck):
                     source_check = False
                 results.append(Result(BaseCheck.MEDIUM, source_check, (name,'reference'), msgs))
 
-                #Check #) Platform
+                #Check 14) Platform
                 level = BaseCheck.MEDIUM
                 if hasattr(dataset.variables[name], 'platform'):
                     plat_check = False
@@ -611,7 +592,7 @@ class NCEIBaseCheck(BaseNCCheck):
                     msgs = ['platform attribute is not present in the variables']
                 results.append(Result(level, plat_check, (name,'platform'), msgs))
                     
-                #Check #) Instrument
+                #Check 15) Instrument
                 level = BaseCheck.MEDIUM
                 if hasattr(dataset.variables[name], 'instrument'):
                     inst_check = False
@@ -640,7 +621,7 @@ class NCEIBaseCheck(BaseNCCheck):
                 std_check = 0
                 msgs = []
 
-                std_name = getattr(dataset.variables[name], 'standard_name',None)
+                std_name = getattr(dataset.variables[name], 'flag_meanings',None)
                 std_name_split = std_name.split(' ')
                 if std_name_split[0] in dataset.variables:
                     std_check = std_check + 1
@@ -719,14 +700,15 @@ class NCEIBaseCheck(BaseNCCheck):
     @score_group('Instruments and Platforms')
     def check_platform(self, dataset):
         #Check for the platform variable
-        #Check 1) Platform Var Exists
         platforms = _find_platform_variables(self, dataset)
         msgs = []
         results = []
         if len(platforms) == 0:
-            return Result(BaseCheck.MEDIUM, False, ('platform_var','exists'), msgs) 
-
+            return Result(BaseCheck.MEDIUM, False, ('platform_var','exists'), ['The platform variables do not exist']) 
         for platform in platforms:
+            #Check 1) Platform Var Exists
+            if platform not in dataset.variables:
+                return Result(BaseCheck.MEDIUM, False, ('platform_var','exists'), ['The platform variables do not exist']) 
             #Check 2) Long Name
             if hasattr(dataset.variables[platform], 'long_name'):
                 long_check = True
@@ -779,14 +761,15 @@ class NCEIBaseCheck(BaseNCCheck):
     @score_group('Instruments and Platforms')
     def check_instrument(self, dataset):
         #Check for the instrument variable
-        #Check 1) Instrument Var Exists
         instruments = _find_instrument_variables(self, dataset)
         msgs = []
         results = []
         if len(instruments) == 0:
-            return Result(BaseCheck.MEDIUM, False, ('instrument_var','exists'), msgs) 
-
+            return Result(BaseCheck.MEDIUM, False, ('instrument_var','exists'), ['The instrument variables do not exist']) 
         for instrument in instruments:
+            #Check 1) Instrument Var Exists
+            if instrument not in dataset.variables:
+                return Result(BaseCheck.MEDIUM, False, ('instrument_var','exists'), ['The instrument variables do not exist']) 
             #Check 2) Long Name
             if hasattr(dataset.variables[instrument], 'long_name'):
                 long_check = True
