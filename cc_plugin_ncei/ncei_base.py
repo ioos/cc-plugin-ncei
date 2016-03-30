@@ -61,9 +61,23 @@ class NCEIBaseCheck(BaseNCCheck):
                 messages.append('Dataset is missing the global attribute {}'.format(attribute))
 
         return Result(BaseCheck.HIGH, (score, out_of), 'Dataset contains NCEI required and highly recommended attributes', messages)
-
+################################################################################
+# Checks for Required Variables 
+################################################################################
     @score_group('Required Variables')
     def check_lat(self, dataset):
+        '''
+        float lat(time) ;//....................................... Depending on the precision used for the variable, the data type could be int or double instead of float. 
+                lat:long_name = "" ; //...................................... RECOMMENDED - Provide a descriptive, long name for this variable.
+                lat:standard_name = "latitude" ; //.......................... REQUIRED    - Do not change.
+                lat:units = "degrees_north" ; //............................. REQUIRED    - CF recommends degrees_north, but at least must use UDUNITS.
+                lat:axis = "Y" ; //.......................................... REQUIRED    - Do not change.
+                lat:valid_min = 0.0f ; //.................................... RECOMMENDED - Replace with correct value.
+                lat:valid_max = 0.0f ; //.................................... RECOMMENDED - Replace with correct value.
+                lat:_FillValue = 0.0f;//..................................... REQUIRED  if there could be missing values in the data.
+                lat:ancillary_variables = "" ; //............................ RECOMMENDED - List other variables providing information about this variable.
+                lat:comment = "" ; //........................................ RECOMMENDED - Add useful, additional information here.
+                '''
         #Checks if the lat variable is formed properly
         msgs=[]
         results=[]
@@ -162,6 +176,18 @@ class NCEIBaseCheck(BaseNCCheck):
 
     @score_group('Required Variables')
     def check_lon(self, dataset):
+        '''
+                float lat(time) ;//....................................... Depending on the precision used for the variable, the data type could be int or double instead of float. 
+                lat:long_name = "" ; //...................................... RECOMMENDED - Provide a descriptive, long name for this variable.
+                lat:standard_name = "latitude" ; //.......................... REQUIRED    - Do not change.
+                lat:units = "degrees_north" ; //............................. REQUIRED    - CF recommends degrees_north, but at least must use UDUNITS.
+                lat:axis = "Y" ; //.......................................... REQUIRED    - Do not change.
+                lat:valid_min = 0.0f ; //.................................... RECOMMENDED - Replace with correct value.
+                lat:valid_max = 0.0f ; //.................................... RECOMMENDED - Replace with correct value.
+                lat:_FillValue = 0.0f;//..................................... REQUIRED  if there could be missing values in the data.
+                lat:ancillary_variables = "" ; //............................ RECOMMENDED - List other variables providing information about this variable.
+                lat:comment = "" ; //........................................ RECOMMENDED - Add useful, additional information here.
+                '''
         #Checks if the lon variable is formed properly
         msgs=[]
         results=[]
@@ -259,7 +285,18 @@ class NCEIBaseCheck(BaseNCCheck):
         return results
 
     @score_group('Required Variables')
-    def check_time(self, dataset): 
+    def check_time(self, dataset):
+        '''
+                double time(time) ;//........................................ Depending on the precision used for the variable, the data type could be int or double instead of float.
+                time:long_name = "" ; //..................................... RECOMMENDED - Provide a descriptive, long name for this variable. 
+                time:standard_name = "time" ; //............................. REQUIRED    - Do not change
+                time:units = "seconds since 1970-01-01 00:00:00 0:00" ; //... REQUIRED    - Use approved CF convention with approved UDUNITS.
+                time:calendar = "julian" ; //................................ REQUIRED    - IF the calendar is not default calendar, which is "gregorian".
+                time:axis = "T" ; //......................................... REQUIRED    - Do not change.
+                time:_FillValue = 0.0f;//.................................... REQUIRED  if there could be missing values in the data.
+                time:ancillary_variables = "" ; //........................... RECOMMENDED - List other variables providing information about this variable.
+                time:comment = "" ; //....................................... RECOMMENDED - Add useful, additional information here. 
+                '''
         #Checks if the time variable is formed properly
         msgs=[]
         results=[]
@@ -343,6 +380,19 @@ class NCEIBaseCheck(BaseNCCheck):
     @score_group('Required Variables')
     def check_height(self, dataset):
         #Checks if the lat variable is formed properly
+        '''
+                float z(time) ;//........................................ Depending on the precision used for the variable, the data type could be int or double instead of float. Also the variable "z" could be substituted with a more descriptive name like "depth", "altitude", "pressure", etc.
+                z:long_name = "" ; //........................................ RECOMMENDED - Provide a descriptive, long name for this variable. 
+                z:standard_name = "" ; //.................................... REQUIRED    - Usually "depth" or "altitude" is used.
+                z:units = "" ; //............................................ REQUIRED    - Use UDUNITS.
+                z:axis = "Z" ; //............................................ REQUIRED    - Do not change.
+                z:positive = "" ; //......................................... REQUIRED    - Use "up" or "down".
+                z:valid_min = 0.0f ; //...................................... RECOMMENDED - Replace with correct value.
+                z:valid_max = 0.0f ; //...................................... RECOMMENDED - Replace with correct value.
+                z:_FillValue = 0.0f;//....................................... REQUIRED  if there could be missing values in the data.
+                z:ancillary_variables = "" ; //.............................. RECOMMENDED - List other variables providing information about this variable.
+                z:comment = "" ; //.......................................... RECOMMENDED - Add useful, additional information here.
+                '''
         msgs=[]
         results=[]
         valid_types = ['int', 'long', 'double', 'float']
@@ -450,8 +500,32 @@ class NCEIBaseCheck(BaseNCCheck):
         results.append(Result(BaseCheck.MEDIUM, pos_check, (name,'positive'), msgs))
         return results
 
+################################################################################
+# Checks for Science Variables 
+################################################################################
     @score_group('Science Variables')
     def check_science(self, dataset):
+        '''
+                float geophysical_variable_1(time) ;//................................ This is an example of how each and every geophysical variable in the file should be represented. Replace the name of the variable("geophysical_variable_1") with a suitable name. Replace "float" by data type which is appropriate for the variable. 
+                geophysical_variable_1:long_name = "" ; //................... RECOMMENDED - Provide a descriptive, long name for this variable. 
+                geophysical_variable_1:standard_name = "" ; //............... REQUIRED    - If using a CF standard name and a suitable name exists in the CF standard name table.
+                geophysical_variable_1:nodc_name = "" ; //................... RECOMMENDED - From the NODC variables vocabulary, if standard_name does not exist.
+                geophysical_variable_1:units = "" ; //....................... REQUIRED    - Use UDUNITS compatible units.
+                geophysical_variable_1:scale_factor = 0.0f ; //.............. REQUIRED if the data uses a scale_factor other than 1.The data type should be the data type of the variable.
+                geophysical_variable_1:add_offset = 0.0f ; // ............... REQUIRED if the data uses an add_offset other than 0. The data type should be the data type of the variable.
+                geophysical_variable_1:_FillValue = 0.0f ; //................ REQUIRED  if there could be missing values in the data.
+                geophysical_variable_1:valid_min = 0.0f ; //................. RECOMMENDED - Replace with correct value.
+                geophysical_variable_1:valid_max = 0.0f ; //................. RECOMMENDED - Replace with correct value.
+                geophysical_variable_1:coordinates = "time lat lon z" ; //... REQUIRED    - Include the auxiliary coordinate variables and optionally coordinate variables in the list. The order itself does not matter. Also, note that whenever any auxiliary coordinate variable contains a missing value, all other coordinate, auxiliary coordinate and data values corresponding to that element should also contain missing values.
+                geophysical_variable_1:grid_mapping = "crs" ; //............. RECOMMENDED - It is highly recommended that the data provider put the data in a well known geographic coordinate system and provide the details of the coordinate system.
+                geophysical_variable_1:source = "" ; //...................... RECOMMENDED - The method of production of the original data
+                geophysical_variable_1:references = "" ; //.................. RECOMMENDED - Published or web-based references that describe the data or methods used to produce it.
+                geophysical_variable_1: cell_methods = "" ; // .............. RECOMMENDED - Use the coordinate variables to define the cell values (ex., "time: point lon: point lat: point z: point").
+                geophysical_variable_1:ancillary_variables = "instrument_parameter_variable platform_variable boolean_flag_variable enumerated_flag_variable" ; //......... RECOMMENDED - Identify the variable name(s) of the flag(s) and other ancillary variables relevant to this variable.  Use a space-separated list.
+                geophysical_variable_1:platform = "platform_variable" ; //... RECOMMENDED - Refers to name of variable containing information on the platform from which this variable was collected.
+                geophysical_variable_1:instrument = "instrument_variable";//..RECOMMENDED - Refers to name of variable containing information on the instrument from which this variable was collected.
+                geophysical_variable_1:comment = "" ; //..................... RECOMMENDED - Add useful, additional information here.
+                '''
         #Check the science variables to ensure they are good
         results = []
         msgs = []
@@ -611,8 +685,27 @@ class NCEIBaseCheck(BaseNCCheck):
                 continue
         return results
     
+################################################################################
+# Checks for QA/QC Variables 
+################################################################################
     @score_group('QA/QC Variables')
     def check_qaqc(self, dataset):
+        '''
+                byte boolean_flag_variable(timeSeries,ntimeMax); //............................. A boolean flag variable, in which each bit of the flag can be a 1 or 0.
+                boolean_flag_variable:standard_name= "" ; //................. RECOMMENDED - This attribute should include the standard name of the variable which this flag contributes plus the modifier: "status_flag" (for example, "sea_water_temperature status_flag"). See CF standard name modifiers.
+                boolean_flag_variable:long_name = "" ; //.................... RECOMMENDED - Provide a descriptive, long name for this variable. 
+                boolean_flag_variable:flag_masks = ; //...................... REQUIRED    - Provide a comma-separated list describing the binary condition of the flags. 
+                boolean_flag_variable:flag_meanings = "" ; //................ REQUIRED    - Provide a comma-separated list of flag values that map to the flag_masks.
+                boolean_flag_variable:references = "" ; //................... RECOMMENDED - Published or web-based references that describe the data or methods used to produce it.
+                boolean_flag_variable:comment = "" ; //...................... RECOMMENDED - Add useful, additional information here.
+        int enumerated_flag_variable(timeSeries,ntimeMax);  //...................... An enumerated flag variable, in which numeric values refer to defined, exclusive conditions.
+                enumerated_flag_variable:standard_name= "" ; //.............. RECOMMENDED - This attribute should include the standard name of the variable which this flag contributes plus the modifier: "status_flag" (for example, "sea_water_temperature status_flag"). See CF standard name modifiers.
+                enumerated_flag_variable:long_name = "" ; //................. RECOMMENDED - Provide a descriptive, long name for this variable. 
+                enumerated_flag_variable:flag_values = ; //.................. REQUIRED    - Provide a comma-separated list of flag values that map to the flag_meanings.
+                enumerated_flag_variable:flag_meanings = "" ; //............. REQUIRED    - Provide a space-separated list of meanings corresponding to each of the flag_values
+                enumerated_flag_variable:references = "" ; //................ RECOMMENDED - Published or web-based references that describe the data or methods used to produce it.
+                enumerated_flag_variable:comment = "" ; //................... RECOMMENDED - Add useful, additional information here.
+                '''
         #Check the qaqc variables to ensure they are good
         results = []
         msgs = []
@@ -698,8 +791,20 @@ class NCEIBaseCheck(BaseNCCheck):
                 continue
         return results
 
+################################################################################
+# Checks for Instrument and Platform Variables 
+################################################################################
     @score_group('Instruments and Platforms')
     def check_platform(self, dataset):
+        '''
+                int platform_variable; //............................................ RECOMMENDED - a container variable storing information about the platform. If more than one, can expand each attribute into a variable. For example, platform_call_sign and platform_nodc_code. See instrument_parameter_variable for an example.
+                platform_variable:long_name = "" ; //........................ RECOMMENDED - Provide a descriptive, long name for this variable. 
+                platform_variable:comment = "" ; //.......................... RECOMMENDED - Add useful, additional information here.
+                platform_variable:call_sign = "" ; //........................ RECOMMENDED - This attribute identifies the call sign of the platform. 	 
+                platform_variable:nodc_code = ""; //......................... RECOMMENDED - This attribute identifies the NODC code of the platform. Look at http://www.nodc.noaa.gov/cgi-bin/OAS/prd/platform to find if NODC codes are available. 	 
+                platform_variable:wmo_code = "";//........................... RECOMMENDED - This attribute identifies the wmo code of the platform. Information on getting WMO codes is available at http://www.wmo.int/pages/prog/amp/mmop/wmo-number-rules.html 	 
+                platform_variable:imo_code  = "";//.......................... RECOMMENDED - This attribute identifies the International Maritime Organization (IMO) number assigned by Lloyd's register. 
+                '''
         #Check for the platform variable
         platforms = _find_platform_variables(self, dataset)
         msgs = []
@@ -761,6 +866,11 @@ class NCEIBaseCheck(BaseNCCheck):
 
     @score_group('Instruments and Platforms')
     def check_instrument(self, dataset):
+        '''
+                int instrument_parameter_variable(timeSeries); //.................... RECOMMENDED - an instrument variable storing information about a parameter of the instrument used in the measurement, the dimensions don't have to be specified if the same instrument is used for all the measurements.
+                instrument_parameter_variable:long_name = "" ; //............ RECOMMENDED - Provide a descriptive, long name for this variable. 
+                instrument_parameter_variable:comment = "" ; //.............. RECOMMENDED - Add useful, additional information here.
+                '''
         #Check for the instrument variable
         instruments = _find_instrument_variables(self, dataset)
         msgs = []
@@ -797,8 +907,18 @@ class NCEIBaseCheck(BaseNCCheck):
         return results
 
 
+################################################################################
+# Check for CRS Variable (Uses CF Checker) 
+################################################################################
     @score_group('CRS')
     def check_crs(self, dataset):
+        '''        
+        int crs; //.......................................................... RECOMMENDED - A container variable storing information about the grid_mapping. All the attributes within a grid_mapping variable are described in http://cf-pcmdi.llnl.gov/documents/cf-conventions/1.6/cf-conventions.html#appendix-grid-mappings. For all the measurements based on WSG84, the default coordinate system used for GPS measurements, the values shown here should be used.
+                crs:grid_mapping_name = "latitude_longitude"; //............. RECOMMENDED
+                crs:epsg_code = "EPSG:4326" ; //............................. RECOMMENDED - European Petroleum Survey Group code for the grid mapping name.
+                crs:semi_major_axis = 6378137.0 ; //......................... RECOMMENDED
+                crs:inverse_flattening = 298.257223563 ; //.................. RECOMMENDED
+                '''
         cfbasecheck = CFBaseCheck()
         return CFBaseCheck.check_horz_crs_grid_mappings_projections(cfbasecheck, dataset)
 
