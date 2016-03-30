@@ -291,7 +291,7 @@ class NCEIBaseCheck(BaseNCCheck):
         results.append(Result(BaseCheck.HIGH, std_check, ('time','standard_name'), msgs))
 
         #Check 4) Units
-        if 'seconds since' in getattr(dataset.variables[u'time'], 'units', None):
+        if 'since' in getattr(dataset.variables[u'time'], 'units', None):
             units_check = True
         else: 
             msgs = ['units are wrong']
@@ -347,15 +347,16 @@ class NCEIBaseCheck(BaseNCCheck):
         results=[]
         valid_types = ['int', 'long', 'double', 'float']
         valid_variable_names = ['z','depth','altitude','pressure','height', 'alt']
+        valid_units = ['m','meters','meter','metre','metres','km','kilometers','kilometer','bar','millibar','decibar','atm','atmosphere','pascal','Pa','hPa']
 
         #Check 1) height exists and Check 2) Axis 
+        no_height = True
         for name in dataset.variables:
-            no_height = True
             if getattr(dataset.variables[name],'axis',None) == 'Z':
                 no_height = False
                 results.append(Result(BaseCheck.HIGH, True, (name,'exists'), msgs))
                 results.append(Result(BaseCheck.HIGH, True, (name,'axis'), msgs))
-
+                break
         if no_height:
             return Result(BaseCheck.HIGH, (0,1), ('height_variable','exists'), msgs)
 
@@ -385,7 +386,7 @@ class NCEIBaseCheck(BaseNCCheck):
         results.append(Result(BaseCheck.HIGH, std_check, (name,'standard_name'), msgs))
 
         #Check 6) Units
-        if getattr(dataset.variables[name], 'units', None) == 'm':
+        if getattr(dataset.variables[name], 'units', None) in valid_units:
             units_check = True
         else: 
             msgs = ['units are wrong']
@@ -581,7 +582,7 @@ class NCEIBaseCheck(BaseNCCheck):
 
                 #Check 14) Platform
                 level = BaseCheck.MEDIUM
-                if hasattr(dataset.variables[name], 'platform'):
+                if not hasattr(dataset.variables[name], 'platform'):
                     plat_check = False
                     level = BaseCheck.LOW
                     msgs = ['platform attribute is missing']
@@ -594,7 +595,7 @@ class NCEIBaseCheck(BaseNCCheck):
                     
                 #Check 15) Instrument
                 level = BaseCheck.MEDIUM
-                if hasattr(dataset.variables[name], 'instrument'):
+                if not hasattr(dataset.variables[name], 'instrument'):
                     inst_check = False
                     level = BaseCheck.LOW
                     msgs = ['instrument attribute is missing']
@@ -764,8 +765,14 @@ class NCEIBaseCheck(BaseNCCheck):
         instruments = _find_instrument_variables(self, dataset)
         msgs = []
         results = []
+        var = dataset.variables
+        instrument_bypass = all(hasattr(var[name],'instrument') for name in dataset.variables if hasattr(var[name], 'coordinates') and not hasattr(var[name],'flag_meanings'))
+        if instrument_bypass:
+            return Result(BaseCheck.MEDIUM, instrument_bypass, ('instrument_var', 'in_each_variable'), ['Instrument check passes because each variable has information about their isntrument'])
+        
         if len(instruments) == 0:
             return Result(BaseCheck.MEDIUM, False, ('instrument_var','exists'), ['The instrument variables do not exist']) 
+        
         for instrument in instruments:
             #Check 1) Instrument Var Exists
             if instrument not in dataset.variables:
@@ -785,6 +792,7 @@ class NCEIBaseCheck(BaseNCCheck):
                 msgs = ['comment not present']
                 comment_check = False
             results.append(Result(BaseCheck.MEDIUM, comment_check, (instrument,'comment'), msgs)) 
+        
         
         return results
 
