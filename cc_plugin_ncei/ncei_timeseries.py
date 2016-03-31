@@ -26,7 +26,8 @@ class NCEITimeSeriesOrthogonal(NCEIBaseCheck):
     ]
 
     valid_feature_types = [
-        'timeSeries'
+        'timeSeries',
+        'timeSeries_id'
     ]
     @classmethod
     def beliefs(cls): 
@@ -130,7 +131,7 @@ class NCEITimeSeriesOrthogonal(NCEIBaseCheck):
             return Result(BaseCheck.LOW, (0,1), ('timeSeries','exists'), msgs)
 
         #Check 2) CF Role
-        if getattr(dataset.variables[u'timeSeries'], 'cf_role', None) == 'timeseries_id':
+        if getattr(dataset.variables[u'timeSeries'], 'cf_role', None) in self.valid_feature_types:
             cfrole_check = True
         else: 
             msgs = ['cf_role is wrong']
@@ -144,6 +145,7 @@ class NCEITimeSeriesOrthogonal(NCEIBaseCheck):
             msgs = ['long name is missing']
             long_check = False
         results.append(Result(BaseCheck.MEDIUM, long_check, ('timeSeries','long_name'), msgs))
+        return results
         
 
 
@@ -162,7 +164,8 @@ class NCEITimeSeriesIncomplete(NCEIBaseCheck):
     ]
 
     valid_feature_types = [
-        'timeSeries'
+        'timeSeries',
+        'timeSeries_id'
     ]
     @classmethod
     def beliefs(cls): 
@@ -216,7 +219,7 @@ class NCEITimeSeriesIncomplete(NCEIBaseCheck):
         for var in dataset.variables:
             if hasattr(dataset.variables[var],'coordinates'):
                 dimensions = [dim for dim in dataset.dimensions if 'Strlen' not in dim and 'timeSeries' not in dim]
-                dim_check = dataset.variables[var].dimensions == ('timeSeries',dimensions[0],)
+                dim_check = dataset.variables[var].dimensions == dataset.variables['time'].dimensions
                 if not dim_check:
                     msgs = ['{} does not have the correct dimensions'.format(var)]
                 results.append(Result(BaseCheck.HIGH, dim_check, (var, 'dimensions'), msgs))
@@ -278,7 +281,7 @@ class NCEITimeSeriesIncomplete(NCEIBaseCheck):
             return Result(BaseCheck.LOW, (0,1), ('timeSeries','exists'), msgs)
 
         #Check 2) CF Role
-        if getattr(dataset.variables[u'timeSeries'], 'cf_role', None) == 'timeseries_id':
+        if getattr(dataset.variables[u'timeSeries'], 'cf_role', None) in self.valid_feature_types:
             cfrole_check = True
         else: 
             msgs = ['cf_role is wrong']
@@ -292,6 +295,8 @@ class NCEITimeSeriesIncomplete(NCEIBaseCheck):
             msgs = ['long name is missing']
             long_check = False
         results.append(Result(BaseCheck.MEDIUM, long_check, ('timeSeries','long_name'), msgs))
+
+        return results
         
 
 
