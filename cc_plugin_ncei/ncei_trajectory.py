@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 '''
-cc_plugin_ncei/ncei_timeseries.py
+cc_plugin_ncei/ncei_trajectory.py
 '''
 
 from compliance_checker.cf.cf import CFBaseCheck
@@ -46,7 +46,7 @@ class NCEITrajectory(NCEIBaseCheck):
 
     def check_dimensions(self, dataset):
         '''
-        NCEI_TimeSeries_Incomplete
+        NCEI_Trajectory_Incomplete
         dimensions:
             ntimeMax = < dim1 >;//. REQUIRED - Number of time steps in the time series
             trajectory = <dim2>; // REQUIRED - Number of time series
@@ -60,7 +60,7 @@ class NCEITrajectory(NCEIBaseCheck):
         if test:
             score += 1
         else:
-            messages.append('trajectory is a required dimension for TimeSeries Incomplete')
+            messages.append('trajectory is a required dimension for Trajectory')
 
         dimensions = [dim for dim in dataset.dimensions if 'Strlen' not in dim and 'trajectory' not in dim]
         if len(dimensions) == 1:
@@ -117,7 +117,7 @@ class NCEITrajectory(NCEIBaseCheck):
         if test:
             score += 1
         else:
-            messages.append('Dataset is missing NCEI TimeSeries required attribute featureType')
+            messages.append('Dataset is missing NCEI Trajectory required attribute featureType')
 
         feature_type = getattr(dataset, 'featureType', None)
         test = feature_type in self.valid_feature_types
@@ -127,20 +127,20 @@ class NCEITrajectory(NCEIBaseCheck):
         else:
             messages.append('featureType attribute references an invalid feature type: {}'.format(feature_type)) 
 
-        return Result(BaseCheck.HIGH, (score, out_of), 'Dataset contains NCEI TimeSeries require attributes', messages)
+        return Result(BaseCheck.HIGH, (score, out_of), 'Dataset contains NCEI Trajectory require attributes', messages)
 
     @score_group('Required Variables')
     def check_trajectory(self, dataset):
-        #Checks if the timeseries variable is formed properly
+        #Checks if the trajectory variable is formed properly
         msgs=[]
         results=[]
 
-        #Check 1) TimeSeries Exist
+        #Check 1) Trajectory Exist
         if u'trajectory' in dataset.variables:
             exists_check = True
             results.append(Result(BaseCheck.LOW, exists_check, ('trajectory','exists'), msgs))       
         else:
-            msgs = ['trajectory does not exist.  This is okay if there is only one Time Series in the dataset.']
+            msgs = ['trajectory does not exist.  This is okay if there is only one Trajectory in the dataset.']
             exists_check = False
             return Result(BaseCheck.LOW, (0,1), ('trajectory','exists'), msgs)
 
