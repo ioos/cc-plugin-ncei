@@ -35,6 +35,7 @@ setup(name                 = "cc-plugin-ncei",
             'ncei-timeseries-orthogonal = cc_plugin_ncei.ncei_timeseries:NCEITimeSeriesOrthogonal', 
             'ncei-grid = cc_plugin_ncei.ncei_grid:NCEIGrid',
             'ncei-point = cc_plugin_ncei.ncei_point:NCEIPoint',
+            'ncei-timeseries-incomplete = cc_plugin_ncei.ncei_timeseries:NCEITimeSeriesIncomplete',
         ]
     }
 )
