@@ -7,62 +7,9 @@ cc_plugin_ncei/ncei_base.py
 from compliance_checker.cf.cf import CFBaseCheck
 from compliance_checker.base import Result, BaseCheck, score_group, BaseNCCheck
 from compliance_checker.cf.util import StandardNameTable
+from cc_plugin_ncei.util import _find_platform_variables, _find_instrument_variables, getattr_check, hasattr_check, var_dtype
 import cf_units
 import numpy as np
-
-def _find_platform_variables(self, ds):
-    plat_vars = []
-    platform_name = getattr(ds, 'platform', None)
-    if platform_name is not None:
-        plat_vars.append(platform_name)
-        return list(set(plat_vars))
-
-    for k, v in ds.variables.items():
-        if 'platform' in k:
-            if not v.shape:  # Empty dimension
-                plat_vars.append(k)
-    return list(set(plat_vars))
-
-def _find_instrument_variables(self, ds):
-    inst_vars = []
-    instrument_name = getattr(ds, 'instrument', None)
-    if instrument_name is not None:
-        inst_vars.append(instrument_name)
-        return list(set(inst_vars))
-    
-    for k, v in ds.variables.items():
-        if 'instrument' in k:
-            if not v.shape:  # Empty dimension
-                inst_vars.append(k)
-    return list(set(inst_vars))
-
-def getattr_check(self, ds, var, attr, val, level):
-    msgs = []
-    if getattr(ds.variables[var], attr, None) == val:
-        check = True
-    else: 
-        msgs = ['{} is wrong'.format(attr)]
-        check = False
-    return Result(level, check, (var,attr), msgs)
-
-def hasattr_check(self, ds, var, attr, level):
-    msgs = []
-    if hasattr(ds.variables[var], attr):
-        check = True
-    else: 
-        msgs = ['{} is missing'.format(attr)]
-        check = False
-    return Result(level, check, (var,attr), msgs)
-
-def var_dtype(self, ds, var, valid_types, level):
-    msgs = []
-    data_type = str(ds.variables[var].dtype)
-    if any(valid_type in data_type for valid_type in valid_types):
-        check = True
-    else:
-        msgs = ['data type for {} is invalid'.format(var)]
-        check = False
-    return Result(level, check, (var,'data_type'), msgs)
 
 class NCEIBaseCheck(BaseNCCheck):
     register_checker = True
@@ -122,7 +69,7 @@ class NCEIBaseCheck(BaseNCCheck):
        
         #Check 2) Data Type
         valid_types = ['int', 'long', 'double', 'float']
-        results.append(var_dtype(self, dataset, var, valid_types, BaseCheck.HIGH))
+        results.append(var_dtype(dataset, var, valid_types, BaseCheck.HIGH))
 
         #Check 3,4,5 Check standard name, units, and axis
         get_attr_val = [
@@ -141,10 +88,10 @@ class NCEIBaseCheck(BaseNCCheck):
                 ]
 
         for attr,val in get_attr_val:
-            results.append(getattr_check(self, dataset, var, attr, val, BaseCheck.HIGH))
+            results.append(getattr_check(dataset, var, attr, val, BaseCheck.HIGH))
 
         for attr in has_var_attr:
-            results.append(hasattr_check(self, dataset, var, attr, BaseCheck.MEDIUM))
+            results.append(hasattr_check(dataset, var, attr, BaseCheck.MEDIUM))
  
         return results
 
@@ -177,7 +124,7 @@ class NCEIBaseCheck(BaseNCCheck):
        
         #Check 2) Data Type
         valid_types = ['int', 'long', 'double', 'float']
-        results.append(var_dtype(self, dataset, var, valid_types, BaseCheck.HIGH))
+        results.append(var_dtype(dataset, var, valid_types, BaseCheck.HIGH))
 
         #Check 3,4,5 Check standard name, units, and axis
         get_attr_val = [
@@ -196,10 +143,10 @@ class NCEIBaseCheck(BaseNCCheck):
                 ]
 
         for attr,val in get_attr_val:
-            results.append(getattr_check(self, dataset, var, attr, val, BaseCheck.HIGH))
+            results.append(getattr_check(dataset, var, attr, val, BaseCheck.HIGH))
 
         for attr in has_var_attr:
-            results.append(hasattr_check(self, dataset, var, attr, BaseCheck.MEDIUM))
+            results.append(hasattr_check(dataset, var, attr, BaseCheck.MEDIUM))
  
         return results
 
@@ -231,7 +178,7 @@ class NCEIBaseCheck(BaseNCCheck):
        
         #Check 2) Data Type
         valid_types = ['int', 'long', 'double', 'float']
-        results.append(var_dtype(self, dataset, var, valid_types, BaseCheck.HIGH))
+        results.append(var_dtype(dataset, var, valid_types, BaseCheck.HIGH))
 
         #Check 3, 4 Check standard name and axis
         get_attr_val = [
@@ -247,10 +194,10 @@ class NCEIBaseCheck(BaseNCCheck):
                 ]
 
         for attr,val in get_attr_val:
-            results.append(getattr_check(self, dataset, var, attr, val, BaseCheck.HIGH))
+            results.append(getattr_check(dataset, var, attr, val, BaseCheck.HIGH))
 
         for attr in has_var_attr:
-            results.append(hasattr_check(self, dataset, var, attr, BaseCheck.MEDIUM))
+            results.append(hasattr_check(dataset, var, attr, BaseCheck.MEDIUM))
  
         #Check 9) Units
         if 'since' in getattr(dataset.variables[var], 'units', None):
@@ -305,7 +252,7 @@ class NCEIBaseCheck(BaseNCCheck):
        
         #Check 4) Data Type
         valid_types = ['int', 'long', 'double', 'float']
-        results.append(var_dtype(self, dataset, var, valid_types, BaseCheck.HIGH))
+        results.append(var_dtype(dataset, var, valid_types, BaseCheck.HIGH))
 
         #Check 5) Standard Name
         if getattr(dataset.variables[var], 'standard_name', None) in ['depth','altitude']:
@@ -334,7 +281,7 @@ class NCEIBaseCheck(BaseNCCheck):
                 ]
 
         for attr in has_var_attr:
-            results.append(hasattr_check(self, dataset, var, attr, BaseCheck.MEDIUM))
+            results.append(hasattr_check(dataset, var, attr, BaseCheck.MEDIUM))
          
         #Check 13) Positive
         if getattr(dataset.variables[var], 'positive', None) in ['up', 'down']:
@@ -394,7 +341,7 @@ class NCEIBaseCheck(BaseNCCheck):
                 var  = name
 
                 for attr in has_var_attr:
-                    results.append(hasattr_check(self, dataset, var, attr, BaseCheck.MEDIUM))
+                    results.append(hasattr_check(dataset, var, attr, BaseCheck.MEDIUM))
                 
                 #Check 9) scale_factor
                 level = BaseCheck.MEDIUM
@@ -593,7 +540,7 @@ class NCEIBaseCheck(BaseNCCheck):
                 platform_variable:imo_code  = "";//.......................... RECOMMENDED - This attribute identifies the International Maritime Organization (IMO) number assigned by Lloyd's register. 
                 '''
         #Check for the platform variable
-        platforms = _find_platform_variables(self, dataset)
+        platforms = _find_platform_variables(dataset)
         msgs = []
         results = []
         if len(platforms) == 0:
@@ -614,7 +561,7 @@ class NCEIBaseCheck(BaseNCCheck):
             var  = platform
 
             for attr in has_var_attr:
-                results.append(hasattr_check(self, dataset, var, attr, BaseCheck.MEDIUM))
+                results.append(hasattr_check(dataset, var, attr, BaseCheck.MEDIUM))
         
         return results
 
@@ -626,7 +573,7 @@ class NCEIBaseCheck(BaseNCCheck):
                 instrument_parameter_variable:comment = "" ; //.............. RECOMMENDED - Add useful, additional information here.
                 '''
         #Check for the instrument variable
-        instruments = _find_instrument_variables(self, dataset)
+        instruments = _find_instrument_variables(dataset)
         msgs = []
         results = []
         var = dataset.variables
@@ -649,7 +596,7 @@ class NCEIBaseCheck(BaseNCCheck):
             var  = instrument
 
             for attr in has_var_attr:
-                results.append(hasattr_check(self, dataset, var, attr, BaseCheck.MEDIUM))
+                results.append(hasattr_check(dataset, var, attr, BaseCheck.MEDIUM))
       
         
         return results
