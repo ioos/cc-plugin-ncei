@@ -443,15 +443,16 @@ class NCEIBaseCheck(BaseNCCheck):
         #Check the qaqc variables to ensure they are good
         results = []
         msgs = []
+        std_name_list = [getattr(dataset.variables[var], 'standard_name', None) for var in dataset.variables]
         for name in dataset.variables:
             if hasattr(dataset.variables[name],'flag_meanings'):
                 #Check 1) Standard Name
                 std_check = 0
                 msgs = []
 
-                std_name = getattr(dataset.variables[name], 'flag_meanings',None)
+                std_name = getattr(dataset.variables[name], 'standard_name', 'thereis noname')
                 std_name_split = std_name.split(' ')
-                if std_name_split[0] in dataset.variables:
+                if std_name_split[0] in std_name_list:
                     std_check = std_check + 1
                 else:
                     msgs.append('Standard Name does not reference a variable in the dataset.')
