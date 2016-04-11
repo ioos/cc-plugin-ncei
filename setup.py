@@ -39,6 +39,10 @@ setup(name                 = "cc-plugin-ncei",
             'ncei-trajectory = cc_plugin_ncei.ncei_trajectory:NCEITrajectory',
             'ncei-profile-incomplete = cc_plugin_ncei.ncei_profile:NCEIProfileIncomplete',
             'ncei-profile-orthogonal = cc_plugin_ncei.ncei_profile:NCEIProfileOrthogonal',
+            'ncei-timeseriesprofile-orthogonal = cc_plugin_ncei.ncei_timeseriesprofile:NCEITimeSeriesProfileOrthogonal',
+            'ncei-timeseriesprofile-orthtime-incompletedepth = cc_plugin_ncei.ncei_timeseriesprofile:NCEITimeSeriesProfileOrthTimeIncompleteDepth',
+            'ncei-timeseriesprofile-incomplete = cc_plugin_ncei.ncei_timeseriesprofile:NCEITimeSeriesProfileIncomplete',
+            'ncei-timeseriesprofile-incompletetime-orthdepth = cc_plugin_ncei.ncei_timeseriesprofile:NCEITimeSeriesProfileIncompleteTimeOrthDepth',
         ]
     }
 )

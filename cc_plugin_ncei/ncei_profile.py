@@ -238,7 +238,6 @@ class NCEIProfileIncomplete(NCEIBaseCheck):
                 z_name = var
         for var in dataset.variables:
             if hasattr(dataset.variables[var],'coordinates'):
-                dimensions = [dim for dim in dataset.dimensions if 'Strlen' not in dim and 'profile' not in dim]
                 dim_check = dataset.variables[var].dimensions == dataset.variables[z_name].dimensions
                 if not dim_check:
                     msgs = ['{} does not have the correct dimensions'.format(var)]

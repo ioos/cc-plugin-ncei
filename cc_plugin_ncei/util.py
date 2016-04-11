@@ -1,9 +1,15 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 '''
-cc_plugin_ncei/ncei_base.py
+cc_plugin_ncei/util.py
 '''
 from compliance_checker.base import Result, BaseCheck
+
+def _find_z_dimension(ds):
+    for var in ds.variables:
+        if getattr(ds.variables[var], 'axis', None) == 'Z':
+            return var
+    return None
 
 def _find_platform_variables(ds):
     plat_vars = []
