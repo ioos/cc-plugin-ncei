@@ -82,7 +82,6 @@ class NCEITrajectory(NCEIBaseCheck):
         for var in dataset.variables:
             if hasattr(dataset.variables[var],'coordinates'):
                 dimensions = [dim for dim in dataset.dimensions if 'Strlen' not in dim and 'trajectory' not in dim]
-                print dimensions
                 dim_check = dataset.variables[var].dimensions == dataset.variables['time'].dimensions
                 if not dim_check:
                     msgs = ['{} does not have the correct dimensions'.format(var)]

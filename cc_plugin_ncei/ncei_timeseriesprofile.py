@@ -120,7 +120,7 @@ class NCEITimeSeriesProfileOrthogonal(NCEIBaseCheck):
 
     @score_group('Required Variables')
     def check_timeseriesprofile(self, dataset):
-        #Checks if the timeseries variable is formed properly
+        #Checks if the station variable is formed properly
         msgs=[]
         results=[]
 
@@ -303,6 +303,7 @@ class NCEITimeSeriesProfileOrthTimeIncompleteDepth(NCEIBaseCheck):
             msgs = ['long name is missing']
             long_check = False
         results.append(Result(BaseCheck.MEDIUM, long_check, ('station','long_name'), msgs))
+        return results
 
     @score_group('Required Variables')
     def check_z(self, dataset):
@@ -469,6 +470,7 @@ class NCEITimeSeriesProfileIncomplete(NCEIBaseCheck):
             msgs = ['long name is missing']
             long_check = False
         results.append(Result(BaseCheck.MEDIUM, long_check, ('station','long_name'), msgs))
+        return results
 
     @score_group('Required Variables')
     def check_z(self, dataset):
@@ -606,7 +608,7 @@ class NCEITimeSeriesProfileIncompleteTimeOrthDepth(NCEIBaseCheck):
         return Result(BaseCheck.HIGH, (score, out_of), 'Dataset contains NCEI TimeSeries require attributes', messages)
 
     @score_group('Required Variables')
-    def check_timeseries(self, dataset):
+    def check_timeseriesprofile(self, dataset):
         #Checks if the timeseries variable is formed properly
         msgs=[]
         results=[]
@@ -625,7 +627,7 @@ class NCEITimeSeriesProfileIncompleteTimeOrthDepth(NCEIBaseCheck):
             cfrole_check = True
         else: 
             msgs = ['cf_role is wrong']
-            cfrole_check = False
+            cfrole_check = Falsei
         results.append(Result(BaseCheck.MEDIUM, cfrole_check, ('station','cf_role'), msgs))       
         
         #Check 3) Long Name
@@ -635,6 +637,7 @@ class NCEITimeSeriesProfileIncompleteTimeOrthDepth(NCEIBaseCheck):
             msgs = ['long name is missing']
             long_check = False
         results.append(Result(BaseCheck.MEDIUM, long_check, ('station','long_name'), msgs))
+        return results
 
     @score_group('Required Variables')
     def check_z(self, dataset):

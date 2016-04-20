@@ -6,7 +6,7 @@ cc_plugin_ncei/ncei_base.py
 
 from compliance_checker.cf.cf import CFBaseCheck
 from compliance_checker.base import Result, BaseCheck, score_group, BaseNCCheck
-from compliance_checker.cf.util import StandardNameTable
+from compliance_checker.cf.util import StandardNameTable, units_known
 from cc_plugin_ncei.util import _find_platform_variables, _find_instrument_variables, getattr_check, hasattr_check, var_dtype
 import cf_units
 import numpy as np
@@ -324,7 +324,7 @@ class NCEIBaseCheck(BaseNCCheck):
         for name in dataset.variables:
             if hasattr(dataset.variables[name],'coordinates') and not hasattr(dataset.variables[name],'flag_meanings'):
                 #This is a science Variable.  Start Checks.
-                #Check 6,7,8,9,10,11 has these attributes
+                #Check  has these attributes
                 has_var_attr = [
                         '_FillValue',
                         'valid_min',
@@ -342,8 +342,15 @@ class NCEIBaseCheck(BaseNCCheck):
 
                 for attr in has_var_attr:
                     results.append(hasattr_check(dataset, var, attr, BaseCheck.MEDIUM))
-                
-                #Check 9) scale_factor
+
+                #Check Units
+                units = getattr(dataset.variables[name],'units',None)
+                units_check = units_known(units)
+                if not units_check:
+                    msgs.append('Units are wrong for {}'.format(name))
+                results.append(Result(BaseCheck.HIGH, units_check, (name,'udunits'),msgs))
+
+                #Check scale_factor
                 level = BaseCheck.MEDIUM
                 if hasattr(dataset.variables[name], 'scale_factor'):
                     scale_check = (1,2)
@@ -360,7 +367,7 @@ class NCEIBaseCheck(BaseNCCheck):
                     error_reached = True
                 results.append(Result(level, scale_check, (name,'scale_factor'), msgs))
 
-                 #Check 10) offset
+                 #Check offset
                 level = BaseCheck.MEDIUM
                 if hasattr(dataset.variables[name], 'add_offset'):
                     msgs = ['add_offset present, but the dtype is not the same as the data']
@@ -378,7 +385,7 @@ class NCEIBaseCheck(BaseNCCheck):
                 results.append(Result(level, offset_check, (name,'add_offset'), msgs))
  
 
-                #Check 14) Platform
+                #Check Platform
                 level = BaseCheck.MEDIUM
                 if not hasattr(dataset.variables[name], 'platform'):
                     plat_check = False
@@ -389,9 +396,10 @@ class NCEIBaseCheck(BaseNCCheck):
                 else:
                     plat_check = (1,2)
                     msgs = ['platform attribute is not present in the variables']
-                results.append(Result(level, plat_check, (name,'platform'), msgs))
+                if not hasattr(dataset,'platform'):
+                    results.append(Result(level, plat_check, (name,'platform'), msgs))
                     
-                #Check 15) Instrument
+                #Check Instrument
                 level = BaseCheck.MEDIUM
                 if not hasattr(dataset.variables[name], 'instrument'):
                     inst_check = False
@@ -402,7 +410,8 @@ class NCEIBaseCheck(BaseNCCheck):
                 else:
                     inst_check = (1,2)
                     msgs = ['instrument attribute is not present in the variables']
-                results.append(Result(level, inst_check, (name,'instrument'), msgs)) 
+                if not hasattr(dataset,'instrument'):
+                    results.append(Result(level, inst_check, (name,'instrument'), msgs)) 
              
                 #Check 16) Standard Name
                 level = BaseCheck.HIGH

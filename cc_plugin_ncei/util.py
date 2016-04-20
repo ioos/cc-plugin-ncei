@@ -15,7 +15,7 @@ def _find_platform_variables(ds):
     plat_vars = []
     platform_name = getattr(ds, 'platform', None)
     if platform_name is not None:
-        plat_vars.append(platform_name)
+        plat_vars = platform_name.split(',')
         return list(set(plat_vars))
 
     for k, v in ds.variables.items():
@@ -28,7 +28,7 @@ def _find_instrument_variables(ds):
     inst_vars = []
     instrument_name = getattr(ds, 'instrument', None)
     if instrument_name is not None:
-        inst_vars.append(instrument_name)
+        inst_vars = instrument_name.split(', ')
         return list(set(inst_vars))
     
     for k, v in ds.variables.items():

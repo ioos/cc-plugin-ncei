@@ -43,6 +43,7 @@ setup(name                 = "cc-plugin-ncei",
             'ncei-timeseriesprofile-orthtime-incompletedepth = cc_plugin_ncei.ncei_timeseriesprofile:NCEITimeSeriesProfileOrthTimeIncompleteDepth',
             'ncei-timeseriesprofile-incomplete = cc_plugin_ncei.ncei_timeseriesprofile:NCEITimeSeriesProfileIncomplete',
             'ncei-timeseriesprofile-incompletetime-orthdepth = cc_plugin_ncei.ncei_timeseriesprofile:NCEITimeSeriesProfileIncompleteTimeOrthDepth',
+            'ncei-trajectoryProfile-orthogonal = cc_plugin_ncei.ncei_trajectoryProfile:NCEITrajectoryProfileOrthogonal',
         ]
     }
 )
