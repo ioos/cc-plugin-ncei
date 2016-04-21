@@ -8,6 +8,7 @@ from compliance_checker.cf.cf import CFBaseCheck
 from compliance_checker.base import Result, BaseCheck, score_group
 from cc_plugin_ncei.ncei_metadata import NCEIMetadataCheck
 from cc_plugin_ncei.ncei_base import NCEIBaseCheck
+from cc_plugin_ncei.util import _find_z_dimension
 import cf_units
 import numpy as np
 
@@ -331,7 +332,8 @@ class NCEIGrid(NCEIBaseCheck):
         results = []
         msgs = []
         #Check Dimensions
-        dims_required = (u'time', u'z', u'lat', u'lon',)
+        z_dim = _find_z_dimension(dataset)
+        dims_required = (u'time', z_dim, u'lat', u'lon',)
         for name in dataset.variables:
             var = dataset.variables[name]
             if hasattr(var, 'coordinates') and not hasattr(dataset.variables[name], 'flag_meanings'):

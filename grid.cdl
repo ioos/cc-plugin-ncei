@@ -4,6 +4,7 @@ dimensions:
 	lon = 8192 ;
 	nv = 2 ;
 	time = 1 ;
+    z=1;
 variables:
 	int time(time) ;
 		time:standard_name = "time" ;
@@ -12,6 +13,17 @@ variables:
 		time:units = "seconds since 1981-01-01 00:00:00" ;
 		time:axis = "T" ;
 		time:calendar = "Gregorian" ;
+	float z(z) ;
+		z:standard_name = "depth" ;
+		z:units = "meters" ;
+		z:valid_min = 100 ;
+		z:valid_max = -100 ;
+		z:axis = "Z" ;
+		z:bounds = "z_bounds" ;
+        z:positive = "up" ;
+	float z_bounds(z, nv) ;
+		z_bounds:units = "meters" ;
+		z_bounds:comment = " " ;
 	int climatology_bounds(time, nv) ;
 		climatology_bounds:units = "seconds since 1981-01-01 00:00:00" ;
 		climatology_bounds:comment = "This variable defines the bounds of the climatological time period in this file. It contains two time elements: the first specifies the beginning of the first subinterval (in this case, one day); the second specifies the end of the last subinterval used to evaluate the daily climatological SST for this file." ;
@@ -42,8 +54,8 @@ variables:
 		crs:semi_major_axis = 6378137. ;
 		crs:inverse_flattening = 298.257223563 ;
 		crs:comment = "This is a container variable that describes the grid_mapping used by the data in this file. This variable does not contain any data; only information about the geographic coordinate system." ;
-	short analysed_sst(time, lat, lon) ;
-		analysed_sst:_CoordinateAxes = "time lat lon " ;
+	short analysed_sst(time, lat, lon, z) ;
+		analysed_sst:_CoordinateAxes = "time lat lon z " ;
 		analysed_sst:standard_name = "sea_surface_skin_temperature" ;
 		analysed_sst:long_name = "analysed climatological sea surface temperature" ;
 		analysed_sst:cell_methods = "time: mean within years time: mean over years" ;
@@ -56,8 +68,8 @@ variables:
 		analysed_sst:grid_mapping = "crs" ;
 		analysed_sst:ancillary_variables = "analysis_error sea_ice_fraction mask" ;
 		analysed_sst:comment = "Daily climatological skin temperature of the ocean, derived from harmonic analysis of the AVHRR Pathfinder Version 5.0 sea surface temperature time series from 1982-2008." ;
-	short analysis_error(time, lat, lon) ;
-		analysis_error:_CoordinateAxes = "time lat lon " ;
+	short analysis_error(time, lat, lon, z) ;
+		analysis_error:_CoordinateAxes = "time lat lon z " ;
 		analysis_error:standard_name = "sea_surface_temperature_error" ;
 		analysis_error:long_name = "estimated error standard deviation of climatological SST" ;
 		analysis_error:cell_methods = "time: mean within years time: mean over years" ;
@@ -69,9 +81,9 @@ variables:
 		analysis_error:_FillValue = -32768s ;
 		analysis_error:grid_mapping = "crs" ;
 		analysis_error:comment = "This field is taken from the standard deviation maps generated during calculation of the \"classic,\" or mean, daily climatology for Pathfinder Version 5.0. The original layers can be found at http://data.nodc.noaa.gov/opendap/pathfinder/Version5.0_CloudScreened/Daily/FullRes/climatology/contents.html in the ClimSTDV7_daynitavg layer." ;
-	byte sea_ice_fraction(time, lat, lon) ;
+	byte sea_ice_fraction(time, lat, lon, z) ;
 		sea_ice_fraction:_Unsigned = "true" ;
-		sea_ice_fraction:_CoordinateAxes = "time lat lon " ;
+		sea_ice_fraction:_CoordinateAxes = "time lat lon z " ;
 		sea_ice_fraction:standard_name = "sea_ice_area_fraction" ;
 		sea_ice_fraction:long_name = "climatological sea ice area fraction" ;
 		sea_ice_fraction:cell_methods = "time: mean over years" ;
@@ -85,9 +97,9 @@ variables:
 		sea_ice_fraction:ancillary_variables = "sea_ice_fraction_error" ;
 		sea_ice_fraction:source = "EUMETSAT OSISAF Global Daily Sea Ice Concentration Reprocessing Data Set" ;
 		sea_ice_fraction:comment = "Sea ice concentration data were taken from the EUMETSAT Ocean and Sea Ice Satellite Application Facility (OSISAF) Global Daily Sea Ice Concentration Reprocessing Data Set (http://accession.nodc.noaa.gov/0068294). The data were reprojected and interpolated from their original polar stereographic projection at 10km spatial resolution to the 4km Pathfinder Version 5.0 grid. A classic daily mean climatology was then calculated." ;
-	byte sea_ice_fraction_error(time, lat, lon) ;
+	byte sea_ice_fraction_error(time, lat, lon, z) ;
 		sea_ice_fraction_error:_Unsigned = "true" ;
-		sea_ice_fraction_error:_CoordinateAxes = "time lat lon " ;
+		sea_ice_fraction_error:_CoordinateAxes = "time lat lon z " ;
 		sea_ice_fraction_error:long_name = "standard deviation of climatological sea ice area fraction" ;
 		sea_ice_fraction_error:cell_methods = "time: mean over years" ;
 		sea_ice_fraction_error:units = "1" ;
@@ -97,9 +109,9 @@ variables:
 		sea_ice_fraction_error:valid_max = 100b ;
 		sea_ice_fraction_error:_FillValue = -128b ;
 		sea_ice_fraction_error:source = "EUMETSAT OSISAF Global Daily Sea Ice Concentration Reprocessing Data Set" ;
-	byte mask(time, lat, lon) ;
+	byte mask(time, lat, lon, z) ;
 		mask:_Unsigned = "true" ;
-		mask:_CoordinateAxes = "time lat lon " ;
+		mask:_CoordinateAxes = "time lat lon z " ;
 		mask:long_name = "land sea ice lake bit mask" ;
 		mask:valid_min = 0b ;
 		mask:valid_max = 8b ;
