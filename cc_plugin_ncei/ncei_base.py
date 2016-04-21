@@ -5,6 +5,7 @@ cc_plugin_ncei/ncei_base.py
 '''
 
 from compliance_checker.cf.cf import CFBaseCheck
+from compliance_checker.acdd import ACDDBaseCheck, ACDDNCCheck, ACDD1_1Check
 from compliance_checker.base import Result, BaseCheck, score_group, BaseNCCheck
 from compliance_checker.cf.util import StandardNameTable, units_known
 from cc_plugin_ncei.util import _find_platform_variables, _find_instrument_variables, getattr_check, hasattr_check, var_dtype
@@ -613,9 +614,9 @@ class NCEIBaseCheck(BaseNCCheck):
 
 
 ################################################################################
-# Check for CRS Variable (Uses CF Checker) 
+# CF Checks
 ################################################################################
-    @score_group('CRS')
+    @score_group('CF Global Attributes')
     def check_crs(self, dataset):
         '''        
         int crs; //.......................................................... RECOMMENDED - A container variable storing information about the grid_mapping. All the attributes within a grid_mapping variable are described in http://cf-pcmdi.llnl.gov/documents/cf-conventions/1.6/cf-conventions.html#appendix-grid-mappings. For all the measurements based on WSG84, the default coordinate system used for GPS measurements, the values shown here should be used.
@@ -627,3 +628,41 @@ class NCEIBaseCheck(BaseNCCheck):
         cfbasecheck = CFBaseCheck()
         return CFBaseCheck.check_horz_crs_grid_mappings_projections(cfbasecheck, dataset)
 
+    @score_group('CF Global Attributes')
+    def check_cf_conventions(self, dataset):
+        cfbasecheck = CFBaseCheck()
+        return CFBaseCheck.check_naming_conventions(cfbasecheck, dataset)
+
+    @score_group('CF Global Attributes')
+    def check_cf_conventions(self, dataset):
+        cfbasecheck = CFBaseCheck()
+        return CFBaseCheck.check_convention_possibly_var_attrs(cfbasecheck, dataset)
+
+    @score_group('CF Global Attributes')
+    def check_cf_standard_name_vocab(self, dataset):
+        msgs = []
+        vocab_string = "NetCDF Climate and Forecast (CF) Metadata Convention Standard Name Table"
+        if vocab_string in getattr(dataset,'standard_name_vocabulary', None):
+            vocab_check = True
+        else:
+            msgs.append('standard_name_vocab is not correct')
+            vocab_check = False
+        return Result(BaseCheck.HIGH, vocab_check, 'standard_name_vocab', msgs)
+
+################################################################################
+# ACDD Checks
+################################################################################
+    @score_group('ACDD Global Attributes')
+    def check_acdd_global(self, dataset):
+        acddbasecheck = ACDDBaseCheck()
+        return ACDDBaseCheck.check_high(acddbasecheck, dataset)
+    
+    @score_group('ACDD Global Attributes')
+    def check_acdd_global(self, dataset):
+        acddbasecheck = ACDDBaseCheck()
+        return ACDDBaseCheck.check_recommended(acddbasecheck, dataset)
+    
+    @score_group('ACDD Global Attributes')
+    def check_acdd_global(self, dataset):
+        acddbasecheck = ACDDBaseCheck()
+        return ACDDBaseCheck.check_suggested(acddbasecheck, dataset)
