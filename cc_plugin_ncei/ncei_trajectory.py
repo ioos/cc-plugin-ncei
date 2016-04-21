@@ -36,13 +36,6 @@ class NCEITrajectory(NCEIBaseCheck):
         '''
         return {}
 
-    def is_trajectory(self, dataset):
-        if 'trajectory' not in dataset.dimensions:
-            return False
-
-        return nc.variables['trajectory'].dimensions == ('trajectory',)
-
-
     def check_dimensions(self, dataset):
         '''
         NCEI_Trajectory_Incomplete

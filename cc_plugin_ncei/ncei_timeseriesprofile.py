@@ -37,13 +37,6 @@ class NCEITimeSeriesProfileOrthogonal(NCEIBaseCheck):
         '''
         return {}
 
-    def is_orthogonal(self, dataset):
-        if 'time' not in dataset.dimensions:
-            return False
-
-        return nc.variables['time'].dimensions == ('time',)
-
-
     def check_dimensions(self, dataset):
         '''
         NODC_TimeSeriesProfile_Orthogonal 
@@ -176,13 +169,6 @@ class NCEITimeSeriesProfileOrthTimeIncompleteDepth(NCEIBaseCheck):
         Not applicable for gliders
         '''
         return {}
-
-    def is_incomplete(self, dataset):
-        if 'timeSeries' not in dataset.dimensions:
-            return False
-
-        return nc.variables['timeSeries'].dimensions == ('timeSeries',)
-
 
     def check_dimensions(self, dataset):
         '''
@@ -342,13 +328,6 @@ class NCEITimeSeriesProfileIncomplete(NCEIBaseCheck):
         '''
         return {}
 
-    def is_incomplete(self, dataset):
-        if 'timeSeries' not in dataset.dimensions:
-            return False
-
-        return nc.variables['timeSeries'].dimensions == ('timeSeries',)
-
-
     def check_dimensions(self, dataset):
         '''
         netcdf NODC_TimeSeriesProfile_Incomplete {
@@ -507,13 +486,6 @@ class NCEITimeSeriesProfileIncompleteTimeOrthDepth(NCEIBaseCheck):
         Not applicable for gliders
         '''
         return {}
-
-    def is_incomplete(self, dataset):
-        if 'timeSeries' not in dataset.dimensions:
-            return False
-
-        return nc.variables['timeSeries'].dimensions == ('timeSeries',)
-
 
     def check_dimensions(self, dataset):
         '''

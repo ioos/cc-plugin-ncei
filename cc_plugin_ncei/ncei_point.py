@@ -35,13 +35,6 @@ class NCEIPoint(NCEIBaseCheck):
         '''
         return {}
 
-    def is_point(self, dataset):
-        if 'time' not in dataset.dimensions:
-            return False
-
-        return nc.variables['time'].dimensions == ('time',)
-
-
     def check_dimensions(self, dataset):
         '''
         netcdf NODC_point {

@@ -35,13 +35,6 @@ class NCEITimeSeriesOrthogonal(NCEIBaseCheck):
         '''
         return {}
 
-    def is_orthogonal(self, dataset):
-        if 'time' not in dataset.dimensions:
-            return False
-
-        return nc.variables['time'].dimensions == ('time',)
-
-
     def check_dimensions(self, dataset):
         '''
         NCEI_TimeSeries_Orthogonal
@@ -171,13 +164,6 @@ class NCEITimeSeriesIncomplete(NCEIBaseCheck):
         Not applicable for gliders
         '''
         return {}
-
-    def is_incomplete(self, dataset):
-        if 'timeSeries' not in dataset.dimensions:
-            return False
-
-        return nc.variables['timeSeries'].dimensions == ('timeSeries',)
-
 
     def check_dimensions(self, dataset):
         '''

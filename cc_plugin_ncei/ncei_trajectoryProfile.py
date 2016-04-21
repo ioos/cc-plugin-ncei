@@ -36,13 +36,6 @@ class NCEITrajectoryProfileOrthogonal(NCEIBaseCheck):
         '''
         return {}
 
-    def is_trajectoryProfile(self, dataset):
-        if 'trajectory' not in dataset.dimensions:
-            return False
-
-        return nc.variables['trajectory'].dimensions == ('trajectory',)
-
-
     def check_dimensions(self, dataset):
         '''
         netcdf NODC_TrajectoryProfile_Orthogonal 
@@ -216,13 +209,6 @@ class NCEITrajectoryProfileIncomplete(NCEIBaseCheck):
         Not applicable for gliders
         '''
         return {}
-
-    def is_trajectoryProfile(self, dataset):
-        if 'trajectory' not in dataset.dimensions:
-            return False
-
-        return nc.variables['trajectory'].dimensions == ('trajectory',)
-
 
     def check_dimensions(self, dataset):
         '''

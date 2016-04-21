@@ -8,6 +8,7 @@ from compliance_checker.cf.cf import CFBaseCheck
 from compliance_checker.base import Result, BaseCheck, score_group
 from cc_plugin_ncei.ncei_metadata import NCEIMetadataCheck
 from cc_plugin_ncei.ncei_base import NCEIBaseCheck
+from cc_plugin_ncei.util import _find_z_dimension
 import cf_units
 import numpy as np
 
@@ -35,13 +36,6 @@ class NCEIProfileOrthogonal(NCEIBaseCheck):
         '''
         return {}
 
-    def is_orthogonal(self, dataset):
-        if 'time' not in dataset.dimensions:
-            return False
-
-        return nc.variables['z'].dimensions == ('z',)
-
-
     def check_dimensions(self, dataset):
         '''
         NCEI_profile_Orthogonal
@@ -58,14 +52,15 @@ class NCEIProfileOrthogonal(NCEIBaseCheck):
         score = 0
         messages = []
 
-        test = 'z' in dataset.dimensions
+        z_dim = _find_z_dimension(dataset)
+        test = z_dim in dataset.dimensions
 
         if test:
             score += 1
         else:
-            messages.append('z is a required dimension for profile Orthogonal')
+            messages.append('{} is a required dimension for profile Orthogonal'.format(z_dim))
 
-        test = 'z' in dataset.variables and dataset.variables['z'].dimensions == ('z',)
+        test = z_dim in dataset.variables and dataset.variables[z_dim].dimensions == (z_dim,)
 
         if test:
             score += 1
@@ -118,10 +113,7 @@ class NCEIProfileOrthogonal(NCEIBaseCheck):
     def check_science_orthogonal(self, dataset):
         msgs = []
         results = []
-        z_name = 'z' #Taking a guess, but checking righta after
-        for var in dataset.variables:
-            if getattr(dataset.variables[var],'axis',None) == "Z":
-                z_name = var
+        z_name = _find_z_dimension(dataset)
         for var in dataset.variables:
             if hasattr(dataset.variables[var],'coordinates'):
                 dimensions = [dim for dim in dataset.dimensions if 'Strlen' not in dim and 'profile' not in dim]
@@ -188,13 +180,6 @@ class NCEIProfileIncomplete(NCEIBaseCheck):
         '''
         return {}
 
-    def is_profile(self, dataset):
-        if 'profile' not in dataset.dimensions:
-            return False
-
-        return nc.variables['profile'].dimensions == ('profile',)
-
-
     def check_dimensions(self, dataset):
         '''
         NCEI_profile_Incomplete
@@ -230,10 +215,7 @@ class NCEIProfileIncomplete(NCEIBaseCheck):
     def check_science_incomplete(self, dataset):
         msgs = []
         results = []
-        z_name = 'z' #Taking a guess, but checking righta after
-        for var in dataset.variables:
-            if getattr(dataset.variables[var],'axis',None) == "Z":
-                z_name = var
+        z_name = _find_z_dimension(dataset)
         for var in dataset.variables:
             if hasattr(dataset.variables[var],'coordinates'):
                 dim_check = dataset.variables[var].dimensions == dataset.variables[z_name].dimensions
