@@ -55,7 +55,6 @@ class NCEIPoint(NCEIBaseCheck):
             msgs.append('The dimension "obs" is preferred by the NODC template')
         score = len(dimensions)
         
-        #I know this is a little wonky, but you can have as many observation dimensions as you want
         return Result(BaseCheck.HIGH, (score, score), 'NCEI Required Dimensions', msgs)
 
     def check_required_attributes(self, dataset):
@@ -102,7 +101,7 @@ class NCEIPoint(NCEIBaseCheck):
         #Additional checks for Science Variables in a point Dataset
         results = []
         msgs = []
-        #Check 1 and 2) Dimensions
+        #Check and Dimensions
         dims_required = [dim for dim in dataset.dimensions if 'Strlen' not in dim]
         for name in dataset.variables:
             var = dataset.variables[name]
@@ -120,7 +119,7 @@ class NCEIPoint(NCEIBaseCheck):
                 #@TODO Also, note that whenever any auxiliary coordinate variable contains a missing value, all other 
                 #coordinate, auxiliary coordinate and data values corresponding to that element should also contain 
                 #missing values.   
-                #Check 3) Cell Methods
+                #Check Cell Methods
                 score = 0
                 out_of = 0
                 cell_methods = getattr(var, 'cell_methods', '')

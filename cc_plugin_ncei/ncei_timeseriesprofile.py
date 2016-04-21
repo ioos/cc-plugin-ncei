@@ -123,7 +123,7 @@ class NCEITimeSeriesProfileOrthogonal(NCEIBaseCheck):
         msgs=[]
         results=[]
 
-        #Check 1) TimeSeries Exist
+        #Check TimeSeries Exist
         if u'station' in dataset.variables:
             exists_check = True
             results.append(Result(BaseCheck.LOW, exists_check, ('station','exists'), msgs))       
@@ -132,7 +132,7 @@ class NCEITimeSeriesProfileOrthogonal(NCEIBaseCheck):
             exists_check = False
             return Result(BaseCheck.LOW, (0,1), ('station','exists'), msgs)
 
-        #Check 2) CF Role
+        #Check CF Role
         if getattr(dataset.variables[u'station'], 'cf_role', None) in self.valid_feature_types:
             cfrole_check = True
         else: 
@@ -140,7 +140,7 @@ class NCEITimeSeriesProfileOrthogonal(NCEIBaseCheck):
             cfrole_check = False
         results.append(Result(BaseCheck.MEDIUM, cfrole_check, ('station','cf_role'), msgs))       
         
-        #Check 3) Long Name
+        #Check Long Name
         if hasattr(dataset.variables[u'station'], 'long_name'):
             long_check = True
         else: 
@@ -277,7 +277,7 @@ class NCEITimeSeriesProfileOrthTimeIncompleteDepth(NCEIBaseCheck):
         msgs=[]
         results=[]
 
-        #Check 1) TimeSeries Exist
+        #Check TimeSeries Exist
         if u'station' in dataset.variables:
             exists_check = True
             results.append(Result(BaseCheck.LOW, exists_check, ('station','exists'), msgs))       
@@ -286,7 +286,7 @@ class NCEITimeSeriesProfileOrthTimeIncompleteDepth(NCEIBaseCheck):
             exists_check = False
             return Result(BaseCheck.LOW, (0,1), ('station','exists'), msgs)
 
-        #Check 2) CF Role
+        #Check CF Role
         if getattr(dataset.variables[u'station'], 'cf_role', None) in self.valid_feature_types:
             cfrole_check = True
         else: 
@@ -294,7 +294,7 @@ class NCEITimeSeriesProfileOrthTimeIncompleteDepth(NCEIBaseCheck):
             cfrole_check = False
         results.append(Result(BaseCheck.MEDIUM, cfrole_check, ('station','cf_role'), msgs))       
         
-        #Check 3) Long Name
+        #Check Long Name
         if hasattr(dataset.variables[u'station'], 'long_name'):
             long_check = True
         else: 
@@ -443,7 +443,7 @@ class NCEITimeSeriesProfileIncomplete(NCEIBaseCheck):
         msgs=[]
         results=[]
 
-        #Check 1) TimeSeries Exist
+        #Check TimeSeries Exist
         if u'station' in dataset.variables:
             exists_check = True
             results.append(Result(BaseCheck.LOW, exists_check, ('station','exists'), msgs))       
@@ -452,7 +452,7 @@ class NCEITimeSeriesProfileIncomplete(NCEIBaseCheck):
             exists_check = False
             return Result(BaseCheck.LOW, (0,1), ('station','exists'), msgs)
 
-        #Check 2) CF Role
+        #Check CF Role
         if getattr(dataset.variables[u'station'], 'cf_role', None) in self.valid_feature_types:
             cfrole_check = True
         else: 
@@ -460,7 +460,7 @@ class NCEITimeSeriesProfileIncomplete(NCEIBaseCheck):
             cfrole_check = False
         results.append(Result(BaseCheck.MEDIUM, cfrole_check, ('station','cf_role'), msgs))       
         
-        #Check 3) Long Name
+        #Check Long Name
         if hasattr(dataset.variables[u'station'], 'long_name'):
             long_check = True
         else: 
@@ -609,7 +609,7 @@ class NCEITimeSeriesProfileIncompleteTimeOrthDepth(NCEIBaseCheck):
         msgs=[]
         results=[]
 
-        #Check 1) TimeSeries Exist
+        #Check TimeSeries Exist
         if u'station' in dataset.variables:
             exists_check = True
             results.append(Result(BaseCheck.LOW, exists_check, ('station','exists'), msgs))       
@@ -618,7 +618,7 @@ class NCEITimeSeriesProfileIncompleteTimeOrthDepth(NCEIBaseCheck):
             exists_check = False
             return Result(BaseCheck.LOW, (0,1), ('station','exists'), msgs)
 
-        #Check 2) CF Role
+        #Check CF Role
         if getattr(dataset.variables[u'station'], 'cf_role', None) in self.valid_feature_types:
             cfrole_check = True
         else: 
@@ -626,7 +626,7 @@ class NCEITimeSeriesProfileIncompleteTimeOrthDepth(NCEIBaseCheck):
             cfrole_check = Falsei
         results.append(Result(BaseCheck.MEDIUM, cfrole_check, ('station','cf_role'), msgs))       
         
-        #Check 3) Long Name
+        #Check Long Name
         if hasattr(dataset.variables[u'station'], 'long_name'):
             long_check = True
         else: 

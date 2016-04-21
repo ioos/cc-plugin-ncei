@@ -120,7 +120,7 @@ class NCEITimeSeriesOrthogonal(NCEIBaseCheck):
         msgs=[]
         results=[]
 
-        #Check 1) TimeSeries Exist
+        #Check TimeSeries Exist
         if u'timeSeries' in dataset.variables:
             exists_check = True
             results.append(Result(BaseCheck.LOW, exists_check, ('timeSeries','exists'), msgs))       
@@ -129,7 +129,7 @@ class NCEITimeSeriesOrthogonal(NCEIBaseCheck):
             exists_check = False
             return Result(BaseCheck.LOW, (0,1), ('timeSeries','exists'), msgs)
 
-        #Check 2) CF Role
+        #Check CF Role
         if getattr(dataset.variables[u'timeSeries'], 'cf_role', None) in self.valid_feature_types:
             cfrole_check = True
         else: 
@@ -137,7 +137,7 @@ class NCEITimeSeriesOrthogonal(NCEIBaseCheck):
             cfrole_check = False
         results.append(Result(BaseCheck.MEDIUM, cfrole_check, ('timeSeries','cf_role'), msgs))       
         
-        #Check 3) Long Name
+        #Check Long Name
         if hasattr(dataset.variables[u'timeSeries'], 'long_name'):
             long_check = True
         else: 
@@ -269,7 +269,7 @@ class NCEITimeSeriesIncomplete(NCEIBaseCheck):
         msgs=[]
         results=[]
 
-        #Check 1) TimeSeries Exist
+        #Check TimeSeries Exist
         if u'timeSeries' in dataset.variables:
             exists_check = True
             results.append(Result(BaseCheck.LOW, exists_check, ('timeSeries','exists'), msgs))       
@@ -278,7 +278,7 @@ class NCEITimeSeriesIncomplete(NCEIBaseCheck):
             exists_check = False
             return Result(BaseCheck.LOW, (0,1), ('timeSeries','exists'), msgs)
 
-        #Check 2) CF Role
+        #Check CF Role
         if getattr(dataset.variables[u'timeSeries'], 'cf_role', None) in self.valid_feature_types:
             cfrole_check = True
         else: 
@@ -286,7 +286,7 @@ class NCEITimeSeriesIncomplete(NCEIBaseCheck):
             cfrole_check = False
         results.append(Result(BaseCheck.MEDIUM, cfrole_check, ('timeSeries','cf_role'), msgs))       
         
-        #Check 3) Long Name
+        #Check Long Name
         if hasattr(dataset.variables[u'timeSeries'], 'long_name'):
             long_check = True
         else: 

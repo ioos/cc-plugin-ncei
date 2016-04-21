@@ -136,7 +136,7 @@ class NCEIProfileOrthogonal(NCEIBaseCheck):
         msgs=[]
         results=[]
 
-        #Check 1) profile Exist
+        #Check profile Exist
         if u'profile' in dataset.variables:
             exists_check = True
             results.append(Result(BaseCheck.LOW, exists_check, ('profile','exists'), msgs))       
@@ -145,7 +145,7 @@ class NCEIProfileOrthogonal(NCEIBaseCheck):
             exists_check = False
             return Result(BaseCheck.LOW, (0,1), ('profile','exists'), msgs)
 
-        #Check 2) CF Role
+        #Check CF Role
         if getattr(dataset.variables[u'profile'], 'cf_role', None) in self.valid_feature_types:
             cfrole_check = True
         else: 
@@ -153,7 +153,7 @@ class NCEIProfileOrthogonal(NCEIBaseCheck):
             cfrole_check = False
         results.append(Result(BaseCheck.MEDIUM, cfrole_check, ('profile','cf_role'), msgs))       
         
-        #Check 3) Long Name
+        #Check Long Name
         if hasattr(dataset.variables[u'profile'], 'long_name'):
             long_check = True
         else: 
@@ -288,7 +288,7 @@ class NCEIProfileIncomplete(NCEIBaseCheck):
         msgs=[]
         results=[]
 
-        #Check 1) profile Exist
+        #Check profile Exist
         if u'profile' in dataset.variables:
             exists_check = True
             results.append(Result(BaseCheck.LOW, exists_check, ('profile','exists'), msgs))       
@@ -297,7 +297,7 @@ class NCEIProfileIncomplete(NCEIBaseCheck):
             exists_check = False
             return Result(BaseCheck.LOW, (0,1), ('profile','exists'), msgs)
 
-        #Check 2) CF Role
+        #Check CF Role
         if getattr(dataset.variables[u'profile'], 'cf_role', None) in self.valid_feature_types:
             cfrole_check = True
         else: 
@@ -305,7 +305,7 @@ class NCEIProfileIncomplete(NCEIBaseCheck):
             cfrole_check = False
         results.append(Result(BaseCheck.MEDIUM, cfrole_check, ('profile','cf_role'), msgs))       
         
-        #Check 3) Long Name
+        #Check Long Name
         if hasattr(dataset.variables[u'profile'], 'long_name'):
             long_check = True
         else: 

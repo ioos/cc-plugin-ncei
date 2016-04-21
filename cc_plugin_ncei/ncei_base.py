@@ -114,8 +114,8 @@ class NCEIBaseCheck(BaseNCCheck):
         msgs=[]
         results=[]
         var = u'lon'
-       #Check 1) lat exist
 
+       #Check lon exist
         if var in dataset.variables:
             exists_check = True
             results.append(Result(BaseCheck.HIGH, exists_check, (var,'exists'), msgs))
@@ -123,17 +123,17 @@ class NCEIBaseCheck(BaseNCCheck):
             msgs = ['{} does not exist'.format(var)]
             return Result(BaseCheck.HIGH, (0,1), (var,'exists'), msgs)
        
-        #Check 2) Data Type
+        #Check Data Type
         valid_types = ['int', 'long', 'double', 'float']
         results.append(var_dtype(dataset, var, valid_types, BaseCheck.HIGH))
 
-        #Check 3,4,5 Check standard name, units, and axis
+        #Check Check standard name, units, and axis
         get_attr_val = [
                 ('standard_name', 'longitude'), 
                 ('units', 'degrees_east'), 
                 ('axis', 'X')
                 ]
-        #Check 6,7,8,9,10,11 has these attributes
+        #Check has these attributes
         has_var_attr = [
                 '_FillValue',
                 'valid_min',
@@ -168,7 +168,7 @@ class NCEIBaseCheck(BaseNCCheck):
         msgs=[]
         results=[]
         var = u'time'
-       #Check 1) lat exist
+       #Check time exist
 
         if var in dataset.variables:
             exists_check = True
@@ -177,16 +177,16 @@ class NCEIBaseCheck(BaseNCCheck):
             msgs = ['{} does not exist'.format(var)]
             return Result(BaseCheck.HIGH, (0,1), (var,'exists'), msgs)
        
-        #Check 2) Data Type
+        #Check Data Type
         valid_types = ['int', 'long', 'double', 'float']
         results.append(var_dtype(dataset, var, valid_types, BaseCheck.HIGH))
 
-        #Check 3, 4 Check standard name and axis
+        #Check  Check standard name and axis
         get_attr_val = [
                 ('standard_name', 'time'), 
                 ('axis', 'T')
                 ]
-        #Check 5,6,7,8 has these attributes
+        #Check has these attributes
         has_var_attr = [
                 'ancillary_variables',
                 'comment',
@@ -200,7 +200,7 @@ class NCEIBaseCheck(BaseNCCheck):
         for attr in has_var_attr:
             results.append(hasattr_check(dataset, var, attr, BaseCheck.MEDIUM))
  
-        #Check 9) Units
+        #Check Units
         if 'since' in getattr(dataset.variables[var], 'units', None):
             units_check = True
         else: 
@@ -228,11 +228,26 @@ class NCEIBaseCheck(BaseNCCheck):
                 '''
         msgs=[]
         results=[]
+        #best guess for variable name and units
         valid_types = ['int', 'long', 'double', 'float']
-        valid_variable_names = ['z','depth','altitude','pressure','height', 'alt']
+        valid_variable_names = ["depth", "DEPTH",
+              "depths", "DEPTHS",
+              "height", "HEIGHT",
+              "altitude", "ALTITUDE",
+              "alt", "ALT",
+              "Alt", "Altitude",
+              "h", "H",
+              "s_rho", "S_RHO",
+              "s_w", "S_W",
+              "z", "Z",
+              "siglay", "SIGLAY",
+              "siglev", "SIGLEV",
+              "sigma", "SIGMA",
+              "vertical", "VERTICAL", "lev", "LEV", "level", "LEVEL"
+              ]
         valid_units = ['m','meters','meter','metre','metres','km','kilometers','kilometer','bar','millibar','decibar','atm','atmosphere','pascal','Pa','hPa']
 
-        #Check 1) height exists and Check 2) Axis 
+        #Check  height exists and Check Axis 
         no_height = True
         for var in dataset.variables:
             if getattr(dataset.variables[var],'axis',None) == 'Z':
@@ -243,7 +258,7 @@ class NCEIBaseCheck(BaseNCCheck):
         if no_height:
             return Result(BaseCheck.HIGH, (0,1), ('height_variable','exists'), msgs)
         
-       #Check 3) Height Name
+       #Check Height Name
         if var in valid_variable_names:
             name_check = True
             results.append(Result(BaseCheck.HIGH, name_check, (var,'valid_height_name'), msgs))
@@ -251,11 +266,11 @@ class NCEIBaseCheck(BaseNCCheck):
             msgs = ['The name of the Height Variable is not in the approved vocab list']
             return Result(BaseCheck.HIGH, (0,1), (var,'valid_height_name'), msgs)
        
-        #Check 4) Data Type
+        #Check Data Type
         valid_types = ['int', 'long', 'double', 'float']
         results.append(var_dtype(dataset, var, valid_types, BaseCheck.HIGH))
 
-        #Check 5) Standard Name
+        #Check Standard Name
         if getattr(dataset.variables[var], 'standard_name', None) in ['depth','altitude']:
             std_check = True
         else: 
@@ -263,7 +278,7 @@ class NCEIBaseCheck(BaseNCCheck):
             std_check = False
         results.append(Result(BaseCheck.HIGH, std_check, (var,'standard_name'), msgs))
 
-        #Check 6) Units
+        #Check Units
         if getattr(dataset.variables[var], 'units', None) in valid_units:
             units_check = True
         else: 
@@ -271,7 +286,7 @@ class NCEIBaseCheck(BaseNCCheck):
             units_check = False
         results.append(Result(BaseCheck.HIGH, units_check, (var,'units'), msgs))
 
-        #Check 5,6,7,8 has these attributes
+        #Check has these attributes
         has_var_attr = [
                 'ancillary_variables',
                 'comment',
@@ -284,7 +299,7 @@ class NCEIBaseCheck(BaseNCCheck):
         for attr in has_var_attr:
             results.append(hasattr_check(dataset, var, attr, BaseCheck.MEDIUM))
          
-        #Check 13) Positive
+        #Check Positive
         if getattr(dataset.variables[var], 'positive', None) in ['up', 'down']:
             pos_check = True
         else: 
@@ -414,7 +429,7 @@ class NCEIBaseCheck(BaseNCCheck):
                 if not hasattr(dataset,'instrument'):
                     results.append(Result(level, inst_check, (name,'instrument'), msgs)) 
              
-                #Check 16) Standard Name
+                #Check  Standard Name
                 level = BaseCheck.HIGH
                 if not hasattr(dataset.variables[name], 'standard_name'):
                     inst_check = (0,2)
@@ -456,7 +471,7 @@ class NCEIBaseCheck(BaseNCCheck):
         std_name_list = [getattr(dataset.variables[var], 'standard_name', None) for var in dataset.variables]
         for name in dataset.variables:
             if hasattr(dataset.variables[name],'flag_meanings'):
-                #Check 1) Standard Name
+                #Check Standard Name
                 std_check = 0
                 msgs = []
 
@@ -472,7 +487,7 @@ class NCEIBaseCheck(BaseNCCheck):
                     msgs.append('Standard Name does not end in "status_flag"')
                 results.append(Result(BaseCheck.HIGH, (std_check,2), (name,'standard_name'), msgs))
 
-                #Check 2) Flag Mask / Flag Values
+                #Check Flag Mask / Flag Values
                 mask_val_check = False
                 test_name = 'flag_masks_values'
                 if 'bool' in str(dataset.variables[name].dtype):
@@ -489,7 +504,7 @@ class NCEIBaseCheck(BaseNCCheck):
                     mask_length = 0
                 results.append(Result(BaseCheck.HIGH, mask_val_check, (name,test_name), msgs))
 
-                #Check 3) Flag Meaning
+                #Check Flag Meaning
                 if hasattr(dataset.variables[name],'flag_meanings'):
                     meanings_check = True
                     meaning_length = len(getattr(dataset.variables[name],'flag_meanings',None))
@@ -499,7 +514,7 @@ class NCEIBaseCheck(BaseNCCheck):
                     meaning_length = 0
                 results.append(Result(BaseCheck.HIGH, meanings_check, (name, 'flag_meanings'), msgs))
 
-                #Check 4) Flag Meaning and Flag mask/Values same length
+                #Check Flag Meaning and Flag mask/Values same length
                 if mask_length == meaning_length:
                     length_check = True
                     msgs = []
@@ -508,7 +523,7 @@ class NCEIBaseCheck(BaseNCCheck):
                     msgs = ['the length of flag_mask/values does not match flag_meanings']
                 results.append(Result(BaseCheck.HIGH, length_check, (name, 'flag_attributes_lengths'), msgs))
 
-                #Check 5) Comment
+                #Check Comment
                 if hasattr(dataset.variables[name], 'comment'):
                     comment_check = True
                 else: 
@@ -516,7 +531,7 @@ class NCEIBaseCheck(BaseNCCheck):
                     comment_check = False
                 results.append(Result(BaseCheck.MEDIUM, comment_check, (name,'comment'), msgs))
      
-                #Check 6) Long Name
+                #Check Long Name
                 if hasattr(dataset.variables[name], 'long_name'):
                     long_check = True
                 else: 
@@ -524,7 +539,7 @@ class NCEIBaseCheck(BaseNCCheck):
                     long_check = False
                 results.append(Result(BaseCheck.MEDIUM, long_check, (name,'long_name'), msgs)) 
             
-                #Check 7) References
+                #Check References
                 if hasattr(dataset.variables[name], 'reference'):
                     source_check = True
                 else: 
@@ -557,10 +572,10 @@ class NCEIBaseCheck(BaseNCCheck):
         if len(platforms) == 0:
             return Result(BaseCheck.MEDIUM, False, ('platform_var','exists'), ['The platform variables do not exist']) 
         for platform in platforms:
-            #Check 1) Platform Var Exists
+            #Check Platform Var Exists
             if platform not in dataset.variables:
                 return Result(BaseCheck.MEDIUM, False, ('platform_var','exists'), ['The platform variables do not exist']) 
-            #Check 2) Long Name
+            #Check Long Name
             has_var_attr = [
                     'comment',
                     'long_name',
@@ -596,7 +611,7 @@ class NCEIBaseCheck(BaseNCCheck):
             return Result(BaseCheck.MEDIUM, False, ('instrument_var','exists'), ['The instrument variables do not exist']) 
         
         for instrument in instruments:
-            #Check 1) Instrument Var Exists
+            #Check Instrument Var Exists
             if instrument not in dataset.variables:
                 return Result(BaseCheck.MEDIUM, False, ('instrument_var','exists'), ['The instrument variables do not exist']) 
  

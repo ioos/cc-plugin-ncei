@@ -141,7 +141,7 @@ class NCEITrajectoryProfileOrthogonal(NCEIBaseCheck):
         msgs=[]
         results=[]
 
-        #Check 1) trajectoryProfile Exist
+        #Check trajectoryProfile Exist
         if u'trajectory' in dataset.variables:
             exists_check = True
             results.append(Result(BaseCheck.LOW, exists_check, ('trajectory','exists'), msgs))       
@@ -150,7 +150,7 @@ class NCEITrajectoryProfileOrthogonal(NCEIBaseCheck):
             exists_check = False
             return Result(BaseCheck.LOW, (0,1), ('trajectory','exists'), msgs)
 
-        #Check 2) CF Role
+        #Check CF Role
         if getattr(dataset.variables[u'trajectory'], 'cf_role', None) in self.valid_feature_types:
             cfrole_check = True
         else: 
@@ -158,7 +158,7 @@ class NCEITrajectoryProfileOrthogonal(NCEIBaseCheck):
             cfrole_check = False
         results.append(Result(BaseCheck.MEDIUM, cfrole_check, ('trajectory','cf_role'), msgs))       
         
-        #Check 3) Long Name
+        #Check Long Name
         if hasattr(dataset.variables[u'trajectory'], 'long_name'):
             long_check = True
         else: 
@@ -320,7 +320,7 @@ class NCEITrajectoryProfileIncomplete(NCEIBaseCheck):
         msgs=[]
         results=[]
 
-        #Check 1) trajectoryProfile Exist
+        #Check trajectoryProfile Exist
         if u'trajectory' in dataset.variables:
             exists_check = True
             results.append(Result(BaseCheck.LOW, exists_check, ('trajectory','exists'), msgs))       
@@ -329,7 +329,7 @@ class NCEITrajectoryProfileIncomplete(NCEIBaseCheck):
             exists_check = False
             return Result(BaseCheck.LOW, (0,1), ('trajectory','exists'), msgs)
 
-        #Check 2) CF Role
+        #Check CF Role
         if getattr(dataset.variables[u'trajectory'], 'cf_role', None) in self.valid_feature_types:
             cfrole_check = True
         else: 
@@ -337,7 +337,7 @@ class NCEITrajectoryProfileIncomplete(NCEIBaseCheck):
             cfrole_check = False
         results.append(Result(BaseCheck.MEDIUM, cfrole_check, ('trajectory','cf_role'), msgs))       
         
-        #Check 3) Long Name
+        #Check Long Name
         if hasattr(dataset.variables[u'trajectory'], 'long_name'):
             long_check = True
         else: 

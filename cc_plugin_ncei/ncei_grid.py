@@ -121,7 +121,7 @@ class NCEIGrid(NCEIBaseCheck):
         msgs=[]
         results=[]
 
-        #Check 1) Lat Bounds
+        #Check Lat Bounds
         bounds = getattr(dataset.variables[u'lat'], 'bounds', None)
         if bounds in dataset.variables:
             bounds_check = True
@@ -138,7 +138,7 @@ class NCEIGrid(NCEIBaseCheck):
         msgs=[]
         results=[]
 
-        #Check 1) Lon Bounds
+        #Check Lon Bounds
         bounds = getattr(dataset.variables[u'lon'], 'bounds', None)
         if bounds in dataset.variables:
             bounds_check = True
@@ -155,7 +155,7 @@ class NCEIGrid(NCEIBaseCheck):
         msgs=[]
         results=[]
 
-        #Check 1) Time Bounds
+        #Check Time Bounds
         bounds = getattr(dataset.variables[u'time'], 'bounds', None)
         if not bounds:
             bounds = getattr(dataset.variables[u'time'], 'climatology', None)
@@ -178,7 +178,7 @@ class NCEIGrid(NCEIBaseCheck):
         except:        
             msgs.append('The z variable is missing')
             return Result(BaseCheck.MEDIUM, False, ('height_variable','bounds'), msgs)  
-        #Check 1) Z Bounds
+        #Check Z Bounds
         bounds = getattr(dataset.variables[u'z'], 'bounds', None)
         if bounds in dataset.variables:
             bounds_check = True
@@ -196,7 +196,7 @@ class NCEIGrid(NCEIBaseCheck):
         msgs=[]
         results=[]
 
-        #Check 1) Lat Boundary Variable
+        #Check Lat Boundary Variable
         bounds = getattr(dataset.variables[u'lat'], 'bounds', None)
         if hasattr(dataset.variables[bounds], 'comment'):
             comment_check = True
@@ -228,7 +228,7 @@ class NCEIGrid(NCEIBaseCheck):
         msgs=[]
         results=[]
 
-        #Check 1) Lon Boundary Variable
+        #Check Lon Boundary Variable
         bounds = getattr(dataset.variables[u'lon'], 'bounds', None)
         if hasattr(dataset.variables[bounds], 'comment'):
             comment_check = True
@@ -260,7 +260,7 @@ class NCEIGrid(NCEIBaseCheck):
         msgs=[]
         results=[]
 
-        #Check 1) Time Boundary Variable
+        #Check Time Boundary Variable
         
         bounds = getattr(dataset.variables[u'time'], 'bounds', None)
         if not bounds:
@@ -295,7 +295,7 @@ class NCEIGrid(NCEIBaseCheck):
         msgs=[]
         results=[]
 
-        #Check 1) Time Boundary Variable
+        #Check Time Boundary Variable
         try:
             bounds = getattr(dataset.variables[u'z'], 'bounds', None)
         except:
@@ -330,7 +330,7 @@ class NCEIGrid(NCEIBaseCheck):
         #Additional checks for Science Variables in a Grid Dataset
         results = []
         msgs = []
-        #Check 1 and 2) Dimensions
+        #Check Dimensions
         dims_required = (u'time', u'z', u'lat', u'lon',)
         for name in dataset.variables:
             var = dataset.variables[name]
