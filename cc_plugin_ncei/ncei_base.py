@@ -5,7 +5,7 @@ cc_plugin_ncei/ncei_base.py
 '''
 
 from compliance_checker.cf.cf import CFBaseCheck
-from compliance_checker.acdd import ACDDBaseCheck, ACDDNCCheck, ACDD1_1Check
+from compliance_checker.acdd import ACDDBaseCheck, ACDD1_1Check
 from compliance_checker.base import Result, BaseCheck, score_group, BaseNCCheck
 from compliance_checker.cf.util import StandardNameTable, units_known
 from cc_plugin_ncei.util import _find_platform_variables, _find_instrument_variables, getattr_check, hasattr_check, var_dtype
@@ -653,16 +653,16 @@ class NCEIBaseCheck(BaseNCCheck):
 # ACDD Checks
 ################################################################################
     @score_group('ACDD Global Attributes')
-    def check_acdd_global(self, dataset):
-        acddbasecheck = ACDDBaseCheck()
-        return ACDDBaseCheck.check_high(acddbasecheck, dataset)
+    def check_acdd_global_high(self, dataset):
+        acdd1_1check = ACDD1_1Check()
+        return ACDDBaseCheck.check_high(acdd1_1check, dataset)
     
     @score_group('ACDD Global Attributes')
-    def check_acdd_global(self, dataset):
-        acddbasecheck = ACDDBaseCheck()
-        return ACDDBaseCheck.check_recommended(acddbasecheck, dataset)
+    def check_acdd_global_med(self, dataset):
+        acdd1_1check = ACDD1_1Check()
+        return ACDDBaseCheck.check_recommended(acdd1_1check, dataset)
     
     @score_group('ACDD Global Attributes')
-    def check_acdd_global(self, dataset):
-        acddbasecheck = ACDDBaseCheck()
-        return ACDDBaseCheck.check_suggested(acddbasecheck, dataset)
+    def check_acdd_global_low(self, dataset):
+        acdd1_1check = ACDD1_1Check()
+        return ACDDBaseCheck.check_suggested(acdd1_1check, dataset)
