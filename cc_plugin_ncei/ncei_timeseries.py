@@ -26,7 +26,7 @@ class NCEITimeSeriesOrthogonal(NCEIBaseCheck):
 
     valid_feature_types = [
         'timeSeries',
-        'timeSeries_id'
+        'timeseries_id'
     ]
     @classmethod
     def beliefs(cls): 
@@ -151,12 +151,12 @@ class NCEITimeSeriesIncomplete(NCEIBaseCheck):
     _cc_checker_version = '2.1.0'
 
     valid_templates = [
-        "NCEI_NetCDF_TimeSeries_Incomplete_Template_v2.0"
+        "NODC_NetCDF_TimeSeries_Incomplete_Template_v1.1"
     ]
 
     valid_feature_types = [
         'timeSeries',
-        'timeSeries_id'
+        'timeseries_id'
     ]
     @classmethod
     def beliefs(cls): 
@@ -188,7 +188,7 @@ class NCEITimeSeriesIncomplete(NCEIBaseCheck):
             score += 1
             out_of += 1
 
-        test = 'timeSeries' in dataset.variables and dataset.variables['timeSeries'].dimensions == ('timeSeries',dimensions[0],)
+        test = 'timeSeries' in dataset.variables and dataset.variables['timeSeries'].dimensions == ('timeSeries',)
         if test:
             score += 1
         else:

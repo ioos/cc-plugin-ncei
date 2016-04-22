@@ -113,7 +113,6 @@ class NCEIGrid(NCEIBaseCheck):
     def check_lat_grid(self, dataset):
         #Checks if the timeseries variable is formed properly
         msgs=[]
-        results=[]
 
         #Check Lat Bounds
         bounds = getattr(dataset.variables[u'lat'], 'bounds', None)
@@ -122,15 +121,12 @@ class NCEIGrid(NCEIBaseCheck):
         else:
             bounds_check = False
             msgs.append('The bounds attribute is not in the variable list')
-        results.append(Result(BaseCheck.MEDIUM, bounds_check, ('lat','bounds'), msgs))       
+        return Result(BaseCheck.MEDIUM, bounds_check, ('lat','bounds'), msgs)      
         
-        return results
-
     @score_group('Required Variables')
     def check_lon_grid(self, dataset):
         #Checks if the timeseries variable is formed properly
         msgs=[]
-        results=[]
 
         #Check Lon Bounds
         bounds = getattr(dataset.variables[u'lon'], 'bounds', None)
@@ -139,10 +135,8 @@ class NCEIGrid(NCEIBaseCheck):
         else:
             bounds_check = False
             msgs.append('The bounds attribute is not in the variable list')
-        results.append(Result(BaseCheck.MEDIUM, bounds_check, ('lon','bounds'), msgs))     
+        return Result(BaseCheck.MEDIUM, bounds_check, ('lon','bounds'), msgs)   
         
-        return results 
-
     @score_group('Required Variables')
     def check_time_grid(self, dataset):
         #Checks if the timeseries variable is formed properly
@@ -158,8 +152,7 @@ class NCEIGrid(NCEIBaseCheck):
         else:
             bounds_check = False
             msgs.append('The bounds attribute is not in the variable list')
-        results.append(Result(BaseCheck.MEDIUM, bounds_check, ('time','bounds'), msgs))     
-        
+        results.append(Result(BaseCheck.MEDIUM, bounds_check, ('time','bounds'), msgs))      
         return results 
     
     @score_group('Required Variables')
