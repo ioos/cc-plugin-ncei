@@ -1,6 +1,6 @@
 netcdf BodegaMarineLabBuoy {
 dimensions:
-	name_strlen = 17 ;
+	timeSeries = 17 ;
 	time = 63242 ;
 variables:
 	double time(time) ;
@@ -48,9 +48,9 @@ variables:
 		alt:ioos_category = "Location" ;
                 alt:axis = "Z" ;
                 alt:_FillValue = 0.0 ;
-	char station_name(name_strlen) ;
-		station_name:long_name = "Cordell Bank National Marine Sanctuary (CBNMS) Bodega Marine Lab (BML) Buoy" ;
-		station_name:cf_role = "timeseries_id" ;
+	char timeSeries(timeSeries) ;
+		timeSeries:long_name = "Cordell Bank National Marine Sanctuary (CBNMS) Bodega Marine Lab (BML) Buoy" ;
+		timeSeries:cf_role = "timeseries_id" ;
 	double temperature(time) ;
 		temperature:long_name = "Water temperature, IPTS-90" ;
 		temperature:standard_name = "sea_water_temperature" ;

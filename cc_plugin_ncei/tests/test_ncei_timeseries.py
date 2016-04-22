@@ -1,4 +1,4 @@
-from cc_plugin_ncei.ncei_timeseries import NCEITimeSeriesOrthogonal
+from cc_plugin_ncei.ncei_timeseries import NCEITimeSeriesOrthogonal, NCEITimeSeriesIncomplete
 from cc_plugin_ncei.tests.resources import STATIC_FILES
 from netCDF4 import Dataset
 import unittest
@@ -31,10 +31,50 @@ class TestNCEITimeSeries(unittest.TestCase):
         return nc_dataset
     
     def setUp(self):
-        self.check = NCEITimeSeriesOrthogonal()
+        self.orthcheck = NCEITimeSeriesOrthogonal()
+        self.inccheck = NCEITimeSeriesIncomplete()
     
-    def test_dimension_check(self):
-        dataset = self.get_dataset(STATIC_FILES['station_timeseries'])
-        result = self.check.check_dimensions(dataset)
+
+##########################################################################
+# Orthogonal Time Series Test
+##########################################################################
+    def test_dimension_check_orthogonal(self):
+        dataset = self.get_dataset(STATIC_FILES['timeSeriesOrthogonal'])
+        result = self.orthcheck.check_dimensions(dataset)
 
         self.assertEquals(result.value, (2, 2))
+
+    def test_required_attributes_orthogonal(self):
+        dataset = self.get_dataset(STATIC_FILES['timeSeriesOrthogonal'])
+        result = self.orthcheck.check_required_attributes(dataset)
+        self.assertEquals(result.value, (4, 4))
+
+    def test_timeseries_orthogonal(self):
+        dataset = self.get_dataset(STATIC_FILES['timeSeriesOrthogonal'])
+        result = self.orthcheck.check_timeseries(dataset)
+        for test_result in result:
+            print test_result
+            self.assertEquals(test_result.value, True)
+
+##########################################################################
+# Incomplete Time Series Test
+##########################################################################
+    def test_dimension_check_orthogonal(self):
+        dataset = self.get_dataset(STATIC_FILES['timeSeriesIncomplete'])
+        result = self.inccheck.check_dimensions(dataset)
+        print result
+
+        self.assertEquals(result.value, (3, 3))
+
+    def test_required_attributes_orthogonal(self):
+        dataset = self.get_dataset(STATIC_FILES['timeSeriesIncomplete'])
+        result = self.inccheck.check_required_attributes(dataset)
+        print result
+        self.assertEquals(result.value, (4, 4))
+
+    def test_timeseries_orthogonal(self):
+        dataset = self.get_dataset(STATIC_FILES['timeSeriesIncomplete'])
+        result = self.inccheck.check_timeseries(dataset)
+        for test_result in result:
+            print test_result
+            self.assertEquals(test_result.value, True)

@@ -1,6 +1,5 @@
 netcdf BodegaMarineLabBuoyCombined {
 dimensions:
-	name_strlen = 9 ;
 	obs = 63242 ;
 	timeSeries = 2 ;
 variables:
@@ -56,9 +55,9 @@ variables:
 		alt:ioos_category = "Location" ;
 	     alt:axis = "Z" ;
           alt:_FillValue = 0.0 ;
-	char station_name(timeSeries, name_strlen) ;
-		station_name:long_name = "Cordell Bank National Marine Sanctuary (CBNMS) Bodega Marine Lab (BML) Buoy" ;
-		station_name:cf_role = "timeseries_id" ;
+	int timeSeries(timeSeries) ;
+		timeSeries:long_name = "Cordell Bank National Marine Sanctuary (CBNMS) Bodega Marine Lab (BML) Buoy" ;
+		timeSeries:cf_role = "timeseries_id" ;
 	double temperature(timeSeries, obs) ;
 		temperature:long_name = "Water temperature, IPTS-90" ;
 		temperature:standard_name = "sea_water_temperature" ;
@@ -349,6 +348,6 @@ variables:
 		:history = "2011-03-17 23:17:49 UTC: File created at 2011-03-17 23:17:49 UTC edited on 24-Apr-2012 Time units updated on 01-Jan-2013, time units were incorrectly listed as hours since 1970-01-01 00:00:00 UTC instead of seconds since 1970-01-01 00:00:00 UTC; dimensions for station_name were incorrect and have been adjusted to (timeSeries, name_strlen) instead of name_strlen. Conventions gloabal attribute has been adjusted to correctly document the current version of CF used in this example. Values for station_name were adjusted to Cordell_1 and Cordell_2." ;
 		:Conventions = "CF-1.6" ;
 		:Metadata_Conventions = "Unidata Dataset Discovery v1.0" ;
-		:nodc_template_version = "NODC_NetCDF_TimeSeries_Orthogonal_Template_v1.0" ;
+		:nodc_template_version = "NODC_NetCDF_TimeSeries_Incomplete_Template_v1.1" ;
 		:metadata_link = "" ;
 }
