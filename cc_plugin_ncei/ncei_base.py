@@ -352,7 +352,7 @@ class NCEIBaseCheck(BaseNCCheck):
                         'nodc_name',
                         'grid_mapping',
                         'source',
-                        'reference'
+                        'references'
                         ]
                 var  = name
 
@@ -414,7 +414,7 @@ class NCEIBaseCheck(BaseNCCheck):
                     msgs = ['platform attribute is not present in the variables']
                 if not hasattr(dataset,'platform'):
                     results.append(Result(level, plat_check, (name,'platform'), msgs))
-                    
+                msgs = []  
                 #Check Instrument
                 level = BaseCheck.MEDIUM
                 if not hasattr(dataset.variables[name], 'instrument'):
@@ -488,6 +488,7 @@ class NCEIBaseCheck(BaseNCCheck):
                 results.append(Result(BaseCheck.HIGH, (std_check,2), (name,'standard_name'), msgs))
 
                 #Check Flag Mask / Flag Values
+                msgs = []
                 mask_val_check = False
                 test_name = 'flag_masks_values'
                 if 'bool' in str(dataset.variables[name].dtype):
@@ -505,9 +506,10 @@ class NCEIBaseCheck(BaseNCCheck):
                 results.append(Result(BaseCheck.HIGH, mask_val_check, (name,test_name), msgs))
 
                 #Check Flag Meaning
+                msgs = []
                 if hasattr(dataset.variables[name],'flag_meanings'):
                     meanings_check = True
-                    meaning_length = len(getattr(dataset.variables[name],'flag_meanings',None))
+                    meaning_length = len(getattr(dataset.variables[name],'flag_meanings',None).split(','))
                 else:
                     meanings_check = False
                     msgs = ['flag_meanings not present']
@@ -515,6 +517,7 @@ class NCEIBaseCheck(BaseNCCheck):
                 results.append(Result(BaseCheck.HIGH, meanings_check, (name, 'flag_meanings'), msgs))
 
                 #Check Flag Meaning and Flag mask/Values same length
+                msgs = []
                 if mask_length == meaning_length:
                     length_check = True
                     msgs = []
@@ -524,6 +527,7 @@ class NCEIBaseCheck(BaseNCCheck):
                 results.append(Result(BaseCheck.HIGH, length_check, (name, 'flag_attributes_lengths'), msgs))
 
                 #Check Comment
+                msgs = []
                 if hasattr(dataset.variables[name], 'comment'):
                     comment_check = True
                 else: 
@@ -532,6 +536,7 @@ class NCEIBaseCheck(BaseNCCheck):
                 results.append(Result(BaseCheck.MEDIUM, comment_check, (name,'comment'), msgs))
      
                 #Check Long Name
+                msgs = []
                 if hasattr(dataset.variables[name], 'long_name'):
                     long_check = True
                 else: 
@@ -540,12 +545,13 @@ class NCEIBaseCheck(BaseNCCheck):
                 results.append(Result(BaseCheck.MEDIUM, long_check, (name,'long_name'), msgs)) 
             
                 #Check References
-                if hasattr(dataset.variables[name], 'reference'):
+                msgs = []
+                if hasattr(dataset.variables[name], 'references'):
                     source_check = True
                 else: 
-                    msgs = ['reference is missing']
+                    msgs = ['references is missing']
                     source_check = False
-                results.append(Result(BaseCheck.MEDIUM, source_check, (name,'reference'), msgs))
+                results.append(Result(BaseCheck.MEDIUM, source_check, (name,'references'), msgs))
 
             else:
                 continue
