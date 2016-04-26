@@ -263,5 +263,5 @@ variables:
 		:keywords = "Oceans > Ocean Temperature > Water Temperature, Oceans > Salinity/Density > Conductivity, Oceans > Salinity/Density > Salinity" ;
 		:comment = "NOAA/AOML/PhOD assessed the quality of the data using an automated quality control flagging procedure." ;
 		:history = "This netCDF file was created by the National Oceanographic Data Center using the original file from the ship and the corresponding quality controlled file created by AOML." ;
-		:nodc_template_version = "NODC_Trajectory_Template_v1.1" ;
+		:nodc_template_version = "NODC_NetCDF_Trajectory_Template_v1.1" ;
 }
