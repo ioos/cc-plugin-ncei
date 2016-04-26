@@ -22,7 +22,7 @@ class NCEIProfileOrthogonal(NCEIBaseCheck):
     _cc_checker_version = '2.1.0'
 
     valid_templates = [
-        "NODC_NetCDF_profile_Orthogonal_Template_v1.1",
+        "NODC_NetCDF_Profile_Orthogonal_Template_v1.1",
     ]
 
     valid_feature_types = [
