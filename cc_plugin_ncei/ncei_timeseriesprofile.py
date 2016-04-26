@@ -141,8 +141,6 @@ class NCEITimeSeriesProfileOrthogonal(NCEIBaseCheck):
             long_check = False
         results.append(Result(BaseCheck.MEDIUM, long_check, ('station','long_name'), msgs))
         return results
-        
-
 
 class NCEITimeSeriesProfileOrthTimeIncompleteDepth(NCEIBaseCheck):
     register_checker = True
@@ -203,7 +201,7 @@ class NCEITimeSeriesProfileOrthTimeIncompleteDepth(NCEIBaseCheck):
         return Result(BaseCheck.HIGH, (score, out_of), 'Dataset contains required time dimensions', msgs)
 
     @score_group('Science Variables')
-    def check_science_incomplete(self, dataset):
+    def check_science_orthtime_incompletedepth(self, dataset):
         msgs = []
         results = []
         for var in dataset.variables:
