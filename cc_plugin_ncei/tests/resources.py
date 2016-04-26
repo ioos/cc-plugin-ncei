@@ -24,7 +24,7 @@ STATIC_FILES = {
     'profileOrthogonal' : get_filename('tests/data/profileOrthogonal.nc'),
     'timeSeriesProfileIncomplete' : get_filename('tests/data/timeSeriesProfileIncomplete.nc'),
     'timeSeriesProfileIncompleteTimeOrthDepth' : get_filename('tests/data/timeSeriesProfileIncompleteTimeOrthDepth.nc'),
-    'timeSeriesProfileOrthTimeIncDepth' : get_filename('tests/data/timeSeriesProfileOrthTimeIncDepth.nc'),
+    'timeSeriesProfileOrthTimeIncompleteDepth' : get_filename('tests/data/timeSeriesProfileOrthTimeIncompleteDepth.nc'),
     'timeSeriesProfileOrthogonal' : get_filename('tests/data/timeSeriesProfileOrthogonal.nc'),
     'trajectory' : get_filename('tests/data/trajectory.nc'),
 }
