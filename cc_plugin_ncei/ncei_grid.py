@@ -325,12 +325,12 @@ class NCEIGrid(NCEIBaseCheck):
                 dimensions = getattr(var, 'dimensions', None)
                 dim_contain_check = all([dim in dims_required for dim in dimensions])
                 if not dim_contain_check:
-                    msgs = ['The dimensions includes unexpected dimensions (time, z, lat, lon)']
+                    msgs = ['The dimensions for {} includes unexpected dimensions. expected (time, z, lat, lon)'.format(name)]
                 results.append(Result(BaseCheck.MEDIUM, dim_contain_check, (name, 'dimensions'), msgs))
 
                 dim_order_check = dimensions == dims_required
                 if not dim_order_check:
-                    msgs = ['The dimensions are in the wrong order (time, z, lat, lon)']
+                    msgs = ['The dimensions for {} are in the wrong order. excepted (time, z, lat, lon)'.format(name)]
                 results.append(Result(BaseCheck.MEDIUM, dim_order_check, (name, 'dimensions_order'), msgs))
 
                 #@TODO Also, note that whenever any auxiliary coordinate variable contains a missing value, all other 
@@ -348,7 +348,7 @@ class NCEIGrid(NCEIBaseCheck):
                         cell_methods_keys.append(term.replace(':',''))
                     elif ':' in term and term.replace(':','') not in dims_required:
                         out_of += 1
-                        msgs.append('The cell value key is not in the required dimensions')
+                        msgs.append('The cell value key for {} is not in the required dimensions'.format(name))
                         cell_methods_keys.append(term.replace(':',''))
                 results.append(Result(BaseCheck.MEDIUM, (score, out_of), (name, 'cell_methods_in_coordinate_vars'), msgs))
 

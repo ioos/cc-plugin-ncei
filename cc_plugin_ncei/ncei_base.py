@@ -80,7 +80,7 @@ class NCEIBaseCheck(BaseNCCheck):
                 ]
         #Check 6,7,8,9,10,11 has these attributes
         has_var_attr = [
-                '_FillValue',
+                #'_FillValue',
                 'valid_min',
                 'valid_max',
                 'ancillary_variables',
@@ -135,7 +135,7 @@ class NCEIBaseCheck(BaseNCCheck):
                 ]
         #Check has these attributes
         has_var_attr = [
-                '_FillValue',
+                #'_FillValue',
                 'valid_min',
                 'valid_max',
                 'ancillary_variables',
@@ -292,8 +292,8 @@ class NCEIBaseCheck(BaseNCCheck):
                 'comment',
                 'long_name',
                 'valid_min',
-                'valid_max',
-                '_FillValue'
+                'valid_max'
+                #'_FillValue'
                 ]
 
         for attr in has_var_attr:
@@ -342,14 +342,14 @@ class NCEIBaseCheck(BaseNCCheck):
                 #This is a science Variable.  Start Checks.
                 #Check  has these attributes
                 has_var_attr = [
-                        '_FillValue',
+                        #'_FillValue',
                         'valid_min',
                         'valid_max',
                         'ancillary_variables',
                         'comment',
                         'long_name',
                         'units',
-                        'nodc_name',
+                        #'nodc_name',
                         'grid_mapping',
                         'source',
                         'references'
@@ -359,6 +359,15 @@ class NCEIBaseCheck(BaseNCCheck):
                 for attr in has_var_attr:
                     results.append(hasattr_check(dataset, var, attr, BaseCheck.MEDIUM))
 
+                #Check NODC Name
+                if not hasattr(dataset.variables[name], 'standard_name'):
+                    nodc_check = hasattr(dataset.variables[name],'nodc_name')
+                    if not nodc_check:
+                        msgs = ['{} does not ahve a standard_name or nodc_name field'.format(name)]
+                        results.append(Result(BaseCheck.HIGH, nodc_check, (name, 'nodc_name'), msgs))
+                    else:
+                        results.append(Result(BaseCheck.HIGH, nodc_check, (name, 'nodc_name'), msgs))
+
                 #Check Units
                 units = getattr(dataset.variables[name],'units',None)
                 units_check = units_known(units)
@@ -366,52 +375,17 @@ class NCEIBaseCheck(BaseNCCheck):
                     msgs.append('Units are wrong for {}'.format(name))
                 results.append(Result(BaseCheck.HIGH, units_check, (name,'udunits'),msgs))
 
-                #Check scale_factor
-                level = BaseCheck.MEDIUM
-                if hasattr(dataset.variables[name], 'scale_factor'):
-                    scale_check = (1,2)
-                    msgs = ['scale_factor exists, but the dtype is not the same as the data']
-                else: 
-                    msgs = ['scale_factor not present']
-                    scale_check = False
-                    level = BaseCheck.LOW
-                try:
-                    if dataset.variables[name].dtype == getattr(dataset.variables[name],'scale_factor',None).dtype:
-                        scale_check = (2,2)
-                        msgs = []
-                except:
-                    error_reached = True
-                results.append(Result(level, scale_check, (name,'scale_factor'), msgs))
-
-                 #Check offset
-                level = BaseCheck.MEDIUM
-                if hasattr(dataset.variables[name], 'add_offset'):
-                    msgs = ['add_offset present, but the dtype is not the same as the data']
-                    offset_check = (1,2)
-                else: 
-                    msgs = ['scale_factor not present']
-                    offset_check = False
-                    level = BaseCheck.LOW
-                try:
-                    if dataset.variables[name].dtype == getattr(dataset.variables[name],'add_offset',None).dtype:
-                        offset_check = (2,2)
-                        msgs = []
-                except: 
-                    error_reached = True
-                results.append(Result(level, offset_check, (name,'add_offset'), msgs))
- 
-
                 #Check Platform
                 level = BaseCheck.MEDIUM
                 if not hasattr(dataset.variables[name], 'platform'):
                     plat_check = False
                     level = BaseCheck.LOW
-                    msgs = ['platform attribute is missing']
+                    msgs = ['platform attribute is missing for {}'.format(name)]
                 elif getattr(dataset.variables[name], 'platform', None) in dataset.variables:
                     plat_check = (2,2)
                 else:
                     plat_check = (1,2)
-                    msgs = ['platform attribute is not present in the variables']
+                    msgs = ['platform attribute is not present in the variable {}'.format(name)]
                 if not hasattr(dataset,'platform'):
                     results.append(Result(level, plat_check, (name,'platform'), msgs))
                 msgs = []  
@@ -420,12 +394,12 @@ class NCEIBaseCheck(BaseNCCheck):
                 if not hasattr(dataset.variables[name], 'instrument'):
                     inst_check = False
                     level = BaseCheck.LOW
-                    msgs = ['instrument attribute is missing']
+                    msgs = ['instrument attribute is missing for {}'.format(name)]
                 elif getattr(dataset.variables[name], 'instrument', None) in dataset.variables:
                     inst_check = (2,2)
                 else:
                     inst_check = (1,2)
-                    msgs = ['instrument attribute is not present in the variables']
+                    msgs = ['instrument attribute is not present in the variable {}'.format(name)]
                 if not hasattr(dataset,'instrument'):
                     results.append(Result(level, inst_check, (name,'instrument'), msgs)) 
              
@@ -433,12 +407,12 @@ class NCEIBaseCheck(BaseNCCheck):
                 level = BaseCheck.HIGH
                 if not hasattr(dataset.variables[name], 'standard_name'):
                     inst_check = (0,2)
-                    msgs = ['standard_name attribute is missing']
+                    msgs = ['standard_name attribute is missing for {}'.format(name)]
                 elif getattr(dataset.variables[name], 'standard_name', None) in self._std_names:
                     inst_check = (2,2)
                 else:
                     inst_check = (1,2)
-                    msgs = ['standard_name is not in standard name table']
+                    msgs = ['standard_name is not in standard name table for {}'.format(name)]
                 results.append(Result(level, inst_check, (name,'standard_name'), msgs)) 
             else:
                 continue
@@ -480,11 +454,11 @@ class NCEIBaseCheck(BaseNCCheck):
                 if std_name_split[0] in std_name_list:
                     std_check = std_check + 1
                 else:
-                    msgs.append('Standard Name does not reference a variable in the dataset.')
+                    msgs.append('Standard Name for {} does not reference a variable in the dataset.'.format(name))
                 if std_name_split[1] == 'status_flag':
                     std_check = std_check + 1
                 else:
-                    msgs.append('Standard Name does not end in "status_flag"')
+                    msgs.append('Standard Name for {} does not end in "status_flag"'.format(name))
                 results.append(Result(BaseCheck.HIGH, (std_check,2), (name,'standard_name'), msgs))
 
                 #Check Flag Mask / Flag Values
@@ -501,7 +475,7 @@ class NCEIBaseCheck(BaseNCCheck):
                     mask_length = len(getattr(dataset.variables[name], 'flag_values', None)) #Used in length check
                 else:
                     mask_val_check = False
-                    msgs = ['flag_masks or flag_values are not present']
+                    msgs = ['flag_masks or flag_values are not present for {}'.format(name)]
                     mask_length = 0
                 results.append(Result(BaseCheck.HIGH, mask_val_check, (name,test_name), msgs))
 
@@ -512,7 +486,7 @@ class NCEIBaseCheck(BaseNCCheck):
                     meaning_length = len(getattr(dataset.variables[name],'flag_meanings',None).split(','))
                 else:
                     meanings_check = False
-                    msgs = ['flag_meanings not present']
+                    msgs = ['flag_meanings not present for {}'.format(name)]
                     meaning_length = 0
                 results.append(Result(BaseCheck.HIGH, meanings_check, (name, 'flag_meanings'), msgs))
 
@@ -520,10 +494,9 @@ class NCEIBaseCheck(BaseNCCheck):
                 msgs = []
                 if mask_length == meaning_length:
                     length_check = True
-                    msgs = []
                 else:
                     length_check = False
-                    msgs = ['the length of flag_mask/values does not match flag_meanings']
+                    msgs = ['the length of flag_mask/values does not match flag_meanings for {}'.format(name)]
                 results.append(Result(BaseCheck.HIGH, length_check, (name, 'flag_attributes_lengths'), msgs))
 
                 #Check Comment
@@ -531,7 +504,7 @@ class NCEIBaseCheck(BaseNCCheck):
                 if hasattr(dataset.variables[name], 'comment'):
                     comment_check = True
                 else: 
-                    msgs = ['comment is missing']
+                    msgs = ['comment is missing for {}'.format(name)]
                     comment_check = False
                 results.append(Result(BaseCheck.MEDIUM, comment_check, (name,'comment'), msgs))
      
@@ -540,7 +513,7 @@ class NCEIBaseCheck(BaseNCCheck):
                 if hasattr(dataset.variables[name], 'long_name'):
                     long_check = True
                 else: 
-                    msgs = ['long_name not present']
+                    msgs = ['long_name not present for {}'.format(name)]
                     long_check = False
                 results.append(Result(BaseCheck.MEDIUM, long_check, (name,'long_name'), msgs)) 
             
@@ -549,7 +522,7 @@ class NCEIBaseCheck(BaseNCCheck):
                 if hasattr(dataset.variables[name], 'references'):
                     source_check = True
                 else: 
-                    msgs = ['references is missing']
+                    msgs = ['references is missing for {}'.format(name)]
                     source_check = False
                 results.append(Result(BaseCheck.MEDIUM, source_check, (name,'references'), msgs))
 
