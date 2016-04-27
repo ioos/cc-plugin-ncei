@@ -16,6 +16,16 @@ def generate_dataset(cdl_path, nc_path):
     sh.ncgen('-o', nc_path, cdl_path)
 
 STATIC_FILES = {
-    'station_timeseries' : get_filename('tests/data/station_timeseries.nc'),
+    'timeSeriesOrthogonal' : get_filename('tests/data/timeSeriesOrthogonal.nc'),
+    'timeSeriesIncomplete' : get_filename('tests/data/timeSeriesIncomplete.nc'),
+    'grid' : get_filename('tests/data/grid.nc'),
+    'point' : get_filename('tests/data/point.nc'),
+    'profileIncomplete' : get_filename('tests/data/profileIncomplete.nc'),
+    'profileOrthogonal' : get_filename('tests/data/profileOrthogonal.nc'),
+    'timeSeriesProfileIncomplete' : get_filename('tests/data/timeSeriesProfileIncomplete.nc'),
+    'timeSeriesProfileIncompleteTimeOrthDepth' : get_filename('tests/data/timeSeriesProfileIncompleteTimeOrthDepth.nc'),
+    'timeSeriesProfileOrthTimeIncompleteDepth' : get_filename('tests/data/timeSeriesProfileOrthTimeIncompleteDepth.nc'),
+    'timeSeriesProfileOrthogonal' : get_filename('tests/data/timeSeriesProfileOrthogonal.nc'),
+    'trajectory' : get_filename('tests/data/trajectory.nc'),
 }
 

@@ -32,7 +32,18 @@ setup(name                 = "cc-plugin-ncei",
         ],
     entry_points         = {
         'compliance_checker.suites': [
-            'ncei-timeseries = cc_plugin_ncei.ncei_timeseries:NCEITimeSeries',
+            'ncei-timeseries-orthogonal = cc_plugin_ncei.ncei_timeseries:NCEITimeSeriesOrthogonal', 
+            'ncei-grid = cc_plugin_ncei.ncei_grid:NCEIGrid',
+            'ncei-point = cc_plugin_ncei.ncei_point:NCEIPoint',
+            'ncei-timeseries-incomplete = cc_plugin_ncei.ncei_timeseries:NCEITimeSeriesIncomplete',
+            'ncei-trajectory = cc_plugin_ncei.ncei_trajectory:NCEITrajectory',
+            'ncei-profile-incomplete = cc_plugin_ncei.ncei_profile:NCEIProfileIncomplete',
+            'ncei-profile-orthogonal = cc_plugin_ncei.ncei_profile:NCEIProfileOrthogonal',
+            'ncei-timeseriesprofile-orthogonal = cc_plugin_ncei.ncei_timeseriesprofile:NCEITimeSeriesProfileOrthogonal',
+            'ncei-timeseriesprofile-orthtime-incompletedepth = cc_plugin_ncei.ncei_timeseriesprofile:NCEITimeSeriesProfileOrthTimeIncompleteDepth',
+            'ncei-timeseriesprofile-incomplete = cc_plugin_ncei.ncei_timeseriesprofile:NCEITimeSeriesProfileIncomplete',
+            'ncei-timeseriesprofile-incompletetime-orthdepth = cc_plugin_ncei.ncei_timeseriesprofile:NCEITimeSeriesProfileIncompleteTimeOrthDepth',
+            'ncei-trajectoryProfile-orthogonal = cc_plugin_ncei.ncei_trajectoryProfile:NCEITrajectoryProfileOrthogonal',
         ]
     }
 )

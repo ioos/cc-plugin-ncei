@@ -1,31 +1,32 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 '''
-cc_plugin_ncei/ncei_timeseries.py
+cc_plugin_ncei/ncei_profile.py
 '''
 
 from compliance_checker.cf.cf import CFBaseCheck
 from compliance_checker.base import Result, BaseCheck, score_group
 from cc_plugin_ncei.ncei_base import NCEIBaseCheck
+from cc_plugin_ncei.util import _find_z_dimension
 import cf_units
 import numpy as np
 
-class NCEITimeSeriesOrthogonal(NCEIBaseCheck):
+class NCEIProfileOrthogonal(NCEIBaseCheck):
     register_checker = True
-    _cc_spec = 'ncei-timeseries-orthogonal'
+    _cc_spec = 'ncei-profile-orthogonal'
     _cc_spec_version = '1.1'
     _cc_description = '''These templates are intended as a service to our community of Data Producers, and are also being used internally at NCEI in our own data development efforts. We hope the templates will serve as good starting points for Data Producers who wish to create preservable, discoverable, accessible, and interoperable data. It is important to note that these templates do not represent an attempt to create a new standard, and they are not absolutely required for archiving data at NCEI. However, we do hope that you will see the benefits in structuring your data following these conventions and NCEI stands ready to assist you in doing so.'''
-    _cc_url = 'http://www.nodc.noaa.gov/data/formats/netcdf/v1.1/timeSeriesOrthogonal.cdl'
+    _cc_url = 'http://www.nodc.noaa.gov/data/formats/netcdf/v1.1/profileOrthogonal.cdl'
     _cc_authors = 'Luke Campbell, Dan Maher'
     _cc_checker_version = '2.1.0'
 
     valid_templates = [
-        "NODC_NetCDF_TimeSeries_Orthogonal_Template_v1.1",
+        "NODC_NetCDF_Profile_Orthogonal_Template_v1.1",
     ]
 
     valid_feature_types = [
-        'timeSeries',
-        'timeseries_id'
+        'profile',
+        'profile_id'
     ]
     @classmethod
     def beliefs(cls): 
@@ -36,33 +37,34 @@ class NCEITimeSeriesOrthogonal(NCEIBaseCheck):
 
     def check_dimensions(self, dataset):
         '''
-        NCEI_TimeSeries_Orthogonal
+        NCEI_profile_Orthogonal
         dimensions:
            time = < dim1 >;//..... REQUIRED - Number of time steps in the time series
-           timeSeries = <dim2>; // REQUIRED - Number of time series (=1 for single time series or can be removed)
+           profile = <dim2>; // REQUIRED - Number of time series (=1 for single time series or can be removed)
 
-        NCEI_TimeSeries_Incomplete
+        NCEI_profile_Incomplete
         dimensions:
             ntimeMax = < dim1 >;//. REQUIRED - Number of time steps in the time series
-            timeSeries = <dim2>; // REQUIRED - Number of time series
+            profile = <dim2>; // REQUIRED - Number of time series
         '''
         out_of = 2
         score = 0
         messages = []
 
-        test = 'time' in dataset.dimensions
+        z_dim = _find_z_dimension(dataset)
+        test = z_dim in dataset.dimensions
 
         if test:
             score += 1
         else:
-            messages.append('time is a required dimension for TimeSeries Orthogonal')
+            messages.append('{} is a required dimension for profile Orthogonal'.format(z_dim))
 
-        test = 'time' in dataset.variables and dataset.variables['time'].dimensions == ('time',)
+        test = z_dim in dataset.variables and dataset.variables[z_dim].dimensions == (z_dim,)
 
         if test:
             score += 1
         else:
-            messages.append('time is required to be a coordinate variable')
+            messages.append('z is required to be a coordinate variable')
 
         return Result(BaseCheck.HIGH, (score, out_of), 'Dataset contains required time dimensions', messages)
 
@@ -94,7 +96,7 @@ class NCEITimeSeriesOrthogonal(NCEIBaseCheck):
         if test:
             score += 1
         else:
-            messages.append('Dataset is missing NODC TimeSeries required attribute featureType')
+            messages.append('Dataset is missing NODC profile required attribute featureType')
 
         feature_type = getattr(dataset, 'featureType', None)
         test = feature_type in self.valid_feature_types
@@ -104,58 +106,71 @@ class NCEITimeSeriesOrthogonal(NCEIBaseCheck):
         else:
             messages.append('featureType attribute references an invalid feature type: {}'.format(feature_type)) 
 
-        return Result(BaseCheck.HIGH, (score, out_of), 'Dataset contains NCEI TimeSeries required and highly recommended attributes', messages)
+        return Result(BaseCheck.HIGH, (score, out_of), 'Dataset contains NCEI profile required and highly recommended attributes', messages)
 
+    @score_group('Science Variables')
+    def check_science_orthogonal(self, dataset):
+        msgs = []
+        results = []
+        z_name = _find_z_dimension(dataset)
+        for var in dataset.variables:
+            if hasattr(dataset.variables[var],'coordinates'):
+                dimensions = [dim for dim in dataset.dimensions if 'Strlen' not in dim and 'profile' not in dim]
+                dim_check = dataset.variables[var].dimensions == (u'profile', z_name,)
+                if not dim_check:
+                    msgs = ['{} does not have the correct dimensions'.format(var)]
+                results.append(Result(BaseCheck.HIGH, dim_check, (var, 'dimensions'), msgs))
+        return results
     @score_group('Required Variables')
-    def check_timeseries(self, dataset):
-        #Checks if the timeseries variable is formed properly
+    def check_profile(self, dataset):
+        #Checks if the profile variable is formed properly
         msgs=[]
         results=[]
 
-        #Check TimeSeries Exist
-        if u'timeSeries' in dataset.variables:
+        #Check profile Exist
+        if u'profile' in dataset.variables:
             exists_check = True
-            results.append(Result(BaseCheck.LOW, exists_check, ('timeSeries','exists'), msgs))       
+            results.append(Result(BaseCheck.LOW, exists_check, ('profile','exists'), msgs))       
         else:
-            msgs = ['timeSeries does not exist.  This is okay if there is only one Time Series in the dataset.']
+            msgs = ['profile does not exist.  This is okay if there is only one Time Series in the dataset.']
             exists_check = False
-            return Result(BaseCheck.LOW, (0,1), ('timeSeries','exists'), msgs)
+            return Result(BaseCheck.LOW, (0,1), ('profile','exists'), msgs)
 
         #Check CF Role
-        if getattr(dataset.variables[u'timeSeries'], 'cf_role', None) in self.valid_feature_types:
+        if getattr(dataset.variables[u'profile'], 'cf_role', None) in self.valid_feature_types:
             cfrole_check = True
         else: 
             msgs = ['cf_role is wrong']
             cfrole_check = False
-        results.append(Result(BaseCheck.MEDIUM, cfrole_check, ('timeSeries','cf_role'), msgs))       
+        results.append(Result(BaseCheck.MEDIUM, cfrole_check, ('profile','cf_role'), msgs))       
         
         #Check Long Name
-        if hasattr(dataset.variables[u'timeSeries'], 'long_name'):
+        if hasattr(dataset.variables[u'profile'], 'long_name'):
             long_check = True
         else: 
             msgs = ['long name is missing']
             long_check = False
-        results.append(Result(BaseCheck.MEDIUM, long_check, ('timeSeries','long_name'), msgs))
+        results.append(Result(BaseCheck.MEDIUM, long_check, ('profile','long_name'), msgs))
         return results
         
 
 
-class NCEITimeSeriesIncomplete(NCEIBaseCheck):
+class NCEIProfileIncomplete(NCEIBaseCheck):
     register_checker = True
-    _cc_spec = 'ncei-timeseries-incomplete'
+    _cc_spec = 'ncei-profile-incomplete'
     _cc_spec_version = '1.1'
     _cc_description = '''These templates are intended as a service to our community of Data Producers, and are also being used internally at NCEI in our own data development efforts. We hope the templates will serve as good starting points for Data Producers who wish to create preservable, discoverable, accessible, and interoperable data. It is important to note that these templates do not represent an attempt to create a new standard, and they are not absolutely required for archiving data at NCEI. However, we do hope that you will see the benefits in structuring your data following these conventions and NCEI stands ready to assist you in doing so.'''
-    _cc_url = 'http://www.nodc.noaa.gov/data/formats/netcdf/v2.0/timeSeriesIncomplete.cdl'
+    _cc_url = 'http://www.nodc.noaa.gov/data/formats/netcdf/v1.1/profileIncomplete.cdl'
     _cc_authors = 'Luke Campbell, Dan Maher'
     _cc_checker_version = '2.1.0'
 
     valid_templates = [
-        "NODC_NetCDF_TimeSeries_Incomplete_Template_v1.1"
+        "NODC_NetCDF_Profile_Incomplete_Template_v1.1"
     ]
 
     valid_feature_types = [
-        'timeSeries',
-        'timeseries_id'
+        'profile',
+        'profile_id'
     ]
     @classmethod
     def beliefs(cls): 
@@ -166,32 +181,32 @@ class NCEITimeSeriesIncomplete(NCEIBaseCheck):
 
     def check_dimensions(self, dataset):
         '''
-        NCEI_TimeSeries_Incomplete
+        NCEI_profile_Incomplete
         dimensions:
             ntimeMax = < dim1 >;//. REQUIRED - Number of time steps in the time series
-            timeSeries = <dim2>; // REQUIRED - Number of time series
+            profile = <dim2>; // REQUIRED - Number of time series
         '''
         out_of = 2
         score = 0
         messages = []
 
-        test = 'timeSeries' in dataset.dimensions
+        test = 'profile' in dataset.dimensions
 
         if test:
             score += 1
         else:
-            messages.append('timeSeries is a required dimension for TimeSeries Incomplete')
+            messages.append('profile is a required dimension for profile')
 
-        dimensions = [dim for dim in dataset.dimensions if 'Strlen' not in dim and 'timeSeries' not in dim]
+        dimensions = [dim for dim in dataset.dimensions if 'Strlen' not in dim and 'profile' not in dim]
         if len(dimensions) == 1:
             score += 1
             out_of += 1
 
-        test = 'timeSeries' in dataset.variables and dataset.variables['timeSeries'].dimensions == ('timeSeries',)
+        test = 'profile' in dataset.variables and dataset.variables['profile'].dimensions == ('profile',)
         if test:
             score += 1
         else:
-            messages.append('timeSeries is required to be a coordinate variable')
+            messages.append('profile is required to be a coordinate variable')
         
         return Result(BaseCheck.HIGH, (score, out_of), 'Dataset contains required dimensions', messages)
 
@@ -199,10 +214,10 @@ class NCEITimeSeriesIncomplete(NCEIBaseCheck):
     def check_science_incomplete(self, dataset):
         msgs = []
         results = []
+        z_name = _find_z_dimension(dataset)
         for var in dataset.variables:
             if hasattr(dataset.variables[var],'coordinates'):
-                dimensions = [dim for dim in dataset.dimensions if 'Strlen' not in dim and 'timeSeries' not in dim]
-                dim_check = dataset.variables[var].dimensions == dataset.variables['time'].dimensions
+                dim_check = dataset.variables[var].dimensions == dataset.variables[z_name].dimensions
                 if not dim_check:
                     msgs = ['{} does not have the correct dimensions'.format(var)]
                 results.append(Result(BaseCheck.HIGH, dim_check, (var, 'dimensions'), msgs))
@@ -236,7 +251,7 @@ class NCEITimeSeriesIncomplete(NCEIBaseCheck):
         if test:
             score += 1
         else:
-            messages.append('Dataset is missing NCEI TimeSeries required attribute featureType')
+            messages.append('Dataset is missing NCEI profile required attribute featureType')
 
         feature_type = getattr(dataset, 'featureType', None)
         test = feature_type in self.valid_feature_types
@@ -246,38 +261,38 @@ class NCEITimeSeriesIncomplete(NCEIBaseCheck):
         else:
             messages.append('featureType attribute references an invalid feature type: {}'.format(feature_type)) 
 
-        return Result(BaseCheck.HIGH, (score, out_of), 'Dataset contains NCEI TimeSeries require attributes', messages)
+        return Result(BaseCheck.HIGH, (score, out_of), 'Dataset contains NCEI profile require attributes', messages)
 
     @score_group('Required Variables')
-    def check_timeseries(self, dataset):
-        #Checks if the timeseries variable is formed properly
+    def check_profile(self, dataset):
+        #Checks if the profile variable is formed properly
         msgs=[]
         results=[]
 
-        #Check TimeSeries Exist
-        if u'timeSeries' in dataset.variables:
+        #Check profile Exist
+        if u'profile' in dataset.variables:
             exists_check = True
-            results.append(Result(BaseCheck.LOW, exists_check, ('timeSeries','exists'), msgs))       
+            results.append(Result(BaseCheck.LOW, exists_check, ('profile','exists'), msgs))       
         else:
-            msgs = ['timeSeries does not exist.  This is okay if there is only one Time Series in the dataset.']
+            msgs = ['profile does not exist.  This is okay if there is only one profile in the dataset.']
             exists_check = False
-            return Result(BaseCheck.LOW, (0,1), ('timeSeries','exists'), msgs)
+            return Result(BaseCheck.LOW, (0,1), ('profile','exists'), msgs)
 
         #Check CF Role
-        if getattr(dataset.variables[u'timeSeries'], 'cf_role', None) in self.valid_feature_types:
+        if getattr(dataset.variables[u'profile'], 'cf_role', None) in self.valid_feature_types:
             cfrole_check = True
         else: 
             msgs = ['cf_role is wrong']
             cfrole_check = False
-        results.append(Result(BaseCheck.MEDIUM, cfrole_check, ('timeSeries','cf_role'), msgs))       
+        results.append(Result(BaseCheck.MEDIUM, cfrole_check, ('profile','cf_role'), msgs))       
         
         #Check Long Name
-        if hasattr(dataset.variables[u'timeSeries'], 'long_name'):
+        if hasattr(dataset.variables[u'profile'], 'long_name'):
             long_check = True
         else: 
             msgs = ['long name is missing']
             long_check = False
-        results.append(Result(BaseCheck.MEDIUM, long_check, ('timeSeries','long_name'), msgs))
+        results.append(Result(BaseCheck.MEDIUM, long_check, ('profile','long_name'), msgs))
 
         return results
         
