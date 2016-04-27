@@ -6,7 +6,6 @@ cc_plugin_ncei/ncei_timeseriesprofile.py
 
 from compliance_checker.cf.cf import CFBaseCheck
 from compliance_checker.base import Result, BaseCheck, score_group
-from cc_plugin_ncei.ncei_metadata import NCEIMetadataCheck
 from cc_plugin_ncei.ncei_base import NCEIBaseCheck
 from cc_plugin_ncei.util import _find_z_dimension
 import cf_units
