@@ -37,10 +37,10 @@ class TestNCEItimeSeriesOrthogonal(unittest.TestCase):
 ##########################################################################
 # timeSeriesOrthogonal Test
 ##########################################################################
-    def test_required_attributes(self):
+    def test_base_required_attributes(self):
         dataset = self.get_dataset(STATIC_FILES['timeSeriesOrthogonal'])
-        result = self.check.check_required_attributes(dataset)
-        self.assertEquals(result.value, (4, 4))
+        result = self.check.check_base_required_attributes(dataset)
+        self.assertEquals(result.value, (6, 6))
 
     def test_lat(self): 
         test_results = []

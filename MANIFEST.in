@@ -6,3 +6,4 @@ include cc_plugin_ncei/data/*.xml
 include cc_plugin_ncei/data/templates/*.j2
 include cc_plugin_ncei/tests/data/*.cdl
 include cc_plugin_ncei/tests/data/non-comp/*.cdl
+include cc_plugin_ncei/data/*.csv

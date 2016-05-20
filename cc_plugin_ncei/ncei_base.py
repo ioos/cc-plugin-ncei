@@ -3,48 +3,110 @@
 '''
 cc_plugin_ncei/ncei_base.py
 '''
+from __future__ import print_function
 
-from compliance_checker.cf.cf import CFBaseCheck
-from compliance_checker.acdd import ACDDBaseCheck, ACDD1_1Check
 from compliance_checker.base import Result, BaseCheck, score_group, BaseNCCheck
 from compliance_checker.cf.util import StandardNameTable, units_known
-from cc_plugin_ncei.util import _find_platform_variables, _find_instrument_variables, getattr_check, hasattr_check, var_dtype
-import cf_units
-import numpy as np
+from cc_plugin_ncei.util import _find_platform_variables, _find_instrument_variables, getattr_check, hasattr_check, var_dtype, _find_crs_variable
+from cc_plugin_ncei.util import get_sea_names
+import re
+
+
+class TestCtx(object):
+    '''
+    Simple struct object that holds score values and messages to compile into a result
+    '''
+    def __init__(self, category=None, description='', out_of=0, score=0, messages=None):
+        self.category = category or BaseCheck.LOW
+        self.out_of = out_of
+        self.score = score
+        self.messages = messages or []
+        self.description = description or ''
+
+
+    def to_result(self):
+        return Result(self.category, (self.score, self.out_of), self.description, self.messages)
+
 
 class NCEIBaseCheck(BaseNCCheck):
     register_checker = True
+
     @classmethod
     def __init__(self):
         self._std_names = StandardNameTable('cf-standard-name-table.xml')
+
     def setup(self, ds):
         pass
 
-    def check_required_attributes(self, dataset):
+    def assert_is(self, ctx, test, message):
+        '''
+        Increments score if test is true otherwise appends a message
+        '''
+        ctx.out_of += 1
+
+        if test:
+            ctx.score += 1
+        else:
+            ctx.messages.append(message)
+
+    def check_base_required_attributes(self, dataset):
         '''
         Verifies that the dataset contains the NCEI required and highly recommended global attributes
+
+        :Conventions = "CF-1.6" ; //......................................... REQUIRED    - Always try to use latest value. (CF)
+        :Metadata_Conventions = "Unidata Dataset Discovery v1.0" ; //........ REQUIRED    - Do not change. (ACDD)
+        :featureType = "timeSeries" ; //..................................... REQUIRED - CF attribute for identifying the featureType.
+        :cdm_data_type = "Station" ; //...................................... REQUIRED (ACDD)
+        :nodc_template_version = "NODC_NetCDF_TimeSeries_Orthogonal_Template_v1.1" ; //....... REQUIRED (NODC)
+        :standard_name_vocabulary = "NetCDF Climate and Forecast (CF) Metadata Convention Standard Name Table "X"" ; //........ REQUIRED    - If using CF standard name attribute for variables. "X" denotes the table number  (ACDD)
         '''
 
-        out_of = 4
-        score = 0
-        messages = []
-        
-        for attribute in ('title', 'summary', 'keywords', 'Conventions'):
-            test = getattr(dataset, attribute, '') != ''
+        test_ctx = TestCtx(BaseCheck.HIGH, 'Dataset contains NCEI required and highly recommended attributes')
 
-            if test:
-                score += 1
-            else:
-                messages.append('Dataset is missing the global attribute {}'.format(attribute))
+        conventions = getattr(dataset, 'Conventions', '')
+        metadata_conventions = getattr(dataset, 'Metadata_Conventions', '')
+        feature_type = getattr(dataset, 'featureType', '')
+        cdm_data_type = getattr(dataset, 'cdm_data_type')
+        standard_name_vocab = getattr(dataset, 'standard_name_vocabulary', '')
 
-        return Result(BaseCheck.HIGH, (score, out_of), 'Dataset contains NCEI required and highly recommended attributes', messages)
-################################################################################
-# Checks for Required Variables 
-################################################################################
+        self.assert_is(test_ctx,
+                       conventions == 'CF-1.6',
+                       'Conventions attribute is missing or is not equal to CF-1.6: {}'.format(conventions))
+        self.assert_is(test_ctx,
+                       metadata_conventions == 'Unidata Dataset Discovery v1.0',
+                       "Metadata_Conventions attribute is required to be 'Unidata Dataset Discovery v1.0': {}".format(metadata_conventions))
+        self.assert_is(test_ctx,
+                       feature_type in ['station', 'timeSeries', 'trajectory', 'profile', 'timeSeriesProfile', 'grid'],
+                       'Feature type must be one of station, timeSeries, trajectory, profile, timeSeriesProfile, grid: {}'.format(feature_type))
+        self.assert_is(test_ctx,
+                       cdm_data_type in ['Point', 'Station', 'Trajectory', 'Profile', 'Grid'],
+                       'cdm_data_type must be one of Point, Station, Trajectory, Profile, Grid: {}'.format(cdm_data_type))
+
+        feature_cdm_map = {
+            'station': 'Point',
+            'timeSeries': 'Station',
+            'trajectory': 'Trajectory',
+            'profile': 'Profile',
+            'timeSeriesProfile': 'Profile',
+            'grid': 'Grid'
+        }
+        self.assert_is(test_ctx,
+                       feature_cdm_map[feature_type] == cdm_data_type,
+                       'cdm_data_type must correspond to the featureType specified: {} doesn\'t map to {}'.format(feature_type, cdm_data_type))
+        self.assert_is(test_ctx,
+                       standard_name_vocab.startswith("NetCDF Climate and Forecast (CF) Metadata Convention Standard Name Table"),
+                       "standard_name_vocabulary doesn't start with 'NetCDF Climate and Forecast (CF) Metadata Convention Standard Name Table': {}".format(standard_name_vocab))
+
+        return test_ctx.to_result()
+
+    ################################################################################
+    # Checks for Required Variables
+    ################################################################################
+
     @score_group('Required Variables')
     def check_lat(self, dataset):
         '''
-        float lat(time) ;//....................................... Depending on the precision used for the variable, the data type could be int or double instead of float. 
+        float lat(time) ;//....................................... Depending on the precision used for the variable, the data type could be int or double instead of float.
                 lat:long_name = "" ; //...................................... RECOMMENDED - Provide a descriptive, long name for this variable.
                 lat:standard_name = "latitude" ; //.......................... REQUIRED    - Do not change.
                 lat:units = "degrees_north" ; //............................. REQUIRED    - CF recommends degrees_north, but at least must use UDUNITS.
@@ -54,41 +116,43 @@ class NCEIBaseCheck(BaseNCCheck):
                 lat:_FillValue = 0.0f;//..................................... REQUIRED  if there could be missing values in the data.
                 lat:ancillary_variables = "" ; //............................ RECOMMENDED - List other variables providing information about this variable.
                 lat:comment = "" ; //........................................ RECOMMENDED - Add useful, additional information here.
-                '''
-        #Checks if the lat variable is formed properly
-        msgs=[]
-        results=[]
+        '''
+
+        # Checks if the lat variable is formed properly
+
+        msgs = []
+        results = []
         var = u'lat'
-       #Check 1) lat exist
+
+        # Check 1) lat exist
 
         if var in dataset.variables:
             exists_check = True
-            results.append(Result(BaseCheck.HIGH, exists_check, (var,'exists'), msgs))
+            results.append(Result(BaseCheck.HIGH, exists_check, (var, 'exists'), msgs))
         else:
             msgs = ['{} does not exist'.format(var)]
-            return Result(BaseCheck.HIGH, (0,1), (var,'exists'), msgs)
-       
-        #Check 2) Data Type
+            return Result(BaseCheck.HIGH, (0, 1), (var, 'exists'), msgs)
+
+        # Check 2) Data Type
         valid_types = ['int', 'long', 'double', 'float']
         results.append(var_dtype(dataset, var, valid_types, BaseCheck.HIGH))
 
-        #Check 3,4,5 Check standard name, units, and axis
+        # Check 3,4,5 Check standard name, units, and axis
         get_attr_val = [
-                ('standard_name', 'latitude'), 
-                ('units', 'degrees_north'), 
-                ('axis', 'Y')
-                ]
-        #Check 6,7,8,9,10,11 has these attributes
+            ('standard_name', 'latitude'),
+            ('units', 'degrees_north'),
+            ('axis', 'Y')
+        ]
+        # Check 6,7,8,9,10,11 has these attributes
         has_var_attr = [
-                #'_FillValue',
-                'valid_min',
-                'valid_max',
-                'ancillary_variables',
-                'comment',
-                'long_name'
-                ]
+            'valid_min',
+            'valid_max',
+            'ancillary_variables',
+            'comment',
+            'long_name'
+        ]
 
-        for attr,val in get_attr_val:
+        for attr, val in get_attr_val:
             results.append(getattr_check(dataset, var, attr, val, BaseCheck.HIGH))
 
         for attr in has_var_attr:
@@ -579,84 +643,199 @@ class NCEIBaseCheck(BaseNCCheck):
                 '''
         #Check for the instrument variable
         instruments = _find_instrument_variables(dataset)
-        msgs = []
+        if not instruments:
+            return Result(BaseCheck.MEDIUM, False, 'instrument variable exists', ['No instrument variables found'])
         results = []
-        var = dataset.variables
-        instrument_bypass = all(hasattr(var[name],'instrument') for name in dataset.variables if hasattr(var[name], 'coordinates') and not hasattr(var[name],'flag_meanings'))
-        if instrument_bypass:
-            return Result(BaseCheck.MEDIUM, instrument_bypass, ('instrument_var', 'in_each_variable'), ['Instrument check passes because each variable has information about their isntrument'])
-        
-        if len(instruments) == 0:
-            return Result(BaseCheck.MEDIUM, False, ('instrument_var','exists'), ['The instrument variables do not exist']) 
-        
         for instrument in instruments:
-            #Check Instrument Var Exists
-            if instrument not in dataset.variables:
-                return Result(BaseCheck.MEDIUM, False, ('instrument_var','exists'), ['The instrument variables do not exist']) 
- 
-            has_var_attr = [
-                    'comment',
-                    'long_name',
-                    ]
-            var  = instrument
+            test_ctx = TestCtx(BaseCheck.MEDIUM, '{} is a proper instrument variable'.format(instrument))
+            var = dataset.variables[instrument]
+            self.assert_is(test_ctx, getattr(var, 'long_name', '') != '', 'long_name attribute exists and is not empty')
+            self.assert_is(test_ctx, getattr(var, 'comment', '') != '', 'comment attribute exists and is not empty')
+            results.append(test_ctx.to_result())
 
-            for attr in has_var_attr:
-                results.append(hasattr_check(dataset, var, attr, BaseCheck.MEDIUM))
-      
-        
         return results
 
 
 ################################################################################
 # CF Checks
 ################################################################################
-    @score_group('CF Global Attributes')
+    @score_group('CRS Variable')
     def check_crs(self, dataset):
-        '''        
+        '''
         int crs; //.......................................................... RECOMMENDED - A container variable storing information about the grid_mapping. All the attributes within a grid_mapping variable are described in http://cf-pcmdi.llnl.gov/documents/cf-conventions/1.6/cf-conventions.html#appendix-grid-mappings. For all the measurements based on WSG84, the default coordinate system used for GPS measurements, the values shown here should be used.
                 crs:grid_mapping_name = "latitude_longitude"; //............. RECOMMENDED
                 crs:epsg_code = "EPSG:4326" ; //............................. RECOMMENDED - European Petroleum Survey Group code for the grid mapping name.
                 crs:semi_major_axis = 6378137.0 ; //......................... RECOMMENDED
                 crs:inverse_flattening = 298.257223563 ; //.................. RECOMMENDED
-                '''
-        cfbasecheck = CFBaseCheck()
-        return CFBaseCheck.check_horz_crs_grid_mappings_projections(cfbasecheck, dataset)
+        '''
+        crs_variable = _find_crs_variable(dataset)
+        test_ctx = TestCtx(BaseCheck.MEDIUM, 'Dataset contains valid grid_mapping variable')
+        self.assert_is(test_ctx, crs_variable is not None, 'A container variable storing the grid mapping should exist for this dataset.')
 
-    @score_group('CF Global Attributes')
-    def check_cf_conventions(self, dataset):
-        cfbasecheck = CFBaseCheck()
-        return CFBaseCheck.check_naming_conventions(cfbasecheck, dataset)
+        epsg_code = getattr(crs_variable, 'epsg_code', '')
+        semi_major_axis = getattr(crs_variable, 'semi_major_axis', None)
+        inverse_flattening = getattr(crs_variable, 'inverse_flattening', None)
 
-    @score_group('CF Global Attributes')
-    def check_cf_conventions(self, dataset):
-        cfbasecheck = CFBaseCheck()
-        return CFBaseCheck.check_convention_possibly_var_attrs(cfbasecheck, dataset)
+        self.assert_is(test_ctx,
+                       epsg_code != '',
+                       'Attribute epsg_code should exist and not be empty: {}'.format(epsg_code))
+        self.assert_is(test_ctx,
+                       semi_major_axis is not None,
+                       'Attribute semi_major_axis should exist and not be empty: {}'.format(epsg_code))
+        self.assert_is(test_ctx,
+                       inverse_flattening is not None,
+                       'Attribute inverse_flattening should exist and not be empty: {}'.format(epsg_code))
+        return test_ctx.to_result()
 
-    @score_group('CF Global Attributes')
-    def check_cf_standard_name_vocab(self, dataset):
-        msgs = []
-        vocab_string = "NetCDF Climate and Forecast (CF) Metadata Convention Standard Name Table"
-        if vocab_string in getattr(dataset,'standard_name_vocabulary', None):
-            vocab_check = True
-        else:
-            msgs.append('standard_name_vocab is not correct')
-            vocab_check = False
-        return Result(BaseCheck.HIGH, vocab_check, 'standard_name_vocab', msgs)
+    @score_group('Global Attributes')
+    def check_global_attributes(self, dataset):
+        '''
+        Returns a result that contains the result-values mapped from REQUIRED, RECOMMENDED appropriately based on the following global attributes:
 
-################################################################################
-# ACDD Checks
-################################################################################
-    @score_group('ACDD Global Attributes')
-    def check_acdd_global_high(self, dataset):
-        acdd1_1check = ACDD1_1Check()
-        return ACDDBaseCheck.check_high(acdd1_1check, dataset)
-    
-    @score_group('ACDD Global Attributes')
-    def check_acdd_global_med(self, dataset):
-        acdd1_1check = ACDD1_1Check()
-        return ACDDBaseCheck.check_recommended(acdd1_1check, dataset)
-    
-    @score_group('ACDD Global Attributes')
-    def check_acdd_global_low(self, dataset):
-        acdd1_1check = ACDD1_1Check()
-        return ACDDBaseCheck.check_suggested(acdd1_1check, dataset)
+        :title = "" ; //..................................................... RECOMMENDED - Provide a useful title for the data in the file. (ACDD)
+        :summary = "" ; //................................................... RECOMMENDED - Provide a useful summary or abstract for the data in the file. (ACDD)
+        :source = "" ; //.................................................... RECOMMENDED - The input data sources regardless of the method of production method used. (CF)
+        :platform = "platform_variable" ; //................................. RECOMMENDED - Refers to a variable containing information about the platform. May also put this in individual variables. Use NODC or ICES platform table. (NODC)
+        :instrument = "instrument_parameter_variable" ; //................... RECOMMENDED - Refers to a variable containing information about the instrument. May also put this in individual variables. Use NODC or GCMD instrument table. (NODC)
+        :uuid = "" ; //...................................................... RECOMMENDED - Machine readable unique identifier for each file. A new uuid is created whenever the file is changed. (NODC)
+        :sea_name = "" ; //.................................................. RECOMMENDED - The names of the sea in which the data were collected. Use NODC sea names table. (NODC)
+        :id = "" ; //........................................................ RECOMMENDED - Should be a human readable unique identifier for data set. (ACDD)
+        :naming_authority = "" ; //.......................................... RECOMMENDED - Backward URL of institution (for example, gov.noaa.nodc). (ACDD)
+        :time_coverage_start = "" ; //....................................... RECOMMENDED - Use ISO8601 for date and time. (ACDD)
+        :time_coverage_end = "" ; //......................................... RECOMMENDED - Use ISO8601 for date and time.(ACDD)
+        :time_coverage_resolution = "" ; //.................................. RECOMMENDED - For example, "point" or "minute averages". (ACDD)
+        :geospatial_lat_min = 0.0f ; //...................................... RECOMMENDED - Replace with correct value. (ACDD)
+        :geospatial_lat_max = 0.0f ; //...................................... RECOMMENDED - Replace with correct value. (ACDD)
+        :geospatial_lat_units = "degrees_north" ; //......................... RECOMMENDED - Use UDUNITS compatible units. (ACDD)
+        :geospatial_lat_resolution= "" ; //.................................. RECOMMENDED - For example, "point" or "10 degree grid". (ACDD)
+        :geospatial_lon_min = 0.0f ; //...................................... RECOMMENDED - Replace with correct value. (ACDD)
+        :geospatial_lon_max = 0.0f ; //...................................... RECOMMENDED - Replace with correct value. (ACDD)
+        :geospatial_lon_units = "degrees_east"; //........................... RECOMMENDED - Use UDUNITS compatible units. (ACDD)
+        :geospatial_lon_resolution= "" ; //.................................. RECOMMENDED - For example, "point" or "10 degree grid". (ACDD)
+        :geospatial_vertical_min = 0.0f ; //................................. RECOMMENDED - Replace with correct value. (ACDD)
+        :geospatial_vertical_max = 0.0f ; //................................. RECOMMENDED - Replace with correct value. (ACDD)
+        :geospatial_vertical_units = "" ; //................................. RECOMMENDED - Use UDUNITS compatible units. (ACDD)
+        :geospatial_vertical_resolution = "" ; //............................ RECOMMENDED - For example, "point" or "1 meter binned". (ACDD)
+        :geospatial_vertical_positive = "" ; //.............................. RECOMMENDED - Use "up" or "down". (ACDD)
+        :institution = "" ; //............................................... RECOMMENDED - Institution of the person or group that collected the data.  An institution attribute can be used for each variable if variables come from more than one institution. (ACDD)
+        :creator_name = "" ; //.............................................. RECOMMENDED - Name of the person who collected the data. (ACDD)
+        :creator_url = "" ; //............................................... RECOMMENDED - URL for person who collected the data. (ACDD)
+        :creator_email = "" ; //............................................. RECOMMENDED - Email address for person who collected the data. (ACDD)
+        :project = "" ; //................................................... RECOMMENDED - Project the data was collected under. (ACDD)
+        :processing_level = "" ; //.......................................... RECOMMENDED - Provide a description of the processing or quality control level of the data. (ACDD)
+        :references = "" ; //................................................ RECOMMENDED - Published or web-based references that describe the data or methods used to produce it. (CF)
+        :keywords_vocabulary = "" ; //....................................... RECOMMENDED - Identifies the controlled keyword vocabulary used to specify the values within the attribute "keywords". e.g. NASA/GCMD Earth Science Keywords (ACDD)
+        :keywords = "" ; //.................................................. RECOMMENDED - A comma separated list of keywords coming from the keywords_vocabulary. (ACDD)
+        :acknowledgment = "" ; //............................................ RECOMMENDED - Text to use to properly acknowledge use of the data. (ACDD)
+        :comment = "" ; //................................................... RECOMMENDED - Provide useful additional information here. (ACDD and CF)
+        :contributor_name = "" ; //.......................................... RECOMMENDED - A comma separated list of contributors to this data set. (ACDD)
+        :contributor_role = "" ; //.......................................... RECOMMENDED - A comma separated list of their roles. (ACDD)
+        :date_created = "" ; //.............................................. RECOMMENDED - Creation date of the netCDF.  Use ISO8601 for date and time. (ACDD)
+        :date_modified = "" ; //............................................. RECOMMENDED - Modification date of the netCDF.  Use ISO8601 for date and time. (ACDD)
+        :publisher_name = "" ; //............................................ RECOMMENDED - Publisher of the data. (ACDD)
+        :publisher_email = "" ; //........................................... RECOMMENDED - Email address of the publisher of the data. (ACDD)
+        :publisher_url = "" ; //............................................. RECOMMENDED - A URL for the publisher of the data. (ACDD)
+        :history = "" ; //................................................... RECOMMENDED - Record changes made to the netCDF. (ACDD)
+        :license = "" ; //................................................... RECOMMENDED - Describe the restrictions to data access and distribution. (ACDD)
+        :metadata_link = "" ; //............................................. RECOMMENDED - This attribute provides a link to a complete metadata record for this data set or the collection that contains this data set. (ACDD)  
+        '''
+
+        should_exist = [
+            'title',
+            'summary',
+            'source',
+            'uuid',
+            'id',
+            'naming_authority',
+            'geospatial_lat_min',
+            'geospatial_lat_max',
+            'geospatial_lat_resolution',
+            'geospatial_lon_min',
+            'geospatial_lon_max',
+            'geospatial_lon_resolution',
+            'geospatial_vertical_max',
+            'geospatial_vertical_min',
+            'geospatial_vertical_units',
+            'geospatial_vertical_resolution',
+            'institution',
+            'creator_name',
+            'creator_url',
+            'creator_email',
+            'project',
+            'processing_level',
+            'references',
+            'keywords_vocabulary',
+            'keywords',
+            'comment',
+            'publisher_name',
+            'publisher_email',
+            'publisher_url',
+            'history',
+            'license',
+            'metadata_link'
+        ]
+
+        results = []
+        for attr in should_exist:
+            attr_ctx = TestCtx(BaseCheck.MEDIUM, '{} attribute exists'.format(attr))
+            self.assert_is(attr_ctx, getattr(dataset, attr, '') != '', '{} exists and is not empty.'.format(attr))
+            results.append(attr_ctx.to_result())
+
+        # Do any of the variables define platform ?
+        variable_defined_platform = any((hasattr(var, 'platform') for var in dataset.variables))
+        if not variable_defined_platform:
+            platform_ctx = TestCtx(BaseCheck.MEDIUM, 'platform attribute exists')
+            platform_name = getattr(dataset, 'platform', '')
+            self.assert_is(platform_ctx, platform_name and platform_name in dataset.variables, 'platform exists and is a variable.')
+            results.append(platform_ctx.to_result())
+
+        sea_names = get_sea_names()
+        sea_name_ctx = TestCtx(BaseCheck.MEDIUM, 'sea_name attribute exists')
+        sea_name = getattr(dataset, 'sea_name', '')
+        self.assert_is(sea_name_ctx, sea_name and sea_name in sea_names, 'exists and is from the NODC sea names list')
+        results.append(sea_name_ctx.to_result())
+
+        # Source: http://www.pelagodesign.com/blog/2009/05/20/iso-8601-date-validation-that-doesnt-suck/
+        iso8601_regex = r'^([\+-]?\d{4}(?!\d{2}\b))((-?)((0[1-9]|1[0-2])(\3([12]\d|0[1-9]|3[01]))?|W([0-4]\d|5[0-2])(-?[1-7])?|(00[1-9]|0[1-9]\d|[12]\d{2}|3([0-5]\d|6[1-6])))([T\s]((([01]\d|2[0-3])((:?)[0-5]\d)?|24\:?00)([\.,]\d+(?!:))?)?(\17[0-5]\d([\.,]\d+)?)?([zZ]|([\+-])([01]\d|2[0-3]):?([0-5]\d)?)?)?)?$'
+        for attr in ['time_coverage_start', 'time_coverage_end', 'date_created', 'date_modified']:
+            attr_ctx = TestCtx(BaseCheck.MEDIUM, '{} exists and is ISO-8601'.format(attr))
+            attr_value = getattr(dataset, attr, '')
+            regex_match = re.match(iso8601_regex, attr_value)
+            self.assert_is(attr_ctx, attr_value and regex_match is not None, '{} exists and is ISO-8601 valid string: {}'.format(attr, attr_value))
+            results.append(attr_ctx.to_result())
+
+        attr_ctx = TestCtx(BaseCheck.MEDIUM, 'geospatial_lat_units exists and is valid')
+        units = getattr(dataset, 'geospatial_lat_units', '').lower()
+        self.assert_is(attr_ctx, units == 'degrees_north', 'Units must be degrees_north: {}'.format(units))
+        results.append(attr_ctx.to_result())
+
+        attr_ctx = TestCtx(BaseCheck.MEDIUM, 'geospatial_lon_units exists and is valid')
+        units = getattr(dataset, 'geospatial_lon_units', '').lower()
+        self.assert_is(attr_ctx, units == 'degrees_east', 'Units must be degrees_east: {}'.format(units))
+        results.append(attr_ctx.to_result())
+
+        attr_ctx = TestCtx(BaseCheck.MEDIUM, 'geospatial_vertical_positive is either up or down')
+        value = getattr(dataset, 'geospatial_vertical_positive', '')
+        self.assert_is(attr_ctx, value.lower() in ['up', 'down'], 'value must be either up or down: {}'.format(value))
+        results.append(attr_ctx.to_result())
+
+        # I hate english.
+        ack_exists = any((getattr(dataset, attr, '') != '' for attr in ['acknowledgment', 'acknowledgement']))
+        attr_ctx = TestCtx(BaseCheck.MEDIUM, 'acknowledgment exists')
+        self.assert_is(attr_ctx, ack_exists, 'exists and is not empty')
+        results.append(attr_ctx.to_result())
+
+        contributor_name = getattr(dataset, 'contributor_name', '')
+        contributor_role = getattr(dataset, 'contributor_role', '')
+        names = contributor_role.split(',')
+        roles = contributor_role.split(',')
+        contributors_ctx = TestCtx(BaseCheck.MEDIUM, 'contributor_name exists and is valid')
+        self.assert_is(contributors_ctx, contributor_name != '', 'contributor_name exists and is not empty.')
+        self.assert_is(contributors_ctx, len(names) == len(roles), 'length of contributor names matches length of roles')
+        results.append(contributors_ctx.to_result())
+        roles_ctx = TestCtx(BaseCheck.MEDIUM, 'contributor_role exists and is valid')
+        self.assert_is(roles_ctx, contributor_role != '', 'contributor_role exists and is not empty.')
+        self.assert_is(roles_ctx, len(names) == len(roles), 'length of contributor names matches length of roles')
+        results.append(roles_ctx.to_result())
+
+        return results
