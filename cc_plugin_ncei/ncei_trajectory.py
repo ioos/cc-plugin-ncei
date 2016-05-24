@@ -4,11 +4,8 @@
 cc_plugin_ncei/ncei_trajectory.py
 '''
 
-from compliance_checker.cf.cf import CFBaseCheck
 from compliance_checker.base import Result, BaseCheck, score_group
 from cc_plugin_ncei.ncei_base import NCEIBaseCheck
-import cf_units
-import numpy as np
 
 
 class NCEITrajectory(NCEIBaseCheck):

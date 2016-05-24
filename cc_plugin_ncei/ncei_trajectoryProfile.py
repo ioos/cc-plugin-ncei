@@ -4,11 +4,9 @@
 cc_plugin_ncei/ncei_trajectoryProfile.py
 '''
 
-from compliance_checker.cf.cf import CFBaseCheck
 from compliance_checker.base import Result, BaseCheck, score_group
 from cc_plugin_ncei.ncei_base import NCEIBaseCheck
-from cc_plugin_ncei.util import _find_z_dimension
-import cf_units
+from cc_plugin_ncei.util import find_z_dimension
 import numpy as np
 
 
@@ -47,7 +45,7 @@ class NCEITrajectoryProfileOrthogonal(NCEIBaseCheck):
         out_of = 5
         score = 0
         msgs = []
-        z_dim = _find_z_dimension(dataset)
+        z_dim = find_z_dimension(dataset)
         required_dimensions = ['trajectory']
         required_dimesions = required_dimensions.append(z_dim)
 
@@ -78,7 +76,7 @@ class NCEITrajectoryProfileOrthogonal(NCEIBaseCheck):
     def check_science_orthogonal(self, dataset):
         msgs = []
         results = []
-        z_dim = _find_z_dimension(dataset)
+        z_dim = find_z_dimension(dataset)
         required_dims = ('trajectory', 'obs', z_dim,)
         for var in dataset.variables:
             if hasattr(dataset.variables[var],'coordinates'):

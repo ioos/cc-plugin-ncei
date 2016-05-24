@@ -4,12 +4,11 @@
 cc_plugin_ncei/ncei_timeseriesprofile.py
 '''
 
-from compliance_checker.cf.cf import CFBaseCheck
 from compliance_checker.base import Result, BaseCheck, score_group
 from cc_plugin_ncei.ncei_base import NCEIBaseCheck
-from cc_plugin_ncei.util import _find_z_dimension
-import cf_units
+from cc_plugin_ncei.util import find_z_dimension
 import numpy as np
+
 
 class NCEITimeSeriesProfileOrthogonal(NCEIBaseCheck):
     register_checker = True
@@ -29,6 +28,7 @@ class NCEITimeSeriesProfileOrthogonal(NCEIBaseCheck):
         'timeseries_id',
         'timeSeriesProfile'
     ]
+
     @classmethod
     def beliefs(cls): 
         '''
@@ -47,7 +47,7 @@ class NCEITimeSeriesProfileOrthogonal(NCEIBaseCheck):
         out_of = 6
         score = 0
         msgs = []
-        z_dim = _find_z_dimension(dataset)
+        z_dim = find_z_dimension(dataset)
         required_dimensions = ['station', 'time']
         required_dimensions.append(z_dim)
 
@@ -495,7 +495,7 @@ class NCEITimeSeriesProfileIncompleteTimeOrthDepth(NCEIBaseCheck):
         out_of = 5
         score = 0
         msgs = []
-        z_dim = _find_z_dimension(dataset)
+        z_dim = find_z_dimension(dataset)
         required_dimensions = [z_dim, u'station', u'ntimeMax']
 
         for dim in required_dimensions:
@@ -523,7 +523,7 @@ class NCEITimeSeriesProfileIncompleteTimeOrthDepth(NCEIBaseCheck):
     def check_science_incompletetime_orthdepth(self, dataset):
         msgs = []
         results = []
-        z_dim = _find_z_dimension(dataset)
+        z_dim = find_z_dimension(dataset)
         for var in dataset.variables:
             if hasattr(dataset.variables[var],'coordinates'):
                 dim_check = dataset.variables[var].dimensions == ('station', 'ntimeMax', z_dim,)
@@ -607,7 +607,7 @@ class NCEITimeSeriesProfileIncompleteTimeOrthDepth(NCEIBaseCheck):
     @score_group('Required Variables')
     def check_z(self, dataset):
         msgs = []
-        z_dim = _find_z_dimension(dataset)
+        z_dim = find_z_dimension(dataset)
 
         dim_check = dataset.variables[z_dim].dimensions == (z_dim,)
         if dim_check == False:

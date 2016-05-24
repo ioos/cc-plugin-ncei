@@ -4,11 +4,9 @@
 cc_plugin_ncei/ncei_grid.py
 '''
 
-from compliance_checker.cf.cf import CFBaseCheck
 from compliance_checker.base import Result, BaseCheck, score_group
 from cc_plugin_ncei.ncei_base import NCEIBaseCheck
-from cc_plugin_ncei.util import _find_z_dimension
-import cf_units
+from cc_plugin_ncei.util import find_z_dimension
 import numpy as np
 
 class NCEIGrid(NCEIBaseCheck):
@@ -317,7 +315,7 @@ class NCEIGrid(NCEIBaseCheck):
         results = []
         msgs = []
         #Check Dimensions
-        z_dim = _find_z_dimension(dataset)
+        z_dim = find_z_dimension(dataset)
         dims_required = (u'time', z_dim, u'lat', u'lon',)
         for name in dataset.variables:
             var = dataset.variables[name]

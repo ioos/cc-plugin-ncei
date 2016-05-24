@@ -6,9 +6,9 @@ cc_plugin_ncei/ncei_base.py
 from __future__ import print_function
 
 from compliance_checker.base import Result, BaseCheck, score_group, BaseNCCheck
-from compliance_checker.cf.util import StandardNameTable, units_known
-from cc_plugin_ncei.util import _find_platform_variables, _find_instrument_variables, getattr_check, hasattr_check, var_dtype, _find_crs_variable
-from cc_plugin_ncei.util import get_sea_names
+from compliance_checker.cf.util import StandardNameTable, units_convertible
+from cc_plugin_ncei import util
+from cc_plugin_ncei.nc_structure import NCStructure
 import re
 
 
@@ -27,6 +27,17 @@ class TestCtx(object):
     def to_result(self):
         return Result(self.category, (self.score, self.out_of), self.description, self.messages)
 
+    def assert_true(self, test, message):
+        '''
+        Increments score if test is true otherwise appends a message
+        '''
+        self.out_of += 1
+
+        if test:
+            self.score += 1
+        else:
+            self.messages.append(message)
+
 
 class NCEIBaseCheck(BaseNCCheck):
     register_checker = True
@@ -37,17 +48,6 @@ class NCEIBaseCheck(BaseNCCheck):
 
     def setup(self, ds):
         pass
-
-    def assert_is(self, ctx, test, message):
-        '''
-        Increments score if test is true otherwise appends a message
-        '''
-        ctx.out_of += 1
-
-        if test:
-            ctx.score += 1
-        else:
-            ctx.messages.append(message)
 
     def check_base_required_attributes(self, dataset):
         '''
@@ -61,7 +61,7 @@ class NCEIBaseCheck(BaseNCCheck):
         :standard_name_vocabulary = "NetCDF Climate and Forecast (CF) Metadata Convention Standard Name Table "X"" ; //........ REQUIRED    - If using CF standard name attribute for variables. "X" denotes the table number  (ACDD)
         '''
 
-        test_ctx = TestCtx(BaseCheck.HIGH, 'Dataset contains NCEI required and highly recommended attributes')
+        test_ctx = TestCtx(BaseCheck.HIGH, 'Required global attributes')
 
         conventions = getattr(dataset, 'Conventions', '')
         metadata_conventions = getattr(dataset, 'Metadata_Conventions', '')
@@ -69,18 +69,14 @@ class NCEIBaseCheck(BaseNCCheck):
         cdm_data_type = getattr(dataset, 'cdm_data_type')
         standard_name_vocab = getattr(dataset, 'standard_name_vocabulary', '')
 
-        self.assert_is(test_ctx,
-                       conventions == 'CF-1.6',
-                       'Conventions attribute is missing or is not equal to CF-1.6: {}'.format(conventions))
-        self.assert_is(test_ctx,
-                       metadata_conventions == 'Unidata Dataset Discovery v1.0',
-                       "Metadata_Conventions attribute is required to be 'Unidata Dataset Discovery v1.0': {}".format(metadata_conventions))
-        self.assert_is(test_ctx,
-                       feature_type in ['station', 'timeSeries', 'trajectory', 'profile', 'timeSeriesProfile', 'grid'],
-                       'Feature type must be one of station, timeSeries, trajectory, profile, timeSeriesProfile, grid: {}'.format(feature_type))
-        self.assert_is(test_ctx,
-                       cdm_data_type in ['Point', 'Station', 'Trajectory', 'Profile', 'Grid'],
-                       'cdm_data_type must be one of Point, Station, Trajectory, Profile, Grid: {}'.format(cdm_data_type))
+        test_ctx.assert_true(conventions == 'CF-1.6',
+                             'Conventions attribute is missing or is not equal to CF-1.6: {}'.format(conventions))
+        test_ctx.assert_true(metadata_conventions == 'Unidata Dataset Discovery v1.0',
+                             "Metadata_Conventions attribute is required to be 'Unidata Dataset Discovery v1.0': {}".format(metadata_conventions))
+        test_ctx.assert_true(feature_type in ['station', 'timeSeries', 'trajectory', 'profile', 'timeSeriesProfile', 'grid'],
+                             'Feature type must be one of station, timeSeries, trajectory, profile, timeSeriesProfile, grid: {}'.format(feature_type))
+        test_ctx.assert_true(cdm_data_type in ['Point', 'Station', 'Trajectory', 'Profile', 'Grid'],
+                             'cdm_data_type must be one of Point, Station, Trajectory, Profile, Grid: {}'.format(cdm_data_type))
 
         feature_cdm_map = {
             'station': 'Point',
@@ -90,12 +86,10 @@ class NCEIBaseCheck(BaseNCCheck):
             'timeSeriesProfile': 'Profile',
             'grid': 'Grid'
         }
-        self.assert_is(test_ctx,
-                       feature_cdm_map[feature_type] == cdm_data_type,
-                       'cdm_data_type must correspond to the featureType specified: {} doesn\'t map to {}'.format(feature_type, cdm_data_type))
-        self.assert_is(test_ctx,
-                       standard_name_vocab.startswith("NetCDF Climate and Forecast (CF) Metadata Convention Standard Name Table"),
-                       "standard_name_vocabulary doesn't start with 'NetCDF Climate and Forecast (CF) Metadata Convention Standard Name Table': {}".format(standard_name_vocab))
+        test_ctx.assert_true(feature_cdm_map[feature_type] == cdm_data_type,
+                             'cdm_data_type must correspond to the featureType specified: {} doesn\'t map to {}'.format(feature_type, cdm_data_type))
+        test_ctx.assert_true(standard_name_vocab.startswith("NetCDF Climate and Forecast (CF) Metadata Convention Standard Name Table"),
+                             "standard_name_vocabulary doesn't start with 'NetCDF Climate and Forecast (CF) Metadata Convention Standard Name Table': {}".format(standard_name_vocab))
 
         return test_ctx.to_result()
 
@@ -103,7 +97,6 @@ class NCEIBaseCheck(BaseNCCheck):
     # Checks for Required Variables
     ################################################################################
 
-    @score_group('Required Variables')
     def check_lat(self, dataset):
         '''
         float lat(time) ;//....................................... Depending on the precision used for the variable, the data type could be int or double instead of float.
@@ -118,168 +111,116 @@ class NCEIBaseCheck(BaseNCCheck):
                 lat:comment = "" ; //........................................ RECOMMENDED - Add useful, additional information here.
         '''
 
-        # Checks if the lat variable is formed properly
-
-        msgs = []
         results = []
-        var = u'lat'
+        struct = NCStructure(dataset)
+        lat = struct.get_lat()
+        if not lat:
+            return Result(BaseCheck.HIGH, False, 'latitude', ['a variable for latitude doesn\'t exist'])
+        lat_var = dataset.variables[lat]
+        test_ctx = TestCtx(BaseCheck.HIGH, 'latitude required attributes')
+        test_ctx.assert_true(getattr(lat_var, 'standard_name', '') == 'latitude', 'standard_name attribute must be latitude')
+        units = getattr(lat_var, 'units', '')
+        test_ctx.assert_true(units and units_convertible(units, 'degrees_north'), 'units are valid UDUNITS for latitude')
+        test_ctx.assert_true(getattr(lat_var, 'axis', '') == 'Y', 'axis attribute is Y')
 
-        # Check 1) lat exist
+        results.append(test_ctx.to_result())
 
-        if var in dataset.variables:
-            exists_check = True
-            results.append(Result(BaseCheck.HIGH, exists_check, (var, 'exists'), msgs))
-        else:
-            msgs = ['{} does not exist'.format(var)]
-            return Result(BaseCheck.HIGH, (0, 1), (var, 'exists'), msgs)
-
-        # Check 2) Data Type
-        valid_types = ['int', 'long', 'double', 'float']
-        results.append(var_dtype(dataset, var, valid_types, BaseCheck.HIGH))
-
-        # Check 3,4,5 Check standard name, units, and axis
-        get_attr_val = [
-            ('standard_name', 'latitude'),
-            ('units', 'degrees_north'),
-            ('axis', 'Y')
-        ]
-        # Check 6,7,8,9,10,11 has these attributes
-        has_var_attr = [
-            'valid_min',
-            'valid_max',
-            'ancillary_variables',
-            'comment',
-            'long_name'
-        ]
-
-        for attr, val in get_attr_val:
-            results.append(getattr_check(dataset, var, attr, val, BaseCheck.HIGH))
-
-        for attr in has_var_attr:
-            results.append(hasattr_check(dataset, var, attr, BaseCheck.MEDIUM))
- 
+        test_ctx = TestCtx(BaseCheck.MEDIUM, 'latitude recommended attributes')
+        test_ctx.assert_true(getattr(lat_var, 'long_name', '') != '', 'long_name attribute exists and is not empty')
+        test_ctx.assert_true(getattr(lat_var, 'valid_min', '') != '', 'valid_min attribute exists and is not empty')
+        test_ctx.assert_true(getattr(lat_var, 'valid_max', '') != '', 'valid_max attribute exists and is not empty')
+        test_ctx.assert_true(getattr(lat_var, 'comment', '') != '', 'comment attribute exists and is not empty')
+        test_ctx.assert_true(units == 'degrees_north', 'The correct units for latitude per CF are degrees_north')
+        results.append(test_ctx.to_result())
         return results
 
-    @score_group('Required Variables')
     def check_lon(self, dataset):
         '''
-                float lat(time) ;//....................................... Depending on the precision used for the variable, the data type could be int or double instead of float. 
-                lat:long_name = "" ; //...................................... RECOMMENDED - Provide a descriptive, long name for this variable.
-                lat:standard_name = "latitude" ; //.......................... REQUIRED    - Do not change.
-                lat:units = "degrees_north" ; //............................. REQUIRED    - CF recommends degrees_north, but at least must use UDUNITS.
-                lat:axis = "Y" ; //.......................................... REQUIRED    - Do not change.
-                lat:valid_min = 0.0f ; //.................................... RECOMMENDED - Replace with correct value.
-                lat:valid_max = 0.0f ; //.................................... RECOMMENDED - Replace with correct value.
-                lat:_FillValue = 0.0f;//..................................... REQUIRED  if there could be missing values in the data.
-                lat:ancillary_variables = "" ; //............................ RECOMMENDED - List other variables providing information about this variable.
-                lat:comment = "" ; //........................................ RECOMMENDED - Add useful, additional information here.
-                '''
-        #Checks if the lon variable is formed properly
-        msgs=[]
-        results=[]
-        var = u'lon'
+        float lon(timeSeries) ; //........................................ Depending on the precision used for the variable, the data type could be int or double instead of float.
+            lon:long_name = "" ; //...................................... RECOMMENDED
+            lon:standard_name = "longitude" ; //......................... REQUIRED    - This is fixed, do not change.
+            lon:units = "degrees_east" ; //.............................. REQUIRED    - CF recommends degrees_east, but at least use UDUNITS.
+            lon:axis = "X" ; //.......................................... REQUIRED    - Do not change.
+            lon:valid_min = 0.0f ; //.................................... RECOMMENDED - Replace this with correct value.
+            lon:valid_max = 0.0f ; //.................................... RECOMMENDED - Replace this with correct value.
+            lon:_FillValue = 0.0f;//..................................... REQUIRED  if there could be missing values in the data.
+            lon:ancillary_variables = "" ; //............................ RECOMMENDED - List other variables providing information about this variable.
+            lon:comment = "" ; //........................................ RECOMMENDED - Add useful, additional information here.
+        '''
+        results = []
+        struct = NCStructure(dataset)
+        lon = struct.get_lon()
+        if not lon:
+            return Result(BaseCheck.HIGH, False, 'longitude', ['a variable for longitude doesn\'t exist'])
+        lon_var = dataset.variables[lon]
+        test_ctx = TestCtx(BaseCheck.HIGH, 'longitude required attributes')
+        test_ctx.assert_true(getattr(lon_var, 'standard_name', '') == 'longitude', 'standard_name attribute must be longitude')
+        units = getattr(lon_var, 'units', '')
+        test_ctx.assert_true(units and units_convertible(units, 'degrees_east'), 'units are valid UDUNITS for longitude')
+        test_ctx.assert_true(getattr(lon_var, 'axis', '') == 'X', 'axis attribute is X')
 
-       #Check lon exist
-        if var in dataset.variables:
-            exists_check = True
-            results.append(Result(BaseCheck.HIGH, exists_check, (var,'exists'), msgs))
-        else:
-            msgs = ['{} does not exist'.format(var)]
-            return Result(BaseCheck.HIGH, (0,1), (var,'exists'), msgs)
-       
-        #Check Data Type
-        valid_types = ['int', 'long', 'double', 'float']
-        results.append(var_dtype(dataset, var, valid_types, BaseCheck.HIGH))
+        results.append(test_ctx.to_result())
 
-        #Check Check standard name, units, and axis
-        get_attr_val = [
-                ('standard_name', 'longitude'), 
-                ('units', 'degrees_east'), 
-                ('axis', 'X')
-                ]
-        #Check has these attributes
-        has_var_attr = [
-                #'_FillValue',
-                'valid_min',
-                'valid_max',
-                'ancillary_variables',
-                'comment',
-                'long_name'
-                ]
-
-        for attr,val in get_attr_val:
-            results.append(getattr_check(dataset, var, attr, val, BaseCheck.HIGH))
-
-        for attr in has_var_attr:
-            results.append(hasattr_check(dataset, var, attr, BaseCheck.MEDIUM))
- 
+        test_ctx = TestCtx(BaseCheck.MEDIUM, 'longitude recommended attributes')
+        test_ctx.assert_true(getattr(lon_var, 'long_name', '') != '', 'long_name attribute exists and is not empty')
+        test_ctx.assert_true(getattr(lon_var, 'valid_min', '') != '', 'valid_min attribute exists and is not empty')
+        test_ctx.assert_true(getattr(lon_var, 'valid_max', '') != '', 'valid_max attribute exists and is not empty')
+        test_ctx.assert_true(getattr(lon_var, 'comment', '') != '', 'comment attribute exists and is not empty')
+        test_ctx.assert_true(units == 'degrees_east', 'The correct units for longitude per CF are degrees_east')
+        results.append(test_ctx.to_result())
         return results
 
-    @score_group('Required Variables')
+    @score_group('Coordinate Variables')
     def check_time(self, dataset):
         '''
-                double time(time) ;//........................................ Depending on the precision used for the variable, the data type could be int or double instead of float.
-                time:long_name = "" ; //..................................... RECOMMENDED - Provide a descriptive, long name for this variable. 
-                time:standard_name = "time" ; //............................. REQUIRED    - Do not change
-                time:units = "seconds since 1970-01-01 00:00:00 0:00" ; //... REQUIRED    - Use approved CF convention with approved UDUNITS.
-                time:calendar = "julian" ; //................................ REQUIRED    - IF the calendar is not default calendar, which is "gregorian".
-                time:axis = "T" ; //......................................... REQUIRED    - Do not change.
-                time:_FillValue = 0.0f;//.................................... REQUIRED  if there could be missing values in the data.
-                time:ancillary_variables = "" ; //........................... RECOMMENDED - List other variables providing information about this variable.
-                time:comment = "" ; //....................................... RECOMMENDED - Add useful, additional information here. 
-                '''
-        #Checks if the time variable is formed properly
-        msgs=[]
-        results=[]
-        var = u'time'
-       #Check time exist
+        double time(time) ;//........................................ Depending on the precision used for the variable, the data type could be int or double instead of float.
+            time:long_name = "" ; //..................................... RECOMMENDED - Provide a descriptive, long name for this variable.
+            time:standard_name = "time" ; //............................. REQUIRED    - Do not change
+            time:units = "seconds since 1970-01-01 00:00:00 0:00" ; //... REQUIRED    - Use approved CF convention with approved UDUNITS.
+            time:calendar = "julian" ; //................................ REQUIRED    - IF the calendar is not default calendar, which is "gregorian".
+            time:axis = "T" ; //......................................... REQUIRED    - Do not change.
+            time:_FillValue = 0.0f;//.................................... REQUIRED  if there could be missing values in the data.
+            time:ancillary_variables = "" ; //........................... RECOMMENDED - List other variables providing information about this variable.
+            time:comment = "" ; //....................................... RECOMMENDED - Add useful, additional information here.
+        '''
+        results = []
+        time_var = util.find_time_variable(dataset)
+        if not time_var:
+            return Result(BaseCheck.HIGH, False, 'Coordinate variable time', ['Time coordinate variable was not found'])
+        required_ctx = TestCtx(BaseCheck.HIGH, 'Coordinate variable time')
+        required_ctx.assert_true(getattr(dataset.variables[time_var], 'standard_name', '') == 'time', 'standard_name is "time"')
+        time_regex = r'(seconds|minutes|hours|days) since.*'
+        time_units = getattr(dataset.variables[time_var], 'units', '')
+        required_ctx.assert_true(re.match(time_regex, time_units) is not None, 'Valid units for time')
+        calendar = getattr(dataset.variables[time_var], 'calendar', '')
+        valid_calendars = [
+            'standard',
+            'gregorian',
+            'proleptic_gregorian',
+            'noleap',
+            '365_day',
+            '360_day',
+            'julian',
+            'all_leap',
+            '366_day'
+        ]
 
-        if var in dataset.variables:
-            exists_check = True
-            results.append(Result(BaseCheck.HIGH, exists_check, (var,'exists'), msgs))
-        else:
-            msgs = ['{} does not exist'.format(var)]
-            return Result(BaseCheck.HIGH, (0,1), (var,'exists'), msgs)
-       
-        #Check Data Type
-        valid_types = ['int', 'long', 'double', 'float']
-        results.append(var_dtype(dataset, var, valid_types, BaseCheck.HIGH))
+        if calendar:
+            required_ctx.assert_true(calendar in valid_calendars, 'time contains a valid calendar https://unidata.github.io/netcdf4-python/#netCDF4.date2num')
 
-        #Check  Check standard name and axis
-        get_attr_val = [
-                ('standard_name', 'time'), 
-                ('axis', 'T')
-                ]
-        #Check has these attributes
-        has_var_attr = [
-                'ancillary_variables',
-                'comment',
-                'long_name',
-                'calendar'
-                ]
+        results.append(required_ctx.to_result())
+        recommended_ctx = TestCtx(BaseCheck.MEDIUM, 'Coordinate variable time')
+        recommended_ctx.assert_true(getattr(dataset.variables[time_var], 'long_name', '') != '', 'long_name exists')
+        recommended_ctx.assert_true(getattr(dataset.variables[time_var], 'comment', '') != '', 'comment')
+        results.append(recommended_ctx.to_result())
 
-        for attr,val in get_attr_val:
-            results.append(getattr_check(dataset, var, attr, val, BaseCheck.HIGH))
-
-        for attr in has_var_attr:
-            results.append(hasattr_check(dataset, var, attr, BaseCheck.MEDIUM))
- 
-        #Check Units
-        if 'since' in getattr(dataset.variables[var], 'units', None):
-            units_check = True
-        else: 
-            msgs = ['units are wrong']
-            units_check = False
-        results.append(Result(BaseCheck.HIGH, units_check, (var,'units'), msgs))
-        
         return results
 
-    @score_group('Required Variables')
+    @score_group('Coordinate Variables')
     def check_height(self, dataset):
-        #Checks if the lat variable is formed properly
         '''
-                float z(time) ;//........................................ Depending on the precision used for the variable, the data type could be int or double instead of float. Also the variable "z" could be substituted with a more descriptive name like "depth", "altitude", "pressure", etc.
-                z:long_name = "" ; //........................................ RECOMMENDED - Provide a descriptive, long name for this variable. 
+        float z(time) ;//........................................ Depending on the precision used for the variable, the data type could be int or double instead of float. Also the variable "z" could be substituted with a more descriptive name like "depth", "altitude", "pressure", etc.
+                z:long_name = "" ; //........................................ RECOMMENDED - Provide a descriptive, long name for this variable.
                 z:standard_name = "" ; //.................................... REQUIRED    - Usually "depth" or "altitude" is used.
                 z:units = "" ; //............................................ REQUIRED    - Use UDUNITS.
                 z:axis = "Z" ; //............................................ REQUIRED    - Do not change.
@@ -311,7 +252,7 @@ class NCEIBaseCheck(BaseNCCheck):
               ]
         valid_units = ['m','meters','meter','metre','metres','km','kilometers','kilometer','bar','millibar','decibar','atm','atmosphere','pascal','Pa','hPa']
 
-        #Check  height exists and Check Axis 
+        #Check  height exists and Check Axis
         no_height = True
         for var in dataset.variables:
             if getattr(dataset.variables[var],'axis',None) == 'Z':
@@ -321,7 +262,7 @@ class NCEIBaseCheck(BaseNCCheck):
                 break
         if no_height:
             return Result(BaseCheck.HIGH, (0,1), ('height_variable','exists'), msgs)
-        
+
        #Check Height Name
         if var in valid_variable_names:
             name_check = True
@@ -329,15 +270,15 @@ class NCEIBaseCheck(BaseNCCheck):
         else:
             msgs = ['The name of the Height Variable is not in the approved vocab list']
             return Result(BaseCheck.HIGH, (0,1), (var,'valid_height_name'), msgs)
-       
+
         #Check Data Type
         valid_types = ['int', 'long', 'double', 'float']
-        results.append(var_dtype(dataset, var, valid_types, BaseCheck.HIGH))
+        results.append(util.var_dtype(dataset, var, valid_types, BaseCheck.HIGH))
 
         #Check Standard Name
         if getattr(dataset.variables[var], 'standard_name', None) in ['depth','altitude']:
             std_check = True
-        else: 
+        else:
             msgs = ['standard name is wrong']
             std_check = False
         results.append(Result(BaseCheck.HIGH, std_check, (var,'standard_name'), msgs))
@@ -345,7 +286,7 @@ class NCEIBaseCheck(BaseNCCheck):
         #Check Units
         if getattr(dataset.variables[var], 'units', None) in valid_units:
             units_check = True
-        else: 
+        else:
             msgs = ['units are wrong']
             units_check = False
         results.append(Result(BaseCheck.HIGH, units_check, (var,'units'), msgs))
@@ -361,148 +302,106 @@ class NCEIBaseCheck(BaseNCCheck):
                 ]
 
         for attr in has_var_attr:
-            results.append(hasattr_check(dataset, var, attr, BaseCheck.MEDIUM))
-         
+            results.append(util.hasattr_check(dataset, var, attr, BaseCheck.MEDIUM))
+
         #Check Positive
         if getattr(dataset.variables[var], 'positive', None) in ['up', 'down']:
             pos_check = True
-        else: 
+        else:
             msgs = ['positive is incorrect']
             pos_check = False
         results.append(Result(BaseCheck.MEDIUM, pos_check, (var,'positive'), msgs))
         return results
 
-################################################################################
-# Checks for Science Variables 
-################################################################################
-    @score_group('Science Variables')
-    def check_science(self, dataset):
+    ################################################################################
+    # Checks geophysical variables
+    ################################################################################
+
+    def check_geophysical(self, dataset):
         '''
-                float geophysical_variable_1(time) ;//................................ This is an example of how each and every geophysical variable in the file should be represented. Replace the name of the variable("geophysical_variable_1") with a suitable name. Replace "float" by data type which is appropriate for the variable. 
-                geophysical_variable_1:long_name = "" ; //................... RECOMMENDED - Provide a descriptive, long name for this variable. 
-                geophysical_variable_1:standard_name = "" ; //............... REQUIRED    - If using a CF standard name and a suitable name exists in the CF standard name table.
-                geophysical_variable_1:nodc_name = "" ; //................... RECOMMENDED - From the NODC variables vocabulary, if standard_name does not exist.
-                geophysical_variable_1:units = "" ; //....................... REQUIRED    - Use UDUNITS compatible units.
-                geophysical_variable_1:scale_factor = 0.0f ; //.............. REQUIRED if the data uses a scale_factor other than 1.The data type should be the data type of the variable.
-                geophysical_variable_1:add_offset = 0.0f ; // ............... REQUIRED if the data uses an add_offset other than 0. The data type should be the data type of the variable.
-                geophysical_variable_1:_FillValue = 0.0f ; //................ REQUIRED  if there could be missing values in the data.
-                geophysical_variable_1:valid_min = 0.0f ; //................. RECOMMENDED - Replace with correct value.
-                geophysical_variable_1:valid_max = 0.0f ; //................. RECOMMENDED - Replace with correct value.
-                geophysical_variable_1:coordinates = "time lat lon z" ; //... REQUIRED    - Include the auxiliary coordinate variables and optionally coordinate variables in the list. The order itself does not matter. Also, note that whenever any auxiliary coordinate variable contains a missing value, all other coordinate, auxiliary coordinate and data values corresponding to that element should also contain missing values.
-                geophysical_variable_1:grid_mapping = "crs" ; //............. RECOMMENDED - It is highly recommended that the data provider put the data in a well known geographic coordinate system and provide the details of the coordinate system.
-                geophysical_variable_1:source = "" ; //...................... RECOMMENDED - The method of production of the original data
-                geophysical_variable_1:references = "" ; //.................. RECOMMENDED - Published or web-based references that describe the data or methods used to produce it.
-                geophysical_variable_1: cell_methods = "" ; // .............. RECOMMENDED - Use the coordinate variables to define the cell values (ex., "time: point lon: point lat: point z: point").
-                geophysical_variable_1:ancillary_variables = "instrument_parameter_variable platform_variable boolean_flag_variable enumerated_flag_variable" ; //......... RECOMMENDED - Identify the variable name(s) of the flag(s) and other ancillary variables relevant to this variable.  Use a space-separated list.
-                geophysical_variable_1:platform = "platform_variable" ; //... RECOMMENDED - Refers to name of variable containing information on the platform from which this variable was collected.
-                geophysical_variable_1:instrument = "instrument_variable";//..RECOMMENDED - Refers to name of variable containing information on the instrument from which this variable was collected.
-                geophysical_variable_1:comment = "" ; //..................... RECOMMENDED - Add useful, additional information here.
-                '''
-        #Check the science variables to ensure they are good
+        float geophysical_variable_1(time) ;//................................ This is an example of how each and every geophysical variable in the file should be represented. Replace the name of the variable("geophysical_variable_1") with a suitable name. Replace "float" by data type which is appropriate for the variable.
+            geophysical_variable_1:long_name = "" ; //................... RECOMMENDED - Provide a descriptive, long name for this variable.
+            geophysical_variable_1:standard_name = "" ; //............... REQUIRED    - If using a CF standard name and a suitable name exists in the CF standard name table.
+            geophysical_variable_1:nodc_name = "" ; //................... RECOMMENDED - From the NODC variables vocabulary, if standard_name does not exist.
+            geophysical_variable_1:units = "" ; //....................... REQUIRED    - Use UDUNITS compatible units.
+            geophysical_variable_1:scale_factor = 0.0f ; //.............. REQUIRED if the data uses a scale_factor other than 1.The data type should be the data type of the variable.
+            geophysical_variable_1:add_offset = 0.0f ; // ............... REQUIRED if the data uses an add_offset other than 0. The data type should be the data type of the variable.
+            geophysical_variable_1:_FillValue = 0.0f ; //................ REQUIRED  if there could be missing values in the data.
+            geophysical_variable_1:valid_min = 0.0f ; //................. RECOMMENDED - Replace with correct value.
+            geophysical_variable_1:valid_max = 0.0f ; //................. RECOMMENDED - Replace with correct value.
+            geophysical_variable_1:coordinates = "time lat lon z" ; //... REQUIRED    - Include the auxiliary coordinate variables and optionally coordinate variables in the list. The order itself does not matter. Also, note that whenever any auxiliary coordinate variable contains a missing value, all other coordinate, auxiliary coordinate and data values corresponding to that element should also contain missing values.
+            geophysical_variable_1:grid_mapping = "crs" ; //............. RECOMMENDED - It is highly recommended that the data provider put the data in a well known geographic coordinate system and provide the details of the coordinate system.
+            geophysical_variable_1:source = "" ; //...................... RECOMMENDED - The method of production of the original data
+            geophysical_variable_1:references = "" ; //.................. RECOMMENDED - Published or web-based references that describe the data or methods used to produce it.
+            geophysical_variable_1: cell_methods = "" ; // .............. RECOMMENDED - Use the coordinate variables to define the cell values (ex., "time: point lon: point lat: point z: point").
+            geophysical_variable_1:ancillary_variables = "instrument_parameter_variable platform_variable boolean_flag_variable enumerated_flag_variable" ; //......... RECOMMENDED - Identify the variable name(s) of the flag(s) and other ancillary variables relevant to this variable.  Use a space-separated list.
+            geophysical_variable_1:platform = "platform_variable" ; //... RECOMMENDED - Refers to name of variable containing information on the platform from which this variable was collected.
+            geophysical_variable_1:instrument = "instrument_variable";//..RECOMMENDED - Refers to name of variable containing information on the instrument from which this variable was collected.
+            geophysical_variable_1:comment = "" ; //..................... RECOMMENDED - Add useful, additional information here.
+        '''
+        # Check the science variables to ensure they are good
+
         results = []
-        msgs = []
-        for name in dataset.variables:
-            if hasattr(dataset.variables[name],'coordinates') and not hasattr(dataset.variables[name],'flag_meanings'):
-                #This is a science Variable.  Start Checks.
-                #Check  has these attributes
-                has_var_attr = [
-                        #'_FillValue',
-                        'valid_min',
-                        'valid_max',
-                        'ancillary_variables',
-                        'comment',
-                        'long_name',
-                        'units',
-                        #'nodc_name',
-                        'grid_mapping',
-                        'source',
-                        'references'
-                        ]
-                var  = name
+        structure = NCStructure(dataset)
+        for var in structure.get_geophysical_variables():
+            ncvar = dataset.variables[var]
+            test_ctx = TestCtx(BaseCheck.HIGH, '{} required attributes'.format(var))
+            test_ctx.assert_true(getattr(ncvar, 'standard_name', '') != '', 'standard_name exists and is not empty')
+            test_ctx.assert_true(getattr(ncvar, 'units', '') != '', 'units exists and is not empty')
+            coordinates = getattr(ncvar, 'coordinates', '')
+            test_ctx.assert_true(coordinates != '', 'coordinates exists and is not empty')
+            results.append(test_ctx.to_result())
 
-                for attr in has_var_attr:
-                    results.append(hasattr_check(dataset, var, attr, BaseCheck.MEDIUM))
+            test_ctx = TestCtx(BaseCheck.MEDIUM, '{} recommended attributes'.format(var))
+            test_ctx.assert_true(getattr(ncvar, 'long_name', '') != '', 'long_name exists and is not empty')
+            if not hasattr(ncvar, 'standard_name'):
+                test_ctx.assert_true(getattr(ncvar, 'nodc_name', '') != '', 'nodc_name exists and is not empty')
+            test_ctx.assert_true(getattr(ncvar, 'valid_min', '') != '', 'valid_min exists and is not empty')
+            test_ctx.assert_true(getattr(ncvar, 'valid_max', '') != '', 'valid_max exists and is not empty')
+            grid_mapping = getattr(ncvar, 'grid_mapping', '')
+            test_ctx.assert_true(grid_mapping != '', 'grid_mapping exists and is not empty')
+            if grid_mapping:
+                test_ctx.assert_true(grid_mapping in dataset.variables, 'grid_mapping attribute is a variable')
+            test_ctx.assert_true(getattr(ncvar, 'source', '') != '', 'source exists and is not empty')
+            test_ctx.assert_true(getattr(ncvar, 'references', '') != '', 'references exists and is not empty')
+            test_ctx.assert_true(getattr(ncvar, 'cell_methods', '') != '', 'cell_methods exists and is not empty')
+            ancillary_variables = getattr(ncvar, 'ancillary_variables', '').split(' ')
+            all_variables = all([v in dataset.variables for v in ancillary_variables])
+            if ancillary_variables:
+                test_ctx.assert_true(all_variables, 'ancillary_variables point to variables')
+            platform = getattr(ncvar, 'platform', '')
+            if platform:
+                test_ctx.assert_true(platform in dataset.variables, 'platform attribute points to variable')
+            instrument = getattr(ncvar, 'instrument', '')
+            if instrument:
+                test_ctx.assert_true(instrument in dataset.variables, 'instrument attribute points to variable')
+            test_ctx.assert_true(getattr(ncvar, 'comment', '') != '', 'comment exists and is not empty')
+            results.append(test_ctx.to_result())
 
-                #Check NODC Name
-                if not hasattr(dataset.variables[name], 'standard_name'):
-                    nodc_check = hasattr(dataset.variables[name],'nodc_name')
-                    if not nodc_check:
-                        msgs = ['{} does not ahve a standard_name or nodc_name field'.format(name)]
-                        results.append(Result(BaseCheck.HIGH, nodc_check, (name, 'nodc_name'), msgs))
-                    else:
-                        results.append(Result(BaseCheck.HIGH, nodc_check, (name, 'nodc_name'), msgs))
-
-                #Check Units
-                units = getattr(dataset.variables[name],'units',None)
-                units_check = units_known(units)
-                if not units_check:
-                    msgs.append('Units are wrong for {}'.format(name))
-                results.append(Result(BaseCheck.HIGH, units_check, (name,'udunits'),msgs))
-
-                #Check Platform
-                level = BaseCheck.MEDIUM
-                if not hasattr(dataset.variables[name], 'platform'):
-                    plat_check = False
-                    level = BaseCheck.LOW
-                    msgs = ['platform attribute is missing for {}'.format(name)]
-                elif getattr(dataset.variables[name], 'platform', None) in dataset.variables:
-                    plat_check = (2,2)
-                else:
-                    plat_check = (1,2)
-                    msgs = ['platform attribute is not present in the variable {}'.format(name)]
-                if not hasattr(dataset,'platform'):
-                    results.append(Result(level, plat_check, (name,'platform'), msgs))
-                msgs = []  
-                #Check Instrument
-                level = BaseCheck.MEDIUM
-                if not hasattr(dataset.variables[name], 'instrument'):
-                    inst_check = False
-                    level = BaseCheck.LOW
-                    msgs = ['instrument attribute is missing for {}'.format(name)]
-                elif getattr(dataset.variables[name], 'instrument', None) in dataset.variables:
-                    inst_check = (2,2)
-                else:
-                    inst_check = (1,2)
-                    msgs = ['instrument attribute is not present in the variable {}'.format(name)]
-                if not hasattr(dataset,'instrument'):
-                    results.append(Result(level, inst_check, (name,'instrument'), msgs)) 
-             
-                #Check  Standard Name
-                level = BaseCheck.HIGH
-                if not hasattr(dataset.variables[name], 'standard_name'):
-                    inst_check = (0,2)
-                    msgs = ['standard_name attribute is missing for {}'.format(name)]
-                elif getattr(dataset.variables[name], 'standard_name', None) in self._std_names:
-                    inst_check = (2,2)
-                else:
-                    inst_check = (1,2)
-                    msgs = ['standard_name is not in standard name table for {}'.format(name)]
-                results.append(Result(level, inst_check, (name,'standard_name'), msgs)) 
-            else:
-                continue
         return results
-    
-################################################################################
-# Checks for QA/QC Variables 
-################################################################################
+
+
+    ################################################################################
+    # Checks for QA/QC Variables
+    ################################################################################
     @score_group('QA/QC Variables')
     def check_qaqc(self, dataset):
         '''
-                byte boolean_flag_variable(timeSeries,ntimeMax); //............................. A boolean flag variable, in which each bit of the flag can be a 1 or 0.
-                boolean_flag_variable:standard_name= "" ; //................. RECOMMENDED - This attribute should include the standard name of the variable which this flag contributes plus the modifier: "status_flag" (for example, "sea_water_temperature status_flag"). See CF standard name modifiers.
-                boolean_flag_variable:long_name = "" ; //.................... RECOMMENDED - Provide a descriptive, long name for this variable. 
-                boolean_flag_variable:flag_masks = ; //...................... REQUIRED    - Provide a comma-separated list describing the binary condition of the flags. 
-                boolean_flag_variable:flag_meanings = "" ; //................ REQUIRED    - Provide a comma-separated list of flag values that map to the flag_masks.
-                boolean_flag_variable:references = "" ; //................... RECOMMENDED - Published or web-based references that describe the data or methods used to produce it.
-                boolean_flag_variable:comment = "" ; //...................... RECOMMENDED - Add useful, additional information here.
-        int enumerated_flag_variable(timeSeries,ntimeMax);  //...................... An enumerated flag variable, in which numeric values refer to defined, exclusive conditions.
-                enumerated_flag_variable:standard_name= "" ; //.............. RECOMMENDED - This attribute should include the standard name of the variable which this flag contributes plus the modifier: "status_flag" (for example, "sea_water_temperature status_flag"). See CF standard name modifiers.
-                enumerated_flag_variable:long_name = "" ; //................. RECOMMENDED - Provide a descriptive, long name for this variable. 
-                enumerated_flag_variable:flag_values = ; //.................. REQUIRED    - Provide a comma-separated list of flag values that map to the flag_meanings.
-                enumerated_flag_variable:flag_meanings = "" ; //............. REQUIRED    - Provide a space-separated list of meanings corresponding to each of the flag_values
-                enumerated_flag_variable:references = "" ; //................ RECOMMENDED - Published or web-based references that describe the data or methods used to produce it.
-                enumerated_flag_variable:comment = "" ; //................... RECOMMENDED - Add useful, additional information here.
-                '''
+        byte boolean_flag_variable(timeSeries,ntimeMax); //............................. A boolean flag variable, in which each bit of the flag can be a 1 or 0.
+            boolean_flag_variable:standard_name= "" ; //................. RECOMMENDED - This attribute should include the standard name of the variable which this flag contributes plus the modifier: "status_flag" (for example, "sea_water_temperature status_flag"). See CF standard name modifiers.
+            boolean_flag_variable:long_name = "" ; //.................... RECOMMENDED - Provide a descriptive, long name for this variable.
+            boolean_flag_variable:flag_masks = ; //...................... REQUIRED    - Provide a comma-separated list describing the binary condition of the flags.
+            boolean_flag_variable:flag_meanings = "" ; //................ REQUIRED    - Provide a comma-separated list of flag values that map to the flag_masks.
+            boolean_flag_variable:references = "" ; //................... RECOMMENDED - Published or web-based references that describe the data or methods used to produce it.
+            boolean_flag_variable:comment = "" ; //...................... RECOMMENDED - Add useful, additional information here.
+    int enumerated_flag_variable(timeSeries,ntimeMax);  //...................... An enumerated flag variable, in which numeric values refer to defined, exclusive conditions.
+            enumerated_flag_variable:standard_name= "" ; //.............. RECOMMENDED - This attribute should include the standard name of the variable which this flag contributes plus the modifier: "status_flag" (for example, "sea_water_temperature status_flag"). See CF standard name modifiers.
+            enumerated_flag_variable:long_name = "" ; //................. RECOMMENDED - Provide a descriptive, long name for this variable.
+            enumerated_flag_variable:flag_values = ; //.................. REQUIRED    - Provide a comma-separated list of flag values that map to the flag_meanings.
+            enumerated_flag_variable:flag_meanings = "" ; //............. REQUIRED    - Provide a space-separated list of meanings corresponding to each of the flag_values
+            enumerated_flag_variable:references = "" ; //................ RECOMMENDED - Published or web-based references that describe the data or methods used to produce it.
+            enumerated_flag_variable:comment = "" ; //................... RECOMMENDED - Add useful, additional information here.
+        '''
         #Check the qaqc variables to ensure they are good
         results = []
         msgs = []
@@ -567,25 +466,25 @@ class NCEIBaseCheck(BaseNCCheck):
                 msgs = []
                 if hasattr(dataset.variables[name], 'comment'):
                     comment_check = True
-                else: 
+                else:
                     msgs = ['comment is missing for {}'.format(name)]
                     comment_check = False
                 results.append(Result(BaseCheck.MEDIUM, comment_check, (name,'comment'), msgs))
-     
+
                 #Check Long Name
                 msgs = []
                 if hasattr(dataset.variables[name], 'long_name'):
                     long_check = True
-                else: 
+                else:
                     msgs = ['long_name not present for {}'.format(name)]
                     long_check = False
-                results.append(Result(BaseCheck.MEDIUM, long_check, (name,'long_name'), msgs)) 
-            
+                results.append(Result(BaseCheck.MEDIUM, long_check, (name,'long_name'), msgs))
+
                 #Check References
                 msgs = []
                 if hasattr(dataset.variables[name], 'references'):
                     source_check = True
-                else: 
+                else:
                     msgs = ['references is missing for {}'.format(name)]
                     source_check = False
                 results.append(Result(BaseCheck.MEDIUM, source_check, (name,'references'), msgs))
@@ -594,63 +493,62 @@ class NCEIBaseCheck(BaseNCCheck):
                 continue
         return results
 
-################################################################################
-# Checks for Instrument and Platform Variables 
-################################################################################
-    @score_group('Instruments and Platforms')
+    ################################################################################
+    # Checks for Instrument and Platform Variables
+    ################################################################################
+
     def check_platform(self, dataset):
         '''
-                int platform_variable; //............................................ RECOMMENDED - a container variable storing information about the platform. If more than one, can expand each attribute into a variable. For example, platform_call_sign and platform_nodc_code. See instrument_parameter_variable for an example.
-                platform_variable:long_name = "" ; //........................ RECOMMENDED - Provide a descriptive, long name for this variable. 
+        int platform_variable; //............................................ RECOMMENDED - a container variable storing information about the platform. If more than one, can expand each attribute into a variable. For example, platform_call_sign and platform_nodc_code. See instrument_parameter_variable for an example.
+                platform_variable:long_name = "" ; //........................ RECOMMENDED - Provide a descriptive, long name for this variable.
                 platform_variable:comment = "" ; //.......................... RECOMMENDED - Add useful, additional information here.
-                platform_variable:call_sign = "" ; //........................ RECOMMENDED - This attribute identifies the call sign of the platform. 	 
-                platform_variable:nodc_code = ""; //......................... RECOMMENDED - This attribute identifies the NODC code of the platform. Look at http://www.nodc.noaa.gov/cgi-bin/OAS/prd/platform to find if NODC codes are available. 	 
-                platform_variable:wmo_code = "";//........................... RECOMMENDED - This attribute identifies the wmo code of the platform. Information on getting WMO codes is available at http://www.wmo.int/pages/prog/amp/mmop/wmo-number-rules.html 	 
-                platform_variable:imo_code  = "";//.......................... RECOMMENDED - This attribute identifies the International Maritime Organization (IMO) number assigned by Lloyd's register. 
-                '''
-        #Check for the platform variable
-        platforms = _find_platform_variables(dataset)
-        msgs = []
-        results = []
-        if len(platforms) == 0:
-            return Result(BaseCheck.MEDIUM, False, ('platform_var','exists'), ['The platform variables do not exist']) 
-        for platform in platforms:
-            #Check Platform Var Exists
-            if platform not in dataset.variables:
-                return Result(BaseCheck.MEDIUM, False, ('platform_var','exists'), ['The platform variables do not exist']) 
-            #Check Long Name
-            has_var_attr = [
-                    'comment',
-                    'long_name',
-                    'call_sign',
-                    'nodc_code',
-                    'wmo_code',
-                    'imo_code'
-                    ]
-            var  = platform
+                platform_variable:call_sign = "" ; //........................ RECOMMENDED - This attribute identifies the call sign of the platform.
+                platform_variable:nodc_code = ""; //......................... RECOMMENDED - This attribute identifies the NODC code of the platform. Look at http://www.nodc.noaa.gov/cgi-bin/OAS/prd/platform to find if NODC codes are available.
+                platform_variable:wmo_code = "";//........................... RECOMMENDED - This attribute identifies the wmo code of the platform. Information on getting WMO codes is available at http://www.wmo.int/pages/prog/amp/mmop/wmo-number-rules.html
+                platform_variable:imo_code  = "";//.......................... RECOMMENDED - This attribute identifies the International Maritime Organization (IMO) number assigned by Lloyd's register.
+        '''
+        # Check for the platform variable
+        platforms = util.find_platform_variables(dataset)
+        if not platforms:
+            return Result(BaseCheck.MEDIUM,
+                          False,
+                          'A container variable storing information about the platform exists',
+                          ['Create a variable to store the platform information'])
 
-            for attr in has_var_attr:
-                results.append(hasattr_check(dataset, var, attr, BaseCheck.MEDIUM))
-        
+        results = []
+        for platform in platforms:
+            test_ctx = TestCtx(BaseCheck.MEDIUM, '{} is a proper platform variable'.format(platform))
+            pvar = dataset.variables[platform]
+            test_ctx.assert_true(getattr(pvar, 'long_name', '') != '', 'long_name attribute exists and is not empty')
+            test_ctx.assert_true(getattr(pvar, 'comment', '') != '', 'comment attribute exists and is not empty')
+            test_ctx.assert_true(getattr(pvar, 'call_sign', '') != '', 'call_sign attribute exists and is not empty')
+            # We only check to see if nodc_code, wmo_code and imo_code are empty. They are only recommended if they exist for the platform.
+            if hasattr(pvar, 'nodc_code'):
+                test_ctx.assert_true(getattr(pvar, 'nodc_code', '') != '', 'nodc_code should not be empty if specified')
+            if hasattr(pvar, 'wmo_code'):
+                test_ctx.assert_true(getattr(pvar, 'wmo_code', '') != '', 'wmo_code should not be empty if specified')
+            if hasattr(pvar, 'imo_code'):
+                test_ctx.assert_true(getattr(pvar, 'imo_code', '') != '', 'imo_code should not be empty if specified')
+            results.append(test_ctx.to_result())
+
         return results
 
-    @score_group('Instruments and Platforms')
     def check_instrument(self, dataset):
         '''
-                int instrument_parameter_variable(timeSeries); //.................... RECOMMENDED - an instrument variable storing information about a parameter of the instrument used in the measurement, the dimensions don't have to be specified if the same instrument is used for all the measurements.
-                instrument_parameter_variable:long_name = "" ; //............ RECOMMENDED - Provide a descriptive, long name for this variable. 
-                instrument_parameter_variable:comment = "" ; //.............. RECOMMENDED - Add useful, additional information here.
-                '''
+        int instrument_parameter_variable(timeSeries); // ... RECOMMENDED - an instrument variable storing information about a parameter of the instrument used in the measurement, the dimensions don't have to be specified if the same instrument is used for all the measurements.
+            instrument_parameter_variable:long_name = "" ; // RECOMMENDED - Provide a descriptive, long name for this variable.
+            instrument_parameter_variable:comment = "" ; //.. RECOMMENDED - Add useful, additional information here.
+        '''
         #Check for the instrument variable
-        instruments = _find_instrument_variables(dataset)
+        instruments = util.find_instrument_variables(dataset)
         if not instruments:
             return Result(BaseCheck.MEDIUM, False, 'instrument variable exists', ['No instrument variables found'])
         results = []
         for instrument in instruments:
             test_ctx = TestCtx(BaseCheck.MEDIUM, '{} is a proper instrument variable'.format(instrument))
             var = dataset.variables[instrument]
-            self.assert_is(test_ctx, getattr(var, 'long_name', '') != '', 'long_name attribute exists and is not empty')
-            self.assert_is(test_ctx, getattr(var, 'comment', '') != '', 'comment attribute exists and is not empty')
+            test_ctx.assert_true(getattr(var, 'long_name', '') != '', 'long_name attribute exists and is not empty')
+            test_ctx.assert_true(getattr(var, 'comment', '') != '', 'comment attribute exists and is not empty')
             results.append(test_ctx.to_result())
 
         return results
@@ -659,7 +557,6 @@ class NCEIBaseCheck(BaseNCCheck):
 ################################################################################
 # CF Checks
 ################################################################################
-    @score_group('CRS Variable')
     def check_crs(self, dataset):
         '''
         int crs; //.......................................................... RECOMMENDED - A container variable storing information about the grid_mapping. All the attributes within a grid_mapping variable are described in http://cf-pcmdi.llnl.gov/documents/cf-conventions/1.6/cf-conventions.html#appendix-grid-mappings. For all the measurements based on WSG84, the default coordinate system used for GPS measurements, the values shown here should be used.
@@ -668,26 +565,23 @@ class NCEIBaseCheck(BaseNCCheck):
                 crs:semi_major_axis = 6378137.0 ; //......................... RECOMMENDED
                 crs:inverse_flattening = 298.257223563 ; //.................. RECOMMENDED
         '''
-        crs_variable = _find_crs_variable(dataset)
-        test_ctx = TestCtx(BaseCheck.MEDIUM, 'Dataset contains valid grid_mapping variable')
-        self.assert_is(test_ctx, crs_variable is not None, 'A container variable storing the grid mapping should exist for this dataset.')
+        crs_variable = util.find_crs_variable(dataset)
+        test_ctx = TestCtx(BaseCheck.MEDIUM, 'Container variable for storing grid_mapping information')
+        test_ctx.assert_true(crs_variable is not None, 'A container variable storing the grid mapping should exist for this dataset.')
 
         epsg_code = getattr(crs_variable, 'epsg_code', '')
         semi_major_axis = getattr(crs_variable, 'semi_major_axis', None)
         inverse_flattening = getattr(crs_variable, 'inverse_flattening', None)
 
-        self.assert_is(test_ctx,
-                       epsg_code != '',
-                       'Attribute epsg_code should exist and not be empty: {}'.format(epsg_code))
-        self.assert_is(test_ctx,
-                       semi_major_axis is not None,
-                       'Attribute semi_major_axis should exist and not be empty: {}'.format(epsg_code))
-        self.assert_is(test_ctx,
-                       inverse_flattening is not None,
-                       'Attribute inverse_flattening should exist and not be empty: {}'.format(epsg_code))
+        test_ctx.assert_true(epsg_code != '',
+                             'Attribute epsg_code should exist and not be empty: {}'.format(epsg_code))
+        test_ctx.assert_true(semi_major_axis is not None,
+                             'Attribute semi_major_axis should exist and not be empty: {}'.format(epsg_code))
+        test_ctx.assert_true(inverse_flattening is not None,
+                             'Attribute inverse_flattening should exist and not be empty: {}'.format(epsg_code))
         return test_ctx.to_result()
 
-    @score_group('Global Attributes')
+    @score_group('Recommended Global Attributes')
     def check_global_attributes(self, dataset):
         '''
         Returns a result that contains the result-values mapped from REQUIRED, RECOMMENDED appropriately based on the following global attributes:
@@ -737,7 +631,7 @@ class NCEIBaseCheck(BaseNCCheck):
         :publisher_url = "" ; //............................................. RECOMMENDED - A URL for the publisher of the data. (ACDD)
         :history = "" ; //................................................... RECOMMENDED - Record changes made to the netCDF. (ACDD)
         :license = "" ; //................................................... RECOMMENDED - Describe the restrictions to data access and distribution. (ACDD)
-        :metadata_link = "" ; //............................................. RECOMMENDED - This attribute provides a link to a complete metadata record for this data set or the collection that contains this data set. (ACDD)  
+        :metadata_link = "" ; //............................................. RECOMMENDED - This attribute provides a link to a complete metadata record for this data set or the collection that contains this data set. (ACDD)
         '''
 
         should_exist = [
@@ -778,7 +672,7 @@ class NCEIBaseCheck(BaseNCCheck):
         results = []
         for attr in should_exist:
             attr_ctx = TestCtx(BaseCheck.MEDIUM, '{} attribute exists'.format(attr))
-            self.assert_is(attr_ctx, getattr(dataset, attr, '') != '', '{} exists and is not empty.'.format(attr))
+            attr_ctx.assert_true(getattr(dataset, attr, '') != '', '{} exists and is not empty.'.format(attr))
             results.append(attr_ctx.to_result())
 
         # Do any of the variables define platform ?
@@ -786,13 +680,13 @@ class NCEIBaseCheck(BaseNCCheck):
         if not variable_defined_platform:
             platform_ctx = TestCtx(BaseCheck.MEDIUM, 'platform attribute exists')
             platform_name = getattr(dataset, 'platform', '')
-            self.assert_is(platform_ctx, platform_name and platform_name in dataset.variables, 'platform exists and is a variable.')
+            platform_ctx.assert_true(platform_name and platform_name in dataset.variables, 'platform exists and is a variable.')
             results.append(platform_ctx.to_result())
 
-        sea_names = get_sea_names()
+        sea_names = util.get_sea_names()
         sea_name_ctx = TestCtx(BaseCheck.MEDIUM, 'sea_name attribute exists')
         sea_name = getattr(dataset, 'sea_name', '')
-        self.assert_is(sea_name_ctx, sea_name and sea_name in sea_names, 'exists and is from the NODC sea names list')
+        sea_name_ctx.assert_true(sea_name and sea_name in sea_names, 'exists and is from the NODC sea names list')
         results.append(sea_name_ctx.to_result())
 
         # Source: http://www.pelagodesign.com/blog/2009/05/20/iso-8601-date-validation-that-doesnt-suck/
@@ -801,28 +695,28 @@ class NCEIBaseCheck(BaseNCCheck):
             attr_ctx = TestCtx(BaseCheck.MEDIUM, '{} exists and is ISO-8601'.format(attr))
             attr_value = getattr(dataset, attr, '')
             regex_match = re.match(iso8601_regex, attr_value)
-            self.assert_is(attr_ctx, attr_value and regex_match is not None, '{} exists and is ISO-8601 valid string: {}'.format(attr, attr_value))
+            attr_ctx.assert_true(attr_value and regex_match is not None, '{} exists and is ISO-8601 valid string: {}'.format(attr, attr_value))
             results.append(attr_ctx.to_result())
 
         attr_ctx = TestCtx(BaseCheck.MEDIUM, 'geospatial_lat_units exists and is valid')
         units = getattr(dataset, 'geospatial_lat_units', '').lower()
-        self.assert_is(attr_ctx, units == 'degrees_north', 'Units must be degrees_north: {}'.format(units))
+        attr_ctx.assert_true(units == 'degrees_north', 'Units must be degrees_north: {}'.format(units))
         results.append(attr_ctx.to_result())
 
         attr_ctx = TestCtx(BaseCheck.MEDIUM, 'geospatial_lon_units exists and is valid')
         units = getattr(dataset, 'geospatial_lon_units', '').lower()
-        self.assert_is(attr_ctx, units == 'degrees_east', 'Units must be degrees_east: {}'.format(units))
+        attr_ctx.assert_true(units == 'degrees_east', 'Units must be degrees_east: {}'.format(units))
         results.append(attr_ctx.to_result())
 
         attr_ctx = TestCtx(BaseCheck.MEDIUM, 'geospatial_vertical_positive is either up or down')
         value = getattr(dataset, 'geospatial_vertical_positive', '')
-        self.assert_is(attr_ctx, value.lower() in ['up', 'down'], 'value must be either up or down: {}'.format(value))
+        attr_ctx.assert_true(value.lower() in ['up', 'down'], 'value must be either up or down: {}'.format(value))
         results.append(attr_ctx.to_result())
 
         # I hate english.
         ack_exists = any((getattr(dataset, attr, '') != '' for attr in ['acknowledgment', 'acknowledgement']))
         attr_ctx = TestCtx(BaseCheck.MEDIUM, 'acknowledgment exists')
-        self.assert_is(attr_ctx, ack_exists, 'exists and is not empty')
+        attr_ctx.assert_true(ack_exists, 'exists and is not empty')
         results.append(attr_ctx.to_result())
 
         contributor_name = getattr(dataset, 'contributor_name', '')
@@ -830,12 +724,12 @@ class NCEIBaseCheck(BaseNCCheck):
         names = contributor_role.split(',')
         roles = contributor_role.split(',')
         contributors_ctx = TestCtx(BaseCheck.MEDIUM, 'contributor_name exists and is valid')
-        self.assert_is(contributors_ctx, contributor_name != '', 'contributor_name exists and is not empty.')
-        self.assert_is(contributors_ctx, len(names) == len(roles), 'length of contributor names matches length of roles')
+        contributors_ctx.assert_true(contributor_name != '', 'contributor_name exists and is not empty.')
+        contributors_ctx.assert_true(len(names) == len(roles), 'length of contributor names matches length of roles')
         results.append(contributors_ctx.to_result())
         roles_ctx = TestCtx(BaseCheck.MEDIUM, 'contributor_role exists and is valid')
-        self.assert_is(roles_ctx, contributor_role != '', 'contributor_role exists and is not empty.')
-        self.assert_is(roles_ctx, len(names) == len(roles), 'length of contributor names matches length of roles')
+        roles_ctx.assert_true(contributor_role != '', 'contributor_role exists and is not empty.')
+        roles_ctx.assert_true(len(names) == len(roles), 'length of contributor names matches length of roles')
         results.append(roles_ctx.to_result())
 
         return results

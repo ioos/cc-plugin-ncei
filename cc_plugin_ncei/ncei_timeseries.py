@@ -4,11 +4,9 @@
 cc_plugin_ncei/ncei_timeseries.py
 '''
 
-from compliance_checker.cf.cf import CFBaseCheck
 from compliance_checker.base import Result, BaseCheck, score_group
 from cc_plugin_ncei.ncei_base import NCEIBaseCheck
-import cf_units
-import numpy as np
+
 
 class NCEITimeSeriesOrthogonal(NCEIBaseCheck):
     register_checker = True
@@ -27,8 +25,9 @@ class NCEITimeSeriesOrthogonal(NCEIBaseCheck):
         'timeSeries',
         'timeseries_id'
     ]
+
     @classmethod
-    def beliefs(cls): 
+    def beliefs(cls):
         '''
         Not applicable for gliders
         '''
