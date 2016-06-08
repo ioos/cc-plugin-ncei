@@ -57,6 +57,34 @@ def find_z_dimension(ds):
     return None
 
 
+def get_lat_variable(nc):
+    '''
+    Returns the variable for latitude
+
+    :param netcdf4.dataset nc: an open netcdf dataset object
+    '''
+    if 'latitude' in nc.variables:
+        return 'latitude'
+    latitudes = nc.get_variables_by_attributes(standard_name="latitude")
+    if latitudes:
+        return latitudes[0]
+    return None
+
+
+def get_lon_variable(nc):
+    '''
+    Returns the variable for longitude
+
+    :param netCDF4.Dataset nc: netCDF dataset
+    '''
+    if 'longitude' in nc.variables:
+        return 'longitude'
+    longitudes = nc.get_variables_by_attributes(standard_name="longitude")
+    if longitudes:
+        return longitudes[0]
+    return None
+
+
 def find_platform_variables(ds):
     '''
     Returns a list of platform variable NAMES
@@ -106,6 +134,11 @@ def find_time_variable(ds):
             return candidates[0]
 
     return None
+
+
+# alias for backwards compatibility
+get_depth_variable = find_z_dimension
+get_time_variable = find_time_variable
 
 
 def getattr_check(ds, var, attr, val, level):
@@ -177,15 +210,74 @@ def get_sea_names():
     return _SEA_NAMES
 
 
+def is_point(nc, variable):
+    '''
+    Returns true if the variable is a point feature type
+
+    :param netCDF4.Dataset nc: An open netCDF dataset
+    :param str variable: name of the variable to check
+    '''
+    # x(o), y(o), z(o), t(o)
+    # X(o)
+
+    dims = nc.variables[variable].dimensions
+
+    t = get_time_variable(nc)
+    if not t:
+        return False
+
+    if not nc.variables[t].dimensions:
+        return False
+    o = nc.variables[t].dimensions[0]
+
+    x = get_lon_variable(nc)
+    y = get_lat_variable(nc)
+    z = get_depth_variable(nc)
+
+    if not x:
+        return False
+    if nc.variables[x].dimensions != (o,):
+        return False
+    if not y:
+        return False
+    if nc.variables[y].dimensions != (o,):
+        return False
+    if z and nc.variables[z].dimensions != (o,):
+        return False
+
+    if dims == (o,):
+        return True
+    return False
+
+
 def is_timeseries(nc, variable):
     '''
     Returns true if the variable is a time series feature type.
+
+    :param netCDF4.Dataset nc: An open netCDF dataset
+    :param str variable: name of the variable to check
     '''
 
     # x, y, z, t(o)
     # X(o)
     dims = nc.variables[variable].dimensions
-    timevar = find_time_variable(nc)
+
+    x = get_lon_variable(nc)
+    y = get_lat_variable(nc)
+    z = get_depth_variable(nc)
+
+    if not x:
+        return False
+    if nc.variables[x].dimensions:
+        return False
+    if not y:
+        return False
+    if nc.variables[y].dimensions:
+        return False
+    if z and nc.variables[z].dimensions:
+        return False
+
+    timevar = get_time_variable(nc)
     if nc.variables[timevar].dimensions != (timevar,):
         return False
 
@@ -201,6 +293,9 @@ def is_multi_timeseries_orthogonal(nc, variable):
     CF 1.6 §H.2.1
 
     http://cfconventions.org/cf-conventions/v1.6.0/cf-conventions.html#_orthogonal_multidimensional_array_representation_of_time_series
+
+    :param netCDF4.Dataset nc: An open netCDF dataset
+    :param str variable: name of the variable to check
     '''
     # x(i), y(i), z(i), t(o)
     # X(i, o)
@@ -212,12 +307,28 @@ def is_multi_timeseries_orthogonal(nc, variable):
     timeseries_id_dims = timeseries_ids[0].dimensions
     if not timeseries_id_dims:
         return False
+
     # i = series_id
     # i is the dimension of the variable where cf_role = 'timeseries_id'
     series_id = timeseries_id_dims[0]
 
+    x = get_lon_variable(nc)
+    y = get_lat_variable(nc)
+    z = get_depth_variable(nc)
+
+    if not x:
+        return False
+    if nc.variables[x].dimensions != (series_id,):
+        return False
+    if not y:
+        return False
+    if nc.variables[y].dimensions != (series_id,):
+        return False
+    if z and nc.variables[z].dimensions != (series_id,):
+        return False
+
     # time is a variable with standard name and with dimensions (time)
-    timevar = find_time_variable(nc)
+    timevar = get_time_variable(nc)
     time_dims = nc.variables[timevar].dimensions
     if time_dims != (timevar,):
         return False
@@ -236,6 +347,9 @@ def is_multi_timeseries_incomplete(nc, variable):
     CF 1.6 §H.2.2
 
     http://cfconventions.org/cf-conventions/v1.6.0/cf-conventions.html#_incomplete_multidimensional_array_representation_of_time_series
+
+    :param netCDF4.Dataset nc: An open netCDF dataset
+    :param str variable: name of the variable to check
     '''
 
     # x(i), y(i), z(i), t(i, o)
@@ -253,7 +367,22 @@ def is_multi_timeseries_incomplete(nc, variable):
     series_id = timeseries_id_dims[0]
 
     # time is a variable with standard name and with dimensions (i, o)
-    timevar = find_time_variable(nc)
+
+    x = get_lon_variable(nc)
+    y = get_lat_variable(nc)
+    z = get_depth_variable(nc)
+
+    if not x:
+        return False
+    if nc.variables[x].dimensions != (series_id,):
+        return False
+    if not y:
+        return False
+    if nc.variables[y].dimensions != (series_id,):
+        return False
+    if z and nc.variables[z].dimensions != (series_id,):
+        return False
+    timevar = get_time_variable(nc)
     time_dims = nc.variables[timevar].dimensions
 
     if len(time_dims) != 2:
@@ -267,4 +396,3 @@ def is_multi_timeseries_incomplete(nc, variable):
     if dims == (series_id, time_dim):
         return True
     return False
-
