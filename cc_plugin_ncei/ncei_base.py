@@ -5,7 +5,7 @@ cc_plugin_ncei/ncei_base.py
 '''
 from __future__ import print_function
 
-from compliance_checker.base import Result, BaseCheck, score_group, BaseNCCheck
+from compliance_checker.base import Result, BaseCheck, BaseNCCheck
 from compliance_checker.cf.util import StandardNameTable, units_convertible
 from cc_plugin_ncei import util
 from cc_plugin_ncei.nc_structure import NCStructure
@@ -117,7 +117,7 @@ class NCEIBaseCheck(BaseNCCheck):
         if not lat:
             return Result(BaseCheck.HIGH, False, 'latitude', ['a variable for latitude doesn\'t exist'])
         lat_var = dataset.variables[lat]
-        test_ctx = TestCtx(BaseCheck.HIGH, 'latitude required attributes')
+        test_ctx = TestCtx(BaseCheck.HIGH, 'Required attributes for variable {}'.format(lat))
         test_ctx.assert_true(getattr(lat_var, 'standard_name', '') == 'latitude', 'standard_name attribute must be latitude')
         units = getattr(lat_var, 'units', '')
         test_ctx.assert_true(units and units_convertible(units, 'degrees_north'), 'units are valid UDUNITS for latitude')
@@ -125,7 +125,7 @@ class NCEIBaseCheck(BaseNCCheck):
 
         results.append(test_ctx.to_result())
 
-        test_ctx = TestCtx(BaseCheck.MEDIUM, 'latitude recommended attributes')
+        test_ctx = TestCtx(BaseCheck.MEDIUM, 'Recommended attributes for variable {}'.format(lat))
         test_ctx.assert_true(getattr(lat_var, 'long_name', '') != '', 'long_name attribute exists and is not empty')
         test_ctx.assert_true(getattr(lat_var, 'valid_min', '') != '', 'valid_min attribute exists and is not empty')
         test_ctx.assert_true(getattr(lat_var, 'valid_max', '') != '', 'valid_max attribute exists and is not empty')
@@ -153,7 +153,7 @@ class NCEIBaseCheck(BaseNCCheck):
         if not lon:
             return Result(BaseCheck.HIGH, False, 'longitude', ['a variable for longitude doesn\'t exist'])
         lon_var = dataset.variables[lon]
-        test_ctx = TestCtx(BaseCheck.HIGH, 'longitude required attributes')
+        test_ctx = TestCtx(BaseCheck.HIGH, 'Required attributes for variable {}'.format(lon))
         test_ctx.assert_true(getattr(lon_var, 'standard_name', '') == 'longitude', 'standard_name attribute must be longitude')
         units = getattr(lon_var, 'units', '')
         test_ctx.assert_true(units and units_convertible(units, 'degrees_east'), 'units are valid UDUNITS for longitude')
@@ -161,7 +161,7 @@ class NCEIBaseCheck(BaseNCCheck):
 
         results.append(test_ctx.to_result())
 
-        test_ctx = TestCtx(BaseCheck.MEDIUM, 'longitude recommended attributes')
+        test_ctx = TestCtx(BaseCheck.MEDIUM, 'Recommended attributes for variable {}'.format(lon))
         test_ctx.assert_true(getattr(lon_var, 'long_name', '') != '', 'long_name attribute exists and is not empty')
         test_ctx.assert_true(getattr(lon_var, 'valid_min', '') != '', 'valid_min attribute exists and is not empty')
         test_ctx.assert_true(getattr(lon_var, 'valid_max', '') != '', 'valid_max attribute exists and is not empty')
@@ -170,7 +170,6 @@ class NCEIBaseCheck(BaseNCCheck):
         results.append(test_ctx.to_result())
         return results
 
-    @score_group('Coordinate Variables')
     def check_time(self, dataset):
         '''
         double time(time) ;//........................................ Depending on the precision used for the variable, the data type could be int or double instead of float.
@@ -187,7 +186,7 @@ class NCEIBaseCheck(BaseNCCheck):
         time_var = util.find_time_variable(dataset)
         if not time_var:
             return Result(BaseCheck.HIGH, False, 'Coordinate variable time', ['Time coordinate variable was not found'])
-        required_ctx = TestCtx(BaseCheck.HIGH, 'Coordinate variable time')
+        required_ctx = TestCtx(BaseCheck.HIGH, 'Required attributes for variable time')
         required_ctx.assert_true(getattr(dataset.variables[time_var], 'standard_name', '') == 'time', 'standard_name is "time"')
         time_regex = r'(seconds|minutes|hours|days) since.*'
         time_units = getattr(dataset.variables[time_var], 'units', '')
@@ -209,14 +208,13 @@ class NCEIBaseCheck(BaseNCCheck):
             required_ctx.assert_true(calendar in valid_calendars, 'time contains a valid calendar https://unidata.github.io/netcdf4-python/#netCDF4.date2num')
 
         results.append(required_ctx.to_result())
-        recommended_ctx = TestCtx(BaseCheck.MEDIUM, 'Coordinate variable time')
-        recommended_ctx.assert_true(getattr(dataset.variables[time_var], 'long_name', '') != '', 'long_name exists')
-        recommended_ctx.assert_true(getattr(dataset.variables[time_var], 'comment', '') != '', 'comment')
+        recommended_ctx = TestCtx(BaseCheck.MEDIUM, 'Recommended attributes for variable time')
+        recommended_ctx.assert_true(getattr(dataset.variables[time_var], 'long_name', '') != '', 'long_name attribute should exist and not be empty')
+        recommended_ctx.assert_true(getattr(dataset.variables[time_var], 'comment', '') != '', 'comment should exist and not be empty')
         results.append(recommended_ctx.to_result())
 
         return results
 
-    @score_group('Coordinate Variables')
     def check_height(self, dataset):
         '''
         float z(time) ;//........................................ Depending on the precision used for the variable, the data type could be int or double instead of float. Also the variable "z" could be substituted with a more descriptive name like "depth", "altitude", "pressure", etc.
@@ -286,7 +284,7 @@ class NCEIBaseCheck(BaseNCCheck):
 
         # Check has these attributes
         # We ommit checking ancillary_variables because that only applies if this variable HAS ancillary variables
-        recommended_ctx = TestCtx(BaseCheck.MEDIUM, 'Recommended attributes for coordinate variable height')
+        recommended_ctx = TestCtx(BaseCheck.MEDIUM, 'Recommended attributes for coordinate variable {}'.format(var))
         recommended_attrs = [
             'valid_min',
             'valid_max',
@@ -295,7 +293,7 @@ class NCEIBaseCheck(BaseNCCheck):
 
         for attr in recommended_attrs:
             varattr = getattr(dataset.variables[var], attr, '')
-            recommended_ctx.assert_true(varattr != '', 'it is recommended for height to have a {} attribute'.format(attr))
+            recommended_ctx.assert_true(varattr != '', 'it is recommended for height to have a {} attribute and it not be empty'.format(attr))
 
         results.append(recommended_ctx.to_result())
         return results
@@ -329,17 +327,16 @@ class NCEIBaseCheck(BaseNCCheck):
         # Check the science variables to ensure they are good
 
         results = []
-        structure = NCStructure(dataset)
-        for var in structure.get_geophysical_variables():
+        for var in util.get_geophysical_variables(dataset):
             ncvar = dataset.variables[var]
-            test_ctx = TestCtx(BaseCheck.HIGH, '{} required attributes'.format(var))
+            test_ctx = TestCtx(BaseCheck.HIGH, 'Required attributes for variable {}'.format(var))
             test_ctx.assert_true(getattr(ncvar, 'standard_name', '') != '', 'standard_name exists and is not empty')
             test_ctx.assert_true(getattr(ncvar, 'units', '') != '', 'units exists and is not empty')
             coordinates = getattr(ncvar, 'coordinates', '')
             test_ctx.assert_true(coordinates != '', 'coordinates exists and is not empty')
             results.append(test_ctx.to_result())
 
-            test_ctx = TestCtx(BaseCheck.MEDIUM, '{} recommended attributes'.format(var))
+            test_ctx = TestCtx(BaseCheck.MEDIUM, 'Recommended attributes for variable {}'.format(var))
             test_ctx.assert_true(getattr(ncvar, 'long_name', '') != '', 'long_name exists and is not empty')
             if not hasattr(ncvar, 'standard_name'):
                 test_ctx.assert_true(getattr(ncvar, 'nodc_name', '') != '', 'nodc_name exists and is not empty')
@@ -371,7 +368,6 @@ class NCEIBaseCheck(BaseNCCheck):
     # Checks for QA/QC Variables
     ################################################################################
 
-    @score_group('QA/QC Variables')
     def check_qaqc(self, dataset):
         '''
         byte boolean_flag_variable(timeSeries,time); //............................. A boolean flag variable, in which each bit of the flag can be a 1 or 0.
@@ -394,13 +390,13 @@ class NCEIBaseCheck(BaseNCCheck):
 
         flag_variables = dataset.get_variables_by_attributes(flag_meanings=lambda x: x is not None)
         for flag_variable in flag_variables:
-            required_ctx = TestCtx(BaseCheck.HIGH, 'flag variable required attributes')
+            required_ctx = TestCtx(BaseCheck.HIGH, 'Required attributes for flag variable {}'.format(flag_variable.name))
             flag_values = getattr(flag_variable, 'flag_values', None)
             flag_masks = getattr(flag_variable, 'flag_masks', None)
             required_ctx.assert_true(flag_values is not None or flag_masks is not None, 'flag variable must define either flag_values or flag_masks')
             results.append(required_ctx.to_result())
 
-            recommended_ctx = TestCtx(BaseCheck.MEDIUM, 'flag variable recommended attributes')
+            recommended_ctx = TestCtx(BaseCheck.MEDIUM, 'Recommended attributes for flag variable {}'.format(flag_variable.name))
             standard_name = getattr(flag_variable, 'standard_name', '')
             recommended_ctx.assert_true(standard_name.endswith(' status_flag'), 'The standard_name attribute should end with status_flag')
 
@@ -435,7 +431,7 @@ class NCEIBaseCheck(BaseNCCheck):
 
         results = []
         for platform in platforms:
-            test_ctx = TestCtx(BaseCheck.MEDIUM, '{} is a proper platform variable'.format(platform))
+            test_ctx = TestCtx(BaseCheck.MEDIUM, 'Recommended attributes for platform variable {}'.format(platform))
             pvar = dataset.variables[platform]
             test_ctx.assert_true(getattr(pvar, 'long_name', '') != '', 'long_name attribute exists and is not empty')
             test_ctx.assert_true(getattr(pvar, 'comment', '') != '', 'comment attribute exists and is not empty')
@@ -463,7 +459,7 @@ class NCEIBaseCheck(BaseNCCheck):
             return Result(BaseCheck.MEDIUM, False, 'instrument variable exists', ['No instrument variables found'])
         results = []
         for instrument in instruments:
-            test_ctx = TestCtx(BaseCheck.MEDIUM, '{} is a proper instrument variable'.format(instrument))
+            test_ctx = TestCtx(BaseCheck.MEDIUM, 'Recommended attributes for instrument variable {}'.format(instrument))
             var = dataset.variables[instrument]
             test_ctx.assert_true(getattr(var, 'long_name', '') != '', 'long_name attribute exists and is not empty')
             test_ctx.assert_true(getattr(var, 'comment', '') != '', 'comment attribute exists and is not empty')
@@ -484,7 +480,7 @@ class NCEIBaseCheck(BaseNCCheck):
                 crs:inverse_flattening = 298.257223563 ; //.................. RECOMMENDED
         '''
         crs_variable = util.find_crs_variable(dataset)
-        test_ctx = TestCtx(BaseCheck.MEDIUM, 'Container variable for storing grid_mapping information')
+        test_ctx = TestCtx(BaseCheck.MEDIUM, 'Recommended attributes for grid mapping variable {}'.format(crs_variable.name))
         test_ctx.assert_true(crs_variable is not None, 'A container variable storing the grid mapping should exist for this dataset.')
 
         epsg_code = getattr(crs_variable, 'epsg_code', '')
@@ -499,7 +495,6 @@ class NCEIBaseCheck(BaseNCCheck):
                              'Attribute inverse_flattening should exist and not be empty: {}'.format(epsg_code))
         return test_ctx.to_result()
 
-    @score_group('Recommended Global Attributes')
     def check_global_attributes(self, dataset):
         '''
         Returns a result that contains the result-values mapped from REQUIRED, RECOMMENDED appropriately based on the following global attributes:
@@ -587,67 +582,47 @@ class NCEIBaseCheck(BaseNCCheck):
             'metadata_link'
         ]
 
-        results = []
+        recommended_ctx = TestCtx(BaseCheck.MEDIUM, 'Recommended global attributes')
         for attr in should_exist:
-            attr_ctx = TestCtx(BaseCheck.MEDIUM, '{} attribute exists'.format(attr))
-            attr_ctx.assert_true(getattr(dataset, attr, '') != '', '{} exists and is not empty.'.format(attr))
-            results.append(attr_ctx.to_result())
+            recommended_ctx.assert_true(getattr(dataset, attr, '') != '', '{} exists and is not empty.'.format(attr))
 
         # Do any of the variables define platform ?
         variable_defined_platform = any((hasattr(var, 'platform') for var in dataset.variables))
         if not variable_defined_platform:
-            platform_ctx = TestCtx(BaseCheck.MEDIUM, 'platform attribute exists')
             platform_name = getattr(dataset, 'platform', '')
-            platform_ctx.assert_true(platform_name and platform_name in dataset.variables, 'platform exists and is a variable.')
-            results.append(platform_ctx.to_result())
+            recommended_ctx.assert_true(platform_name and platform_name in dataset.variables, 'platform exists and is a variable.')
 
         sea_names = util.get_sea_names()
-        sea_name_ctx = TestCtx(BaseCheck.MEDIUM, 'sea_name attribute exists')
         sea_name = getattr(dataset, 'sea_name', '')
-        sea_name_ctx.assert_true(sea_name and sea_name in sea_names, 'exists and is from the NODC sea names list')
-        results.append(sea_name_ctx.to_result())
+        recommended_ctx.assert_true(sea_name and sea_name in sea_names, 'exists and is from the NODC sea names list')
 
         # Source: http://www.pelagodesign.com/blog/2009/05/20/iso-8601-date-validation-that-doesnt-suck/
         iso8601_regex = r'^([\+-]?\d{4}(?!\d{2}\b))((-?)((0[1-9]|1[0-2])(\3([12]\d|0[1-9]|3[01]))?|W([0-4]\d|5[0-2])(-?[1-7])?|(00[1-9]|0[1-9]\d|[12]\d{2}|3([0-5]\d|6[1-6])))([T\s]((([01]\d|2[0-3])((:?)[0-5]\d)?|24\:?00)([\.,]\d+(?!:))?)?(\17[0-5]\d([\.,]\d+)?)?([zZ]|([\+-])([01]\d|2[0-3]):?([0-5]\d)?)?)?)?$'
         for attr in ['time_coverage_start', 'time_coverage_end', 'date_created', 'date_modified']:
-            attr_ctx = TestCtx(BaseCheck.MEDIUM, '{} exists and is ISO-8601'.format(attr))
             attr_value = getattr(dataset, attr, '')
             regex_match = re.match(iso8601_regex, attr_value)
-            attr_ctx.assert_true(attr_value and regex_match is not None, '{} exists and is ISO-8601 valid string: {}'.format(attr, attr_value))
-            results.append(attr_ctx.to_result())
+            recommended_ctx.assert_true(attr_value and regex_match is not None, '{} exists and is a ISO-8601 valid string, is currently: {}'.format(attr, attr_value))
 
-        attr_ctx = TestCtx(BaseCheck.MEDIUM, 'geospatial_lat_units exists and is valid')
         units = getattr(dataset, 'geospatial_lat_units', '').lower()
-        attr_ctx.assert_true(units == 'degrees_north', 'Units must be degrees_north: {}'.format(units))
-        results.append(attr_ctx.to_result())
+        recommended_ctx.assert_true(units == 'degrees_north', 'geospatial_lat_units attribute should be degrees_north: {}'.format(units))
 
-        attr_ctx = TestCtx(BaseCheck.MEDIUM, 'geospatial_lon_units exists and is valid')
         units = getattr(dataset, 'geospatial_lon_units', '').lower()
-        attr_ctx.assert_true(units == 'degrees_east', 'Units must be degrees_east: {}'.format(units))
-        results.append(attr_ctx.to_result())
+        recommended_ctx.assert_true(units == 'degrees_east', 'geospatial_lon_units attribute should be degrees_east: {}'.format(units))
 
-        attr_ctx = TestCtx(BaseCheck.MEDIUM, 'geospatial_vertical_positive is either up or down')
         value = getattr(dataset, 'geospatial_vertical_positive', '')
-        attr_ctx.assert_true(value.lower() in ['up', 'down'], 'value must be either up or down: {}'.format(value))
-        results.append(attr_ctx.to_result())
+        recommended_ctx.assert_true(value.lower() in ['up', 'down'], 'value must be either up or down: {}'.format(value))
 
         # I hate english.
         ack_exists = any((getattr(dataset, attr, '') != '' for attr in ['acknowledgment', 'acknowledgement']))
-        attr_ctx = TestCtx(BaseCheck.MEDIUM, 'acknowledgment exists')
-        attr_ctx.assert_true(ack_exists, 'exists and is not empty')
-        results.append(attr_ctx.to_result())
+        recommended_ctx.assert_true(ack_exists, 'acknowledgement attribute exists and is not empty')
 
         contributor_name = getattr(dataset, 'contributor_name', '')
         contributor_role = getattr(dataset, 'contributor_role', '')
         names = contributor_role.split(',')
         roles = contributor_role.split(',')
-        contributors_ctx = TestCtx(BaseCheck.MEDIUM, 'contributor_name exists and is valid')
-        contributors_ctx.assert_true(contributor_name != '', 'contributor_name exists and is not empty.')
-        contributors_ctx.assert_true(len(names) == len(roles), 'length of contributor names matches length of roles')
-        results.append(contributors_ctx.to_result())
-        roles_ctx = TestCtx(BaseCheck.MEDIUM, 'contributor_role exists and is valid')
-        roles_ctx.assert_true(contributor_role != '', 'contributor_role exists and is not empty.')
-        roles_ctx.assert_true(len(names) == len(roles), 'length of contributor names matches length of roles')
-        results.append(roles_ctx.to_result())
+        recommended_ctx.assert_true(contributor_name != '', 'contributor_name exists and is not empty.')
+        recommended_ctx.assert_true(len(names) == len(roles), 'length of contributor names matches length of roles')
+        recommended_ctx.assert_true(contributor_role != '', 'contributor_role exists and is not empty.')
+        recommended_ctx.assert_true(len(names) == len(roles), 'length of contributor names matches length of roles')
 
-        return results
+        return recommended_ctx.to_result()

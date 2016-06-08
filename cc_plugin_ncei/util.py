@@ -6,7 +6,46 @@ cc_plugin_ncei/util.py
 from compliance_checker.base import Result, BaseCheck
 from pkg_resources import resource_filename
 import csv
-        
+
+
+def is_geophysical(ds, variable):
+    '''
+    Returns true if the dataset's variable is likely a geophysical variable
+    '''
+    ncvar = ds.variables[variable]
+    # Does it have a standard name and units?
+    if not hasattr(ncvar, 'standard_name') or not hasattr(ncvar, 'units'):
+        return False
+    if getattr(ncvar, 'standard_name') in ('time', 'latitude', 'longitude', 'height', 'depth'):
+        return False
+    # Is it dimensionless?
+    if len(ncvar.shape) == 0:
+        return False
+    # Is it a QC Flag?
+    if 'status_flag' in ncvar.standard_name:
+        return False
+
+    if getattr(ncvar, 'cf_role', None):
+        return False
+
+    if getattr(ncvar, 'axis', None):
+        return False
+
+    return True
+
+
+def get_geophysical_variables(ds):
+    '''
+    Returns a list of geophysical variables
+    '''
+
+    parameters = []
+    for variable in ds.variables:
+        if is_geophysical(ds, variable):
+            parameters.append(variable)
+    return parameters
+
+
 def find_z_dimension(ds):
     '''
     Returns the variable which is likeliest to be the Z coordinate variable
@@ -137,4 +176,95 @@ def get_sea_names():
         _SEA_NAMES = buf
     return _SEA_NAMES
 
+
+def is_timeseries(nc, variable):
+    '''
+    Returns true if the variable is a time series feature type.
+    '''
+
+    # x, y, z, t(o)
+    # X(o)
+    dims = nc.variables[variable].dimensions
+    timevar = find_time_variable(nc)
+    if nc.variables[timevar].dimensions != (timevar,):
+        return False
+
+    if dims == (timevar,):
+        return True
+    return False
+
+
+def is_multi_timeseries_orthogonal(nc, variable):
+    '''
+    Returns true if the variable is a orthogonal multidimensional array
+    representation of time series. For more information on what this means see
+    CF 1.6 §H.2.1
+
+    http://cfconventions.org/cf-conventions/v1.6.0/cf-conventions.html#_orthogonal_multidimensional_array_representation_of_time_series
+    '''
+    # x(i), y(i), z(i), t(o)
+    # X(i, o)
+    dims = nc.variables[variable].dimensions
+    timeseries_ids = nc.get_variables_by_attributes(cf_role='timeseries_id')
+    if not timeseries_ids:
+        return False
+
+    timeseries_id_dims = timeseries_ids[0].dimensions
+    if not timeseries_id_dims:
+        return False
+    # i = series_id
+    # i is the dimension of the variable where cf_role = 'timeseries_id'
+    series_id = timeseries_id_dims[0]
+
+    # time is a variable with standard name and with dimensions (time)
+    timevar = find_time_variable(nc)
+    time_dims = nc.variables[timevar].dimensions
+    if time_dims != (timevar,):
+        return False
+
+    # o = time_dim
+    if dims == (series_id, timevar):
+        return True
+
+    return False
+
+
+def is_multi_timeseries_incomplete(nc, variable):
+    '''
+    Returns true if the variable is an incomplete multidimensional array
+    representation of time series. For more information on what this means see
+    CF 1.6 §H.2.2
+
+    http://cfconventions.org/cf-conventions/v1.6.0/cf-conventions.html#_incomplete_multidimensional_array_representation_of_time_series
+    '''
+
+    # x(i), y(i), z(i), t(i, o)
+    # X(i, o)
+    dims = nc.variables[variable].dimensions
+    timeseries_ids = nc.get_variables_by_attributes(cf_role='timeseries_id')
+    if not timeseries_ids:
+        return False
+
+    timeseries_id_dims = timeseries_ids[0].dimensions
+    if not timeseries_id_dims:
+        return False
+    # i = series_id
+    # i is the dimension of the variable where cf_role = 'timeseries_id'
+    series_id = timeseries_id_dims[0]
+
+    # time is a variable with standard name and with dimensions (i, o)
+    timevar = find_time_variable(nc)
+    time_dims = nc.variables[timevar].dimensions
+
+    if len(time_dims) != 2:
+        return False
+    if time_dims[0] != series_id:
+        return False
+
+    # o = time_dim
+    time_dim = time_dims[-1]
+
+    if dims == (series_id, time_dim):
+        return True
+    return False
 
