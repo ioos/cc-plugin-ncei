@@ -9,6 +9,7 @@ from compliance_checker.base import Result, BaseCheck, score_group, BaseNCCheck
 from compliance_checker.cf.util import StandardNameTable, units_convertible
 from cc_plugin_ncei import util
 from cc_plugin_ncei.nc_structure import NCStructure
+from cf_units import Unit
 import re
 
 
@@ -22,7 +23,6 @@ class TestCtx(object):
         self.score = score
         self.messages = messages or []
         self.description = description or ''
-
 
     def to_result(self):
         return Result(self.category, (self.score, self.out_of), self.description, self.messages)
@@ -231,86 +231,73 @@ class NCEIBaseCheck(BaseNCCheck):
                 z:ancillary_variables = "" ; //.............................. RECOMMENDED - List other variables providing information about this variable.
                 z:comment = "" ; //.......................................... RECOMMENDED - Add useful, additional information here.
                 '''
-        msgs=[]
-        results=[]
-        #best guess for variable name and units
-        valid_types = ['int', 'long', 'double', 'float']
-        valid_variable_names = ["depth", "DEPTH",
-              "depths", "DEPTHS",
-              "height", "HEIGHT",
-              "altitude", "ALTITUDE",
-              "alt", "ALT",
-              "Alt", "Altitude",
-              "h", "H",
-              "s_rho", "S_RHO",
-              "s_w", "S_W",
-              "z", "Z",
-              "siglay", "SIGLAY",
-              "siglev", "SIGLEV",
-              "sigma", "SIGMA",
-              "vertical", "VERTICAL", "lev", "LEV", "level", "LEVEL"
-              ]
-        valid_units = ['m','meters','meter','metre','metres','km','kilometers','kilometer','bar','millibar','decibar','atm','atmosphere','pascal','Pa','hPa']
+        results = []
+        # best guess for variable name and units
+        valid_variable_names = [
+            "depth",
+            "depths",
+            "height",
+            "altitude",
+            "alt",
+            "h",
+            "s_rho",
+            "s_w",
+            "z",
+            "siglay",
+            "siglev",
+            "sigma",
+            "vertical",
+            "lev",
+            "level",
+        ]
 
-        #Check  height exists and Check Axis
-        no_height = True
+        # Check  height exists and Check Axis
         for var in dataset.variables:
-            if getattr(dataset.variables[var],'axis',None) == 'Z':
-                no_height = False
-                results.append(Result(BaseCheck.HIGH, True, (var,'exists'), msgs))
-                results.append(Result(BaseCheck.HIGH, True, (var,'axis'), msgs))
+            if getattr(dataset.variables[var], 'axis', '') == 'Z':
                 break
-        if no_height:
-            return Result(BaseCheck.HIGH, (0,1), ('height_variable','exists'), msgs)
-
-       #Check Height Name
-        if var in valid_variable_names:
-            name_check = True
-            results.append(Result(BaseCheck.HIGH, name_check, (var,'valid_height_name'), msgs))
         else:
-            msgs = ['The name of the Height Variable is not in the approved vocab list']
-            return Result(BaseCheck.HIGH, (0,1), (var,'valid_height_name'), msgs)
+            return Result(BaseCheck.HIGH, False, 'Valid height coordinate variable exists', [])
 
-        #Check Data Type
-        valid_types = ['int', 'long', 'double', 'float']
-        results.append(util.var_dtype(dataset, var, valid_types, BaseCheck.HIGH))
+        # Check Height Name
+        required_ctx = TestCtx(BaseCheck.HIGH, 'Required attributes for coordinate variable height')
+        required_ctx.assert_true(var in valid_variable_names, '{} is not a valid variable name for height'.format(var))
 
-        #Check Standard Name
-        if getattr(dataset.variables[var], 'standard_name', None) in ['depth','altitude']:
-            std_check = True
-        else:
-            msgs = ['standard name is wrong']
-            std_check = False
-        results.append(Result(BaseCheck.HIGH, std_check, (var,'standard_name'), msgs))
+        # Check Standard Name
+        standard_name = getattr(dataset.variables[var], 'standard_name', '')
+        required_ctx.assert_true(
+            standard_name in ('depth', 'height', 'altitude'),
+            '{} is not a valid standard_name for height'.format(standard_name)
+        )
 
-        #Check Units
-        if getattr(dataset.variables[var], 'units', None) in valid_units:
-            units_check = True
-        else:
-            msgs = ['units are wrong']
-            units_check = False
-        results.append(Result(BaseCheck.HIGH, units_check, (var,'units'), msgs))
+        # Check Units
+        valid_units = False
+        units = getattr(dataset.variables[var], 'units', '')
+        try:
+            # If cf_units fails to read the units, then it's not a valid unit
+            Unit(units)
+            valid_units = True
+        except:
+            pass
+        required_ctx.assert_true(valid_units, '{} are not valid units for height'.format(units))
 
-        #Check has these attributes
-        has_var_attr = [
-                'ancillary_variables',
-                'comment',
-                'long_name',
-                'valid_min',
-                'valid_max'
-                #'_FillValue'
-                ]
+        positive = getattr(dataset.variables[var], 'positive', '')
+        required_ctx.assert_true(positive in ('up', 'down'), 'height must have a positive attribute that is equal to "up" or "down"')
+        results.append(required_ctx.to_result())
 
-        for attr in has_var_attr:
-            results.append(util.hasattr_check(dataset, var, attr, BaseCheck.MEDIUM))
+        # Check has these attributes
+        # We ommit checking ancillary_variables because that only applies if this variable HAS ancillary variables
+        recommended_ctx = TestCtx(BaseCheck.MEDIUM, 'Recommended attributes for coordinate variable height')
+        recommended_attrs = [
+            'valid_min',
+            'valid_max',
+            'comment'
+        ]
 
-        #Check Positive
-        if getattr(dataset.variables[var], 'positive', None) in ['up', 'down']:
-            pos_check = True
-        else:
-            msgs = ['positive is incorrect']
-            pos_check = False
-        results.append(Result(BaseCheck.MEDIUM, pos_check, (var,'positive'), msgs))
+        for attr in recommended_attrs:
+            varattr = getattr(dataset.variables[var], attr, '')
+            recommended_ctx.assert_true(varattr != '', 'it is recommended for height to have a {} attribute'.format(attr))
+
+        results.append(recommended_ctx.to_result())
         return results
 
     ################################################################################
@@ -380,117 +367,48 @@ class NCEIBaseCheck(BaseNCCheck):
 
         return results
 
-
     ################################################################################
     # Checks for QA/QC Variables
     ################################################################################
+
     @score_group('QA/QC Variables')
     def check_qaqc(self, dataset):
         '''
-        byte boolean_flag_variable(timeSeries,ntimeMax); //............................. A boolean flag variable, in which each bit of the flag can be a 1 or 0.
-            boolean_flag_variable:standard_name= "" ; //................. RECOMMENDED - This attribute should include the standard name of the variable which this flag contributes plus the modifier: "status_flag" (for example, "sea_water_temperature status_flag"). See CF standard name modifiers.
-            boolean_flag_variable:long_name = "" ; //.................... RECOMMENDED - Provide a descriptive, long name for this variable.
-            boolean_flag_variable:flag_masks = ; //...................... REQUIRED    - Provide a comma-separated list describing the binary condition of the flags.
-            boolean_flag_variable:flag_meanings = "" ; //................ REQUIRED    - Provide a comma-separated list of flag values that map to the flag_masks.
-            boolean_flag_variable:references = "" ; //................... RECOMMENDED - Published or web-based references that describe the data or methods used to produce it.
-            boolean_flag_variable:comment = "" ; //...................... RECOMMENDED - Add useful, additional information here.
-    int enumerated_flag_variable(timeSeries,ntimeMax);  //...................... An enumerated flag variable, in which numeric values refer to defined, exclusive conditions.
-            enumerated_flag_variable:standard_name= "" ; //.............. RECOMMENDED - This attribute should include the standard name of the variable which this flag contributes plus the modifier: "status_flag" (for example, "sea_water_temperature status_flag"). See CF standard name modifiers.
-            enumerated_flag_variable:long_name = "" ; //................. RECOMMENDED - Provide a descriptive, long name for this variable.
-            enumerated_flag_variable:flag_values = ; //.................. REQUIRED    - Provide a comma-separated list of flag values that map to the flag_meanings.
-            enumerated_flag_variable:flag_meanings = "" ; //............. REQUIRED    - Provide a space-separated list of meanings corresponding to each of the flag_values
-            enumerated_flag_variable:references = "" ; //................ RECOMMENDED - Published or web-based references that describe the data or methods used to produce it.
-            enumerated_flag_variable:comment = "" ; //................... RECOMMENDED - Add useful, additional information here.
+        byte boolean_flag_variable(timeSeries,time); //............................. A boolean flag variable, in which each bit of the flag can be a 1 or 0.
+                boolean_flag_variable:standard_name= "" ; //................. RECOMMENDED - This attribute should include the standard name of the variable which this flag contributes plus the modifier: "status_flag" (for example, "sea_water_temperature status_flag"). See CF standard name modifiers.
+                boolean_flag_variable:long_name = "" ; //.................... RECOMMENDED - Provide a descriptive, long name for this variable. 
+                boolean_flag_variable:flag_masks = ; //...................... REQUIRED    - Provide a comma-separated list describing the binary condition of the flags. 
+                boolean_flag_variable:flag_meanings = "" ; //................ REQUIRED    - Provide a comma-separated list of flag values that map to the flag_masks.
+                boolean_flag_variable:references = "" ; //................... RECOMMENDED - Published or web-based references that describe the data or methods used to produce it.
+                boolean_flag_variable:comment = "" ; //...................... RECOMMENDED - Add useful, additional information here.
+        int enumerated_flag_variable(timeSeries,time);  //...................... An enumerated flag variable, in which numeric values refer to defined, exclusive conditions.
+                enumerated_flag_variable:standard_name= "" ; //.............. RECOMMENDED - This attribute should include the standard name of the variable which this flag contributes plus the modifier: "status_flag" (for example, "sea_water_temperature status_flag"). See CF standard name modifiers.
+                enumerated_flag_variable:long_name = "" ; //................. RECOMMENDED - Provide a descriptive, long name for this variable. 
+                enumerated_flag_variable:flag_values = ; //.................. REQUIRED    - Provide a comma-separated list of flag values that map to the flag_meanings.
+                enumerated_flag_variable:flag_meanings = "" ; //............. REQUIRED    - Provide a space-separated list of meanings corresponding to each of the flag_values
+                enumerated_flag_variable:references = "" ; //................ RECOMMENDED - Published or web-based references that describe the data or methods used to produce it.
+                enumerated_flag_variable:comment = "" ; //................... RECOMMENDED - Add useful, additional information here.
         '''
-        #Check the qaqc variables to ensure they are good
+        # Check the qaqc variables to ensure they are good
         results = []
-        msgs = []
-        std_name_list = [getattr(dataset.variables[var], 'standard_name', None) for var in dataset.variables]
-        for name in dataset.variables:
-            if hasattr(dataset.variables[name],'flag_meanings'):
-                #Check Standard Name
-                std_check = 0
-                msgs = []
 
-                std_name = getattr(dataset.variables[name], 'standard_name', 'thereis noname')
-                std_name_split = std_name.split(' ')
-                if std_name_split[0] in std_name_list:
-                    std_check = std_check + 1
-                else:
-                    msgs.append('Standard Name for {} does not reference a variable in the dataset.'.format(name))
-                if std_name_split[1] == 'status_flag':
-                    std_check = std_check + 1
-                else:
-                    msgs.append('Standard Name for {} does not end in "status_flag"'.format(name))
-                results.append(Result(BaseCheck.HIGH, (std_check,2), (name,'standard_name'), msgs))
+        flag_variables = dataset.get_variables_by_attributes(flag_meanings=lambda x: x is not None)
+        for flag_variable in flag_variables:
+            required_ctx = TestCtx(BaseCheck.HIGH, 'flag variable required attributes')
+            flag_values = getattr(flag_variable, 'flag_values', None)
+            flag_masks = getattr(flag_variable, 'flag_masks', None)
+            required_ctx.assert_true(flag_values is not None or flag_masks is not None, 'flag variable must define either flag_values or flag_masks')
+            results.append(required_ctx.to_result())
 
-                #Check Flag Mask / Flag Values
-                msgs = []
-                mask_val_check = False
-                test_name = 'flag_masks_values'
-                if 'bool' in str(dataset.variables[name].dtype):
-                    mask_val_check = hasattr(dataset.variables[name],'flag_masks')
-                    test_name = 'flag_masks'
-                    mask_length = len(getattr(dataset.variables[name], 'flag_masks', None)) #Used in length check
-                elif 'int' in str(dataset.variables[name].dtype):
-                    mask_val_check = hasattr(dataset.variables[name], 'flag_values')
-                    test_name = 'flag_values'
-                    mask_length = len(getattr(dataset.variables[name], 'flag_values', None)) #Used in length check
-                else:
-                    mask_val_check = False
-                    msgs = ['flag_masks or flag_values are not present for {}'.format(name)]
-                    mask_length = 0
-                results.append(Result(BaseCheck.HIGH, mask_val_check, (name,test_name), msgs))
+            recommended_ctx = TestCtx(BaseCheck.MEDIUM, 'flag variable recommended attributes')
+            standard_name = getattr(flag_variable, 'standard_name', '')
+            recommended_ctx.assert_true(standard_name.endswith(' status_flag'), 'The standard_name attribute should end with status_flag')
 
-                #Check Flag Meaning
-                msgs = []
-                if hasattr(dataset.variables[name],'flag_meanings'):
-                    meanings_check = True
-                    meaning_length = len(getattr(dataset.variables[name],'flag_meanings',None).split(','))
-                else:
-                    meanings_check = False
-                    msgs = ['flag_meanings not present for {}'.format(name)]
-                    meaning_length = 0
-                results.append(Result(BaseCheck.HIGH, meanings_check, (name, 'flag_meanings'), msgs))
+            for attr in ('long_name', 'comment'):
+                varattr = getattr(flag_variable, attr, '')
+                recommended_ctx.assert_true(varattr != '', 'The {} attribute should exist and not be empty'.format(attr))
 
-                #Check Flag Meaning and Flag mask/Values same length
-                msgs = []
-                if mask_length == meaning_length:
-                    length_check = True
-                else:
-                    length_check = False
-                    msgs = ['the length of flag_mask/values does not match flag_meanings for {}'.format(name)]
-                results.append(Result(BaseCheck.HIGH, length_check, (name, 'flag_attributes_lengths'), msgs))
-
-                #Check Comment
-                msgs = []
-                if hasattr(dataset.variables[name], 'comment'):
-                    comment_check = True
-                else:
-                    msgs = ['comment is missing for {}'.format(name)]
-                    comment_check = False
-                results.append(Result(BaseCheck.MEDIUM, comment_check, (name,'comment'), msgs))
-
-                #Check Long Name
-                msgs = []
-                if hasattr(dataset.variables[name], 'long_name'):
-                    long_check = True
-                else:
-                    msgs = ['long_name not present for {}'.format(name)]
-                    long_check = False
-                results.append(Result(BaseCheck.MEDIUM, long_check, (name,'long_name'), msgs))
-
-                #Check References
-                msgs = []
-                if hasattr(dataset.variables[name], 'references'):
-                    source_check = True
-                else:
-                    msgs = ['references is missing for {}'.format(name)]
-                    source_check = False
-                results.append(Result(BaseCheck.MEDIUM, source_check, (name,'references'), msgs))
-
-            else:
-                continue
+            results.append(recommended_ctx.to_result())
         return results
 
     ################################################################################
