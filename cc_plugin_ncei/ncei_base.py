@@ -66,7 +66,7 @@ class NCEIBaseCheck(BaseNCCheck):
         conventions = getattr(dataset, 'Conventions', '')
         metadata_conventions = getattr(dataset, 'Metadata_Conventions', '')
         feature_type = getattr(dataset, 'featureType', '')
-        cdm_data_type = getattr(dataset, 'cdm_data_type')
+        cdm_data_type = getattr(dataset, 'cdm_data_type', '')
         standard_name_vocab = getattr(dataset, 'standard_name_vocabulary', '')
 
         test_ctx.assert_true(conventions == 'CF-1.6',
@@ -86,7 +86,7 @@ class NCEIBaseCheck(BaseNCCheck):
             'timeSeriesProfile': 'Profile',
             'grid': 'Grid'
         }
-        test_ctx.assert_true(feature_cdm_map[feature_type] == cdm_data_type,
+        test_ctx.assert_true(feature_type in feature_cdm_map and feature_cdm_map[feature_type] == cdm_data_type,
                              'cdm_data_type must correspond to the featureType specified: {} doesn\'t map to {}'.format(feature_type, cdm_data_type))
         test_ctx.assert_true(standard_name_vocab.startswith("NetCDF Climate and Forecast (CF) Metadata Convention Standard Name Table"),
                              "standard_name_vocabulary doesn't start with 'NetCDF Climate and Forecast (CF) Metadata Convention Standard Name Table': {}".format(standard_name_vocab))
@@ -480,6 +480,8 @@ class NCEIBaseCheck(BaseNCCheck):
                 crs:inverse_flattening = 298.257223563 ; //.................. RECOMMENDED
         '''
         crs_variable = util.find_crs_variable(dataset)
+        if not crs_variable:
+            return Result(BaseCheck.MEDIUM, False, 'A variable describing the grid mapping exists', ['A variable to describe the grid mapping should exist'])
         test_ctx = TestCtx(BaseCheck.MEDIUM, 'Recommended attributes for grid mapping variable {}'.format(crs_variable.name))
         test_ctx.assert_true(crs_variable is not None, 'A container variable storing the grid mapping should exist for this dataset.')
 

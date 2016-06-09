@@ -396,3 +396,58 @@ def is_multi_timeseries_incomplete(nc, variable):
     if dims == (series_id, time_dim):
         return True
     return False
+
+
+def is_cf_trajectory(nc, variable):
+    '''
+    Returns true if the variable is a CF trajectory feature type
+
+    :param netCDF4.Dataset nc: An open netCDF dataset
+    :param str variable: name of the variable to check
+    '''
+    # x(i, o), y(i, o), z(i, o), t(i, o)
+    # X(i, o)
+    dims = nc.variables[variable].dimensions
+    trajectory_ids = nc.get_variables_by_attributes(cf_role='trajectory_id')
+    if not trajectory_ids:
+        return False
+
+    trajectory_dims = trajectory_ids[0].dimensions
+    if not trajectory_dims:
+        return False
+
+    # i is the first dimension of the variable where cf_role = 'trajectory_id'
+    i = trajectory_dims[0]
+
+    # time is a variable with standard name and with dimensions (i, o)
+    timevar = get_time_variable(nc)
+    time_dims = nc.variables[timevar].dimensions
+
+    if len(time_dims) != 2:
+        return False
+    if time_dims[0] != i:
+        return False
+
+    # o = time_dim
+    o = time_dims[1]
+
+    x = get_lon_variable(nc)
+    y = get_lat_variable(nc)
+    z = get_depth_variable(nc)
+
+    if not x:
+        return False
+    if nc.variables[x].dimensions != (i, o):
+        return False
+    if not y:
+        return False
+    if nc.variables[y].dimensions != (i, o):
+        return False
+    if z and nc.variables[z].dimensions != (i, o):
+        return False
+
+    if dims == (i, o):
+        return True
+    return False
+
+

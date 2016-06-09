@@ -48,12 +48,12 @@ class NCEIPoint(NCEIBaseCheck):
         t_dims = dataset.variables[t].dimensions
         o = None or (t_dims and t_dims[0])
 
-        message = '{} must be a valid timeseries feature type. It must have dimensions of ({})'
+        message = '{} must be a valid timeseries feature type. It must have dimensions of ({}), and all coordinates must have dimensions of ({})'
         for variable in util.get_geophysical_variables(dataset):
             is_valid = util.is_point(dataset, variable)
             required_ctx.assert_true(
                 is_valid,
-                message.format(variable, o)
+                message.format(variable, o, o)
             )
         return required_ctx.to_result()
 

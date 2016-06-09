@@ -39,7 +39,8 @@ class NCEITimeSeriesOrthogonal(NCEIBaseCheck):
         Checks that the feature types of this dataset are consitent with a time series orthogonal dataset
         '''
         required_ctx = TestCtx(BaseCheck.HIGH, 'All geophysical variables are time-series orthogonal feature types')
-        message = '{} must be a valid timeseries feature type. It must have dimensions of (timeSeries, time) or (time)'
+        message = '{} must be a valid timeseries feature type. It must have dimensions of (timeSeries, time) or (time).'
+        message += ' And x, y and z coordinates must have dimensions (timeSeries) or be dimensionless'
         for variable in util.get_geophysical_variables(dataset):
             is_valid = util.is_timeseries(dataset, variable) or util.is_multi_timeseries_orthogonal(dataset, variable)
             required_ctx.assert_true(
@@ -80,8 +81,8 @@ class NCEITimeSeriesOrthogonal(NCEIBaseCheck):
         test_ctx = TestCtx(BaseCheck.MEDIUM, 'Recommended attributes for the timeSeries variable')
         timeseries_variable = timeseries_ids[0]
         test_ctx.assert_true(
-            getattr(timeseries_variable, 'long_name', '') == "Unique identifier for each feature instance",
-            "long_name attribute should be set to \"Unique identifier for each feature instance\""
+            getattr(timeseries_variable, 'long_name', '') != "",
+            "long_name attribute should exist and not be empty"
         )
         return test_ctx.to_result()
 
@@ -116,7 +117,8 @@ class NCEITimeSeriesIncomplete(NCEIBaseCheck):
         Checks that the feature types of this dataset are consitent with a time series incomplete dataset
         '''
         required_ctx = TestCtx(BaseCheck.HIGH, 'All geophysical variables are time-series incomplete feature types')
-        message = '{} must be a valid timeseries feature type. It must have dimensions of (timeSeries, time)'
+        message = '{} must be a valid timeseries feature type. It must have dimensions of (timeSeries, time).'
+        message += ' And all coordinates must have dimensions of (timeSeries)'
         for variable in util.get_geophysical_variables(dataset):
             is_valid = util.is_multi_timeseries_incomplete(dataset, variable)
             required_ctx.assert_true(
@@ -171,8 +173,8 @@ class NCEITimeSeriesIncomplete(NCEIBaseCheck):
             '{} must have a dimension and that dimension must be shared by the time variable'.format(timeseries_variable.name)
         )
         recommended_ctx.assert_true(
-            getattr(timeseries_variable, 'long_name', '') == "Unique identifier for each feature instance",
-            "long_name attribute should be set to \"Unique identifier for each feature instance\""
+            getattr(timeseries_variable, 'long_name', '') != "",
+            "long_name attribute should exist and not be empty"
         )
         results.append(recommended_ctx.to_result())
         return results
