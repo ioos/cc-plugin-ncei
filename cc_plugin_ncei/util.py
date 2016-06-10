@@ -16,7 +16,7 @@ def is_geophysical(ds, variable):
     # Does it have a standard name and units?
     if not hasattr(ncvar, 'standard_name') or not hasattr(ncvar, 'units'):
         return False
-    if getattr(ncvar, 'standard_name') in ('time', 'latitude', 'longitude', 'height', 'depth'):
+    if getattr(ncvar, 'standard_name') in ('time', 'latitude', 'longitude', 'height', 'depth', 'altitude'):
         return False
     # Is it dimensionless?
     if len(ncvar.shape) == 0:
@@ -464,5 +464,235 @@ def is_profile_incomplete(nc, variable):
     j = cmatrix['z'][1]
 
     if dims == (i, j):
+        return True
+    return False
+
+
+def is_timeseries_profile_single_station(nc, variable):
+    '''
+    Returns true if the variable is a time-series profile that represents a
+    single station and each profile is the same length.
+
+    :param netCDF4.Dataset nc: An open netCDF dataset
+    :param str variable: name of the variable to check
+    '''
+
+    # x, y, z(z), t(t)
+    # X(t, z)
+    dims = nc.variables[variable].dimensions
+    cmatrix = coordinate_dimension_matrix(nc)
+
+    for req in ('x', 'y', 'z', 't'):
+        if req not in cmatrix:
+            return False
+    if len(cmatrix['x']) != 0:
+        return False
+    if cmatrix['x'] != cmatrix['y']:
+        return False
+
+    z = get_depth_variable(nc)
+    if cmatrix['z'] != (z,):
+        return False
+    t = get_time_variable(nc)
+    if cmatrix['t'] != (t,):
+        return False
+
+    if dims == (t, z):
+        return True
+    return False
+
+
+def is_timeseries_profile_multi_station(nc, variable):
+    '''
+    Returns true if the variable is a time-series profile that represents multiple stations with orthogonal time and depth
+
+    :param netCDF4.Dataset nc: An open netCDF dataset
+    :param str variable: name of the variable to check
+    '''
+    # x(i), y(i), z(z), t(t)
+    # X(i, t, z)
+    dims = nc.variables[variable].dimensions
+    cmatrix = coordinate_dimension_matrix(nc)
+
+    for req in ('x', 'y', 'z', 't'):
+        if req not in cmatrix:
+            return False
+    if len(cmatrix['x']) != 1:
+        return False
+    if cmatrix['x'] != cmatrix['y']:
+        return False
+    i = cmatrix['x'][0]
+
+    z = get_depth_variable(nc)
+    if cmatrix['z'] != (z,):
+        return False
+    t = get_time_variable(nc)
+    if cmatrix['t'] != (t,):
+        return False
+
+    if dims == (i, t, z):
+        return True
+    return False
+
+
+def is_timeseries_profile_single_ortho_time(nc, variable):
+    '''
+    Returns true if the variable is a time-series profile that represents a
+    single station with orthogonal time only.
+
+    :param netCDF4.Dataset nc: An open netCDF dataset
+    :param str variable: name of the variable to check
+    '''
+    # x, y, z(t, j), t(t)
+    # X(t, j)
+    dims = nc.variables[variable].dimensions
+    cmatrix = coordinate_dimension_matrix(nc)
+
+    for req in ('x', 'y', 'z', 't'):
+        if req not in cmatrix:
+            return False
+
+    if len(cmatrix['x']) != 0:
+        return False
+    if cmatrix['x'] != cmatrix['y']:
+        return False
+
+    t = get_time_variable(nc)
+    if cmatrix['t'] != (t,):
+        return False
+
+    if len(cmatrix['z']) != 2:
+        return False
+
+    if cmatrix['z'][0] != t:
+        return False
+
+    j = cmatrix['z'][1]
+
+    if dims == (t, j):
+        return True
+    return False
+
+
+def is_timeseries_profile_multi_ortho_time(nc, variable):
+    '''
+    Returns true if the variable is a time-series profile that represents a
+    multi station with orthogonal time only.
+
+    :param netCDF4.Dataset nc: An open netCDF dataset
+    :param str variable: name of the variable to check
+    '''
+    # x(i), y(i), z(i, t, j), t(t)
+    # X(i, t, j)
+    dims = nc.variables[variable].dimensions
+    cmatrix = coordinate_dimension_matrix(nc)
+
+    for req in ('x', 'y', 'z', 't'):
+        if req not in cmatrix:
+            return False
+
+    if len(cmatrix['x']) != 1:
+        return False
+    if cmatrix['x'] != cmatrix['y']:
+        return False
+
+    t = get_time_variable(nc)
+    if cmatrix['t'] != (t,):
+        return False
+
+    if len(cmatrix['z']) != 3:
+        return False
+
+    if cmatrix['z'][1] != t:
+        return False
+    if cmatrix['z'][0] != cmatrix['x'][0]:
+        return False
+
+    i = cmatrix['x'][0]
+    j = cmatrix['z'][2]
+
+    if dims == (i, t, j):
+        return True
+    return False
+
+
+def is_timeseries_profile_ortho_depth(nc, variable):
+    '''
+    Returns true if the variable is a time-series profile with orthogonal depth
+    only.
+
+    :param netCDF4.Dataset nc: An open netCDF dataset
+    :param str variable: name of the variable to check
+    '''
+    # x(i), y(i), z(z), t(i, j)
+    # X(i, j, z)
+    dims = nc.variables[variable].dimensions
+    cmatrix = coordinate_dimension_matrix(nc)
+
+    for req in ('x', 'y', 'z', 't'):
+        if req not in cmatrix:
+            return False
+
+    if len(cmatrix['x']) != 1:
+        return False
+    if cmatrix['x'] != cmatrix['y']:
+        return False
+
+    z = get_depth_variable(nc)
+    if cmatrix['z'] != (z,):
+        return False
+
+    i = cmatrix['x'][0]
+
+    if len(cmatrix['t']) != 2:
+        return False
+    if cmatrix['t'][0] != i:
+        return False
+
+    j = cmatrix['t'][1]
+
+    if dims == (i, j, z):
+        return True
+    return False
+
+
+def is_timeseries_profile_incomplete(nc, variable):
+    '''
+    Returns true if the variable is a time-series profile incomplete depth and
+    incomplete time.
+
+    :param netCDF4.Dataset nc: An open netCDF dataset
+    :param str variable: name of the variable to check
+    '''
+    # x(i), y(i), z(i, j, k), t(i, j)
+    # X(i, j, k)
+    dims = nc.variables[variable].dimensions
+    cmatrix = coordinate_dimension_matrix(nc)
+
+    for req in ('x', 'y', 'z', 't'):
+        if req not in cmatrix:
+            return False
+
+    if len(cmatrix['x']) != 1:
+        return False
+    if cmatrix['x'] != cmatrix['y']:
+        return False
+    i = cmatrix['x'][0]
+
+    if len(cmatrix['t']) != 2:
+        return False
+    if cmatrix['t'][0] != i:
+        return False
+    j = cmatrix['t'][1]
+
+    if len(cmatrix['z']) != 3:
+        return False
+    if cmatrix['z'][0] != i:
+        return False
+    if cmatrix['z'][1] != j:
+        return False
+    k = cmatrix['z'][2]
+
+    if dims == (i, j, k):
         return True
     return False

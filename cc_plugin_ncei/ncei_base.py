@@ -121,7 +121,7 @@ class NCEIBaseCheck(BaseNCCheck):
         test_ctx.assert_true(getattr(lat_var, 'standard_name', '') == 'latitude', 'standard_name attribute must be latitude')
         units = getattr(lat_var, 'units', '')
         test_ctx.assert_true(units and units_convertible(units, 'degrees_north'), 'units are valid UDUNITS for latitude')
-        test_ctx.assert_true(getattr(lat_var, 'axis', '') == 'Y', 'axis attribute is Y')
+        test_ctx.assert_true(getattr(lat_var, 'axis', '') == 'Y', '{} axis attribute must be Y'.format(lat))
 
         results.append(test_ctx.to_result())
 
@@ -157,7 +157,7 @@ class NCEIBaseCheck(BaseNCCheck):
         test_ctx.assert_true(getattr(lon_var, 'standard_name', '') == 'longitude', 'standard_name attribute must be longitude')
         units = getattr(lon_var, 'units', '')
         test_ctx.assert_true(units and units_convertible(units, 'degrees_east'), 'units are valid UDUNITS for longitude')
-        test_ctx.assert_true(getattr(lon_var, 'axis', '') == 'X', 'axis attribute is X')
+        test_ctx.assert_true(getattr(lon_var, 'axis', '') == 'X', '{} axis attribute must be X'.format(lon))
 
         results.append(test_ctx.to_result())
 
@@ -264,6 +264,12 @@ class NCEIBaseCheck(BaseNCCheck):
         required_ctx.assert_true(
             standard_name in ('depth', 'height', 'altitude'),
             '{} is not a valid standard_name for height'.format(standard_name)
+        )
+
+        axis = getattr(dataset.variables[var], 'axis', '')
+        required_ctx.assert_true(
+            axis == 'Z',
+            '{} must have an axis of Z'.format(var)
         )
 
         # Check Units
