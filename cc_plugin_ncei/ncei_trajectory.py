@@ -36,57 +36,19 @@ class NCEITrajectory(NCEIBaseCheck):
 
     def check_dimensions(self, dataset):
         '''
-        Checks that the feature types of this dataset are consitent with a time series orthogonal dataset
+        Checks that the feature types of this dataset are consitent with a trajectory dataset
         '''
         results = []
         required_ctx = TestCtx(BaseCheck.HIGH, 'All geophysical variables are trajectory feature types')
-        trajectory_ctx = TestCtx(BaseCheck.HIGH, 'A variable defining "trajectory_id" exists')
 
-        # Exit prematurely if we can't even find a trajectory_id
-        trajectory_ids = dataset.get_variables_by_attributes(cf_role='trajectory_id')
-        trajectory_ctx.assert_true(len(trajectory_ids), 'No variable defining cf_role="trajectory_id" exists')
-        if not trajectory_ids:
-            return trajectory_ctx.to_result()
-
-        trajectory_dims = trajectory_ids[0].dimensions
-        trajectory_ctx.assert_true(len(trajectory_dims), '{} must have at least one dimension'.format(trajectory_ids[0]))
-        if not trajectory_dims:
-            return trajectory_ctx.to_result()
-
-        results.append(trajectory_ctx.to_result())
-
-        # i is the first dimension of the variable where cf_role = 'trajectory_id'
-        i = trajectory_dims[0]
-
-        timevar = util.get_time_variable(dataset)
-        if not timevar:
-            required_ctx.assert_true(False, 'No time variable found')
-            results.append(required_ctx.to_result())
-            return results
-
-        time_dims = dataset.variables[timevar].dimensions
-        if len(time_dims) != 2:
-            required_ctx.assert_true(False, '{} variable must have 2 dimensions'.format(timevar))
-            results.append(required_ctx.to_result())
-            return results
-
-        if time_dims[0] != i:
-            required_ctx.assert_true(False, '{} variable dimension 1 must be {}'.format(timevar, i))
-            results.append(required_ctx.to_result())
-            return results
-
-        o = time_dims[1]
-
-        message = '{} must be a valid timeseries feature type. It must have dimensions of ({}). And all coordinates must have dimensions ({})'
+        message = '{} must be a valid trajectory feature type. It must have dimensions of (time). And all coordinates must have dimensions (time)'
         for variable in util.get_geophysical_variables(dataset):
             is_valid = util.is_cf_trajectory(dataset, variable)
             required_ctx.assert_true(
                 is_valid,
-                message.format(variable, ', '.join([i, o])),
-                message.format(variable, ', '.join([i, o]))
+                message.format(variable)
             )
         results.append(required_ctx.to_result())
-        print results
         return results
 
     def check_required_attributes(self, dataset):
@@ -114,14 +76,19 @@ class NCEITrajectory(NCEIBaseCheck):
         '''
         Checks that if a variable exists for the trajectory id it has the appropriate attributes
         '''
+        results = []
+        exists_ctx = TestCtx(BaseCheck.MEDIUM, 'Variable defining "trajectory_id" exists')
         trajectory_ids = dataset.get_variables_by_attributes(cf_role='trajectory_id')
         # No need to check
+        exists_ctx.assert_true(trajectory_ids, 'variable defining cf_role="trajectory_id" exists')
         if not trajectory_ids:
-            return
+            return exists_ctx.to_result()
+        results.append(exists_ctx.to_result())
         test_ctx = TestCtx(BaseCheck.MEDIUM, 'Recommended attributes for the {} variable'.format(trajectory_ids[0].name))
         test_ctx.assert_true(
             getattr(trajectory_ids[0].name, 'long_name', '') != "",
             "long_name attribute should exist and not be empty"
         )
-        return test_ctx.to_result()
+        results.append(test_ctx.to_result())
+        return results
 

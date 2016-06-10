@@ -249,15 +249,14 @@ class NCEIBaseCheck(BaseNCCheck):
             "level",
         ]
 
-        # Check  height exists and Check Axis
-        for var in dataset.variables:
-            if getattr(dataset.variables[var], 'axis', '') == 'Z':
-                break
-        else:
-            return Result(BaseCheck.HIGH, False, 'Valid height coordinate variable exists', [])
+        exists_ctx = TestCtx(BaseCheck.HIGH, 'Variable for height must exist')
+        var = util.find_z_dimension(dataset)
+        exists_ctx.assert_true(var is not None, "A variable for height must exist")
+        if var is None:
+            return exists_ctx.to_result()
 
         # Check Height Name
-        required_ctx = TestCtx(BaseCheck.HIGH, 'Required attributes for coordinate variable height')
+        required_ctx = TestCtx(BaseCheck.HIGH, 'Required attributes for variable {}'.format(var))
         required_ctx.assert_true(var in valid_variable_names, '{} is not a valid variable name for height'.format(var))
 
         # Check Standard Name

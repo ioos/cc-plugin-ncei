@@ -46,15 +46,20 @@ def get_geophysical_variables(ds):
     return parameters
 
 
-def find_z_dimension(ds):
+def find_z_dimension(nc):
     '''
-    Returns the variable which is likeliest to be the Z coordinate variable
-    '''
-    for var in ds.variables:
-        if getattr(ds.variables[var], 'axis', None) == 'Z':
-            return var
+    Returns true if the variable is a heigh or depth variable
 
-    return None
+    :param netCDF4.Dataset nc: netCDF dataset
+    '''
+    axis_z = nc.get_variables_by_attributes(axis='Z')
+    if axis_z:
+        return axis_z[0].name
+    valid_standard_names = ('depth', 'height', 'altitude')
+    z = nc.get_variables_by_attributes(standard_name=lambda x: x in valid_standard_names)
+    if z:
+        return z[0].name
+    return
 
 
 def get_lat_variable(nc):
@@ -67,7 +72,7 @@ def get_lat_variable(nc):
         return 'latitude'
     latitudes = nc.get_variables_by_attributes(standard_name="latitude")
     if latitudes:
-        return latitudes[0]
+        return latitudes[0].name
     return None
 
 
@@ -81,7 +86,7 @@ def get_lon_variable(nc):
         return 'longitude'
     longitudes = nc.get_variables_by_attributes(standard_name="longitude")
     if longitudes:
-        return longitudes[0]
+        return longitudes[0].name
     return None
 
 
@@ -131,7 +136,7 @@ def find_time_variable(ds):
     else:
         candidates = ds.get_variables_by_attributes(standard_name='time')
         if len(candidates) == 1:
-            return candidates[0]
+            return candidates[0].name
 
     return None
 
@@ -210,6 +215,30 @@ def get_sea_names():
     return _SEA_NAMES
 
 
+def coordinate_dimension_matrix(nc):
+    '''
+    Returns a dictionary of coordinates mapped to their dimensions
+
+    :param netCDF4.Dataset nc: An open netCDF dataset
+    '''
+    retval = {}
+    x = get_lat_variable(nc)
+    if x:
+        retval['x'] = nc.variables[x].dimensions
+    y = get_lon_variable(nc)
+    if y:
+        retval['y'] = nc.variables[y].dimensions
+
+    z = get_depth_variable(nc)
+    if z:
+        retval['z'] = nc.variables[z].dimensions
+
+    t = get_time_variable(nc)
+    if t:
+        retval['t'] = nc.variables[t].dimensions
+    return retval
+
+
 def is_point(nc, variable):
     '''
     Returns true if the variable is a point feature type
@@ -222,30 +251,17 @@ def is_point(nc, variable):
 
     dims = nc.variables[variable].dimensions
 
-    t = get_time_variable(nc)
-    if not t:
+    cmatrix = coordinate_dimension_matrix(nc)
+    for req in ('x', 'y', 't'):
+        if req not in cmatrix:
+            return False
+    if cmatrix['x'] != cmatrix['y'] or cmatrix['x'] != cmatrix['t']:
         return False
-
-    if not nc.variables[t].dimensions:
+    if len(cmatrix['x']) != 1:
         return False
-    o = nc.variables[t].dimensions[0]
-
-    x = get_lon_variable(nc)
-    y = get_lat_variable(nc)
-    z = get_depth_variable(nc)
-
-    if not x:
+    if 'z' in cmatrix and cmatrix['x'] != cmatrix['z']:
         return False
-    if nc.variables[x].dimensions != (o,):
-        return False
-    if not y:
-        return False
-    if nc.variables[y].dimensions != (o,):
-        return False
-    if z and nc.variables[z].dimensions != (o,):
-        return False
-
-    if dims == (o,):
+    if dims == cmatrix['x']:
         return True
     return False
 
@@ -262,26 +278,22 @@ def is_timeseries(nc, variable):
     # X(o)
     dims = nc.variables[variable].dimensions
 
-    x = get_lon_variable(nc)
-    y = get_lat_variable(nc)
-    z = get_depth_variable(nc)
-
-    if not x:
+    cmatrix = coordinate_dimension_matrix(nc)
+    for req in ('x', 'y', 't'):
+        if req not in cmatrix:
+            return False
+    if len(cmatrix['x']) != 0:
         return False
-    if nc.variables[x].dimensions:
+    if len(cmatrix['y']) != 0:
         return False
-    if not y:
+    if 'z' in cmatrix and len(cmatrix['z']) != 0:
         return False
-    if nc.variables[y].dimensions:
-        return False
-    if z and nc.variables[z].dimensions:
-        return False
-
     timevar = get_time_variable(nc)
-    if nc.variables[timevar].dimensions != (timevar,):
-        return False
 
-    if dims == (timevar,):
+    # time has to be a coordinate variable in this case
+    if cmatrix['t'] != (timevar,):
+        return False
+    if dims == cmatrix['t']:
         return True
     return False
 
@@ -300,43 +312,26 @@ def is_multi_timeseries_orthogonal(nc, variable):
     # x(i), y(i), z(i), t(o)
     # X(i, o)
     dims = nc.variables[variable].dimensions
-    timeseries_ids = nc.get_variables_by_attributes(cf_role='timeseries_id')
-    if not timeseries_ids:
+
+    cmatrix = coordinate_dimension_matrix(nc)
+
+    for req in ('x', 'y', 't'):
+        if req not in cmatrix:
+            print req, "missing"
+            return False
+    if len(cmatrix['x']) != 1 or cmatrix['x'] != cmatrix['y']:
+        return False
+    if 'z' in cmatrix and cmatrix['x'] != cmatrix['z']:
         return False
 
-    timeseries_id_dims = timeseries_ids[0].dimensions
-    if not timeseries_id_dims:
-        return False
-
-    # i = series_id
-    # i is the dimension of the variable where cf_role = 'timeseries_id'
-    series_id = timeseries_id_dims[0]
-
-    x = get_lon_variable(nc)
-    y = get_lat_variable(nc)
-    z = get_depth_variable(nc)
-
-    if not x:
-        return False
-    if nc.variables[x].dimensions != (series_id,):
-        return False
-    if not y:
-        return False
-    if nc.variables[y].dimensions != (series_id,):
-        return False
-    if z and nc.variables[z].dimensions != (series_id,):
-        return False
-
-    # time is a variable with standard name and with dimensions (time)
     timevar = get_time_variable(nc)
-    time_dims = nc.variables[timevar].dimensions
-    if time_dims != (timevar,):
+    if cmatrix['t'] != (timevar,):
         return False
 
-    # o = time_dim
-    if dims == (series_id, timevar):
+    i = cmatrix['x'][0]
+    o = cmatrix['t'][0]
+    if dims == (i, o):
         return True
-
     return False
 
 
@@ -355,45 +350,24 @@ def is_multi_timeseries_incomplete(nc, variable):
     # x(i), y(i), z(i), t(i, o)
     # X(i, o)
     dims = nc.variables[variable].dimensions
-    timeseries_ids = nc.get_variables_by_attributes(cf_role='timeseries_id')
-    if not timeseries_ids:
+    cmatrix = coordinate_dimension_matrix(nc)
+
+    for req in ('x', 'y', 't'):
+        if req not in cmatrix:
+            return False
+    if len(cmatrix['x']) != 1:
+        return False
+    if cmatrix['x'] != cmatrix['y']:
+        return False
+    if len(cmatrix['t']) != 2:
+        return False
+    if cmatrix['x'][0] != cmatrix['t'][0]:
         return False
 
-    timeseries_id_dims = timeseries_ids[0].dimensions
-    if not timeseries_id_dims:
-        return False
-    # i = series_id
-    # i is the dimension of the variable where cf_role = 'timeseries_id'
-    series_id = timeseries_id_dims[0]
+    i = cmatrix['x'][0]
+    o = cmatrix['t'][1]
 
-    # time is a variable with standard name and with dimensions (i, o)
-
-    x = get_lon_variable(nc)
-    y = get_lat_variable(nc)
-    z = get_depth_variable(nc)
-
-    if not x:
-        return False
-    if nc.variables[x].dimensions != (series_id,):
-        return False
-    if not y:
-        return False
-    if nc.variables[y].dimensions != (series_id,):
-        return False
-    if z and nc.variables[z].dimensions != (series_id,):
-        return False
-    timevar = get_time_variable(nc)
-    time_dims = nc.variables[timevar].dimensions
-
-    if len(time_dims) != 2:
-        return False
-    if time_dims[0] != series_id:
-        return False
-
-    # o = time_dim
-    time_dim = time_dims[-1]
-
-    if dims == (series_id, time_dim):
+    if dims == (i, o):
         return True
     return False
 
@@ -408,46 +382,87 @@ def is_cf_trajectory(nc, variable):
     # x(i, o), y(i, o), z(i, o), t(i, o)
     # X(i, o)
     dims = nc.variables[variable].dimensions
-    trajectory_ids = nc.get_variables_by_attributes(cf_role='trajectory_id')
-    if not trajectory_ids:
-        return False
+    cmatrix = coordinate_dimension_matrix(nc)
 
-    trajectory_dims = trajectory_ids[0].dimensions
-    if not trajectory_dims:
+    for req in ('x', 'y', 't'):
+        if req not in cmatrix:
+            return False
+    if len(cmatrix['x']) != 2:
         return False
-
-    # i is the first dimension of the variable where cf_role = 'trajectory_id'
-    i = trajectory_dims[0]
-
-    # time is a variable with standard name and with dimensions (i, o)
-    timevar = get_time_variable(nc)
-    time_dims = nc.variables[timevar].dimensions
-
-    if len(time_dims) != 2:
+    if cmatrix['x'] != cmatrix['y']:
         return False
-    if time_dims[0] != i:
+    if cmatrix['x'] != cmatrix['t']:
         return False
-
-    # o = time_dim
-    o = time_dims[1]
-
-    x = get_lon_variable(nc)
-    y = get_lat_variable(nc)
-    z = get_depth_variable(nc)
-
-    if not x:
+    if 'z' in cmatrix and cmatrix['x'] != cmatrix['z']:
         return False
-    if nc.variables[x].dimensions != (i, o):
-        return False
-    if not y:
-        return False
-    if nc.variables[y].dimensions != (i, o):
-        return False
-    if z and nc.variables[z].dimensions != (i, o):
-        return False
-
-    if dims == (i, o):
+    if dims == cmatrix['x']:
         return True
     return False
 
 
+def is_profile_orthogonal(nc, variable):
+    '''
+    Returns true if the variable is a orthogonal profile feature type
+
+    :param netCDF4.Dataset nc: An open netCDF dataset
+    :param str variable: name of the variable to check
+    '''
+    # Every profile has the exact same depths, think thermister or ADCP
+    # x(i), y(i), z(j), t(i)
+    # X(i, j)
+    dims = nc.variables[variable].dimensions
+    cmatrix = coordinate_dimension_matrix(nc)
+
+    for req in ('x', 'y', 'z', 't'):
+        if req not in cmatrix:
+            return False
+    if len(cmatrix['x']) != 1:
+        return False
+    if cmatrix['x'] != cmatrix['y']:
+        return False
+    if cmatrix['x'] != cmatrix['t']:
+        return False
+    if len(cmatrix['z']) != 1:
+        return False
+
+    i = cmatrix['x'][0]
+    j = cmatrix['z'][0]
+
+    if dims == (i, j):
+        return True
+    return False
+
+
+def is_profile_incomplete(nc, variable):
+    '''
+    Returns true if the variable is a incomplete profile feature type
+
+    :param netCDF4.Dataset nc: An open netCDF dataset
+    :param str variable: name of the variable to check
+    '''
+    # Every profile may have different depths
+    # x(i), y(i), z(i, j), t(i)
+    # X(i, j)
+    dims = nc.variables[variable].dimensions
+    cmatrix = coordinate_dimension_matrix(nc)
+
+    for req in ('x', 'y', 'z', 't'):
+        if req not in cmatrix:
+            return False
+    if len(cmatrix['x']) != 1:
+        return False
+    if cmatrix['x'] != cmatrix['y']:
+        return False
+    if cmatrix['x'] != cmatrix['t']:
+        return False
+    if len(cmatrix['z']) != 2:
+        return False
+    if cmatrix['z'][0] != cmatrix['x'][0]:
+        return False
+
+    i = cmatrix['x'][0]
+    j = cmatrix['z'][1]
+
+    if dims == (i, j):
+        return True
+    return False

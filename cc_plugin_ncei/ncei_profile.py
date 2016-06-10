@@ -4,9 +4,9 @@
 cc_plugin_ncei/ncei_profile.py
 '''
 
-from compliance_checker.base import Result, BaseCheck, score_group
-from cc_plugin_ncei.ncei_base import NCEIBaseCheck
-from cc_plugin_ncei.util import find_z_dimension
+from compliance_checker.base import Result, BaseCheck
+from cc_plugin_ncei.ncei_base import NCEIBaseCheck, TestCtx
+from cc_plugin_ncei import util
 
 
 class NCEIProfileOrthogonal(NCEIBaseCheck):
@@ -26,8 +26,9 @@ class NCEIProfileOrthogonal(NCEIBaseCheck):
         'profile',
         'profile_id'
     ]
+
     @classmethod
-    def beliefs(cls): 
+    def beliefs(cls):
         '''
         Not applicable for gliders
         '''
@@ -35,122 +36,62 @@ class NCEIProfileOrthogonal(NCEIBaseCheck):
 
     def check_dimensions(self, dataset):
         '''
-        NCEI_profile_Orthogonal
-        dimensions:
-           time = < dim1 >;//..... REQUIRED - Number of time steps in the time series
-           profile = <dim2>; // REQUIRED - Number of time series (=1 for single time series or can be removed)
-
-        NCEI_profile_Incomplete
-        dimensions:
-            ntimeMax = < dim1 >;//. REQUIRED - Number of time steps in the time series
-            profile = <dim2>; // REQUIRED - Number of time series
+        Checks that the feature types of this dataset are consistent with a profile-orthogonal dataset.
         '''
-        out_of = 2
-        score = 0
-        messages = []
+        results = []
+        required_ctx = TestCtx(BaseCheck.HIGH, 'All geophysical variables are profile-orthogonal feature types')
 
-        z_dim = find_z_dimension(dataset)
-        test = z_dim in dataset.dimensions
-
-        if test:
-            score += 1
-        else:
-            messages.append('{} is a required dimension for profile Orthogonal'.format(z_dim))
-
-        test = z_dim in dataset.variables and dataset.variables[z_dim].dimensions == (z_dim,)
-
-        if test:
-            score += 1
-        else:
-            messages.append('z is required to be a coordinate variable')
-
-        return Result(BaseCheck.HIGH, (score, out_of), 'Dataset contains required time dimensions', messages)
+        message = '{} must be a valid profile-orthogonal feature type. It must have dimensions of (profile, depth).'
+        message += ' x and y should have dimensions of (profile), z should have dimension of (depth) and t should have dimension (profile)'
+        for variable in util.get_geophysical_variables(dataset):
+            is_valid = util.is_profile_orthogonal(dataset, variable)
+            required_ctx.assert_true(
+                is_valid,
+                message.format(variable)
+            )
+        results.append(required_ctx.to_result())
+        return results
 
     def check_required_attributes(self, dataset):
         '''
         Verifies that the dataset contains the NCEI required and highly recommended global attributes
         '''
-
-        out_of = 4
-        score = 0
-        messages = []
-
-
-        test = hasattr(dataset, 'nodc_template_version')
-        if test:
-            score += 1
-        else:
-            messages.append('Dataset is missing NODC required attribute ncei_template_version')
-
-        ncei_template_version = getattr(dataset, 'nodc_template_version', None)
-        test = ncei_template_version in self.valid_templates
-        if test:
-            score += 1
-        else:
-            messages.append('nodc_template_version attribute references an invalid template: {}'.format(ncei_template_version))
-
-        test = hasattr(dataset, 'featureType')
-
-        if test:
-            score += 1
-        else:
-            messages.append('Dataset is missing NODC profile required attribute featureType')
-
-        feature_type = getattr(dataset, 'featureType', None)
-        test = feature_type in self.valid_feature_types
-
-        if test:
-            score += 1
-        else:
-            messages.append('featureType attribute references an invalid feature type: {}'.format(feature_type)) 
-
-        return Result(BaseCheck.HIGH, (score, out_of), 'Dataset contains NCEI profile required and highly recommended attributes', messages)
-
-    @score_group('Science Variables')
-    def check_science_orthogonal(self, dataset):
-        msgs = []
         results = []
-        z_name = find_z_dimension(dataset)
-        for var in dataset.variables:
-            if hasattr(dataset.variables[var],'coordinates'):
-                dimensions = [dim for dim in dataset.dimensions if 'Strlen' not in dim and 'profile' not in dim]
-                dim_check = dataset.variables[var].dimensions == (u'profile', z_name,)
-                if not dim_check:
-                    msgs = ['{} does not have the correct dimensions'.format(var)]
-                results.append(Result(BaseCheck.HIGH, dim_check, (var, 'dimensions'), msgs))
+        required_ctx = TestCtx(BaseCheck.HIGH, 'Required Global Attributes for Profile-orthogonal dataset')
+        required_ctx.assert_true(
+            getattr(dataset, 'nodc_template_version', '') == 'NODC_NetCDF_Profile_Orthogonal_Template_v1.1',
+            'nodc_template_version attribute must be NODC_NetCDF_Profile_Orthogonal_Template_v1.1'
+        )
+        required_ctx.assert_true(
+            getattr(dataset, 'cdm_data_type', '') == 'Profile',
+            'cdm_data_type attribute must be set to Profile'
+        )
+        required_ctx.assert_true(
+            getattr(dataset, 'featureType', '') == 'profile',
+            'featureType attribute must be set to profile'
+        )
+        results.append(required_ctx.to_result())
         return results
-    @score_group('Required Variables')
-    def check_profile(self, dataset):
-        #Checks if the profile variable is formed properly
-        msgs=[]
-        results=[]
 
-        #Check profile Exist
-        if u'profile' in dataset.variables:
-            exists_check = True
-            results.append(Result(BaseCheck.LOW, exists_check, ('profile','exists'), msgs))       
-        else:
-            msgs = ['profile does not exist.  This is okay if there is only one Time Series in the dataset.']
-            exists_check = False
-            return Result(BaseCheck.LOW, (0,1), ('profile','exists'), msgs)
-
-        #Check CF Role
-        if getattr(dataset.variables[u'profile'], 'cf_role', None) in self.valid_feature_types:
-            cfrole_check = True
-        else: 
-            msgs = ['cf_role is wrong']
-            cfrole_check = False
-        results.append(Result(BaseCheck.MEDIUM, cfrole_check, ('profile','cf_role'), msgs))       
-        
-        #Check Long Name
-        if hasattr(dataset.variables[u'profile'], 'long_name'):
-            long_check = True
-        else: 
-            msgs = ['long name is missing']
-            long_check = False
-        results.append(Result(BaseCheck.MEDIUM, long_check, ('profile','long_name'), msgs))
+    def check_profile_id(self, dataset):
+        '''
+        Checks that if a variable exists for the profile id it has the appropriate attributes
+        '''
+        results = []
+        exists_ctx = TestCtx(BaseCheck.MEDIUM, 'Variable defining "profile_id" exists')
+        profile_ids = dataset.get_variables_by_attributes(cf_role='profile_id')
+        # No need to check
+        exists_ctx.assert_true(profile_ids, 'variable defining cf_role="profile_id" exists')
+        if not profile_ids:
+            return exists_ctx.to_result()
+        results.append(exists_ctx.to_result())
+        test_ctx = TestCtx(BaseCheck.MEDIUM, 'Recommended attributes for the {} variable'.format(profile_ids[0].name))
+        test_ctx.assert_true(
+            getattr(profile_ids[0].name, 'long_name', '') != "",
+            "long_name attribute should exist and not be empty"
+        )
+        results.append(test_ctx.to_result())
         return results
-        
 
 
 class NCEIProfileIncomplete(NCEIBaseCheck):
@@ -170,8 +111,9 @@ class NCEIProfileIncomplete(NCEIBaseCheck):
         'profile',
         'profile_id'
     ]
+
     @classmethod
-    def beliefs(cls): 
+    def beliefs(cls):
         '''
         Not applicable for gliders
         '''
@@ -179,122 +121,59 @@ class NCEIProfileIncomplete(NCEIBaseCheck):
 
     def check_dimensions(self, dataset):
         '''
-        NCEI_profile_Incomplete
-        dimensions:
-            ntimeMax = < dim1 >;//. REQUIRED - Number of time steps in the time series
-            profile = <dim2>; // REQUIRED - Number of time series
+        Checks that the feature types of this dataset are consistent with a profile-incomplete dataset.
         '''
-        out_of = 2
-        score = 0
-        messages = []
-
-        test = 'profile' in dataset.dimensions
-
-        if test:
-            score += 1
-        else:
-            messages.append('profile is a required dimension for profile')
-
-        dimensions = [dim for dim in dataset.dimensions if 'Strlen' not in dim and 'profile' not in dim]
-        if len(dimensions) == 1:
-            score += 1
-            out_of += 1
-
-        test = 'profile' in dataset.variables and dataset.variables['profile'].dimensions == ('profile',)
-        if test:
-            score += 1
-        else:
-            messages.append('profile is required to be a coordinate variable')
-        
-        return Result(BaseCheck.HIGH, (score, out_of), 'Dataset contains required dimensions', messages)
-
-    @score_group('Science Variables')
-    def check_science_incomplete(self, dataset):
-        msgs = []
         results = []
-        z_name = find_z_dimension(dataset)
-        for var in dataset.variables:
-            if hasattr(dataset.variables[var], 'coordinates'):
-                dim_check = dataset.variables[var].dimensions == dataset.variables[z_name].dimensions
-                if not dim_check:
-                    msgs = ['{} does not have the correct dimensions'.format(var)]
-                results.append(Result(BaseCheck.HIGH, dim_check, (var, 'dimensions'), msgs))
+        required_ctx = TestCtx(BaseCheck.HIGH, 'All geophysical variables are profile-incomplete feature types')
+
+        message = '{} must be a valid profile-incomplete feature type. It must have dimensions of (profile, depth).'
+        message += ' x and y should have dimensions of (profile), z should have dimension of (profile, depth) and t should have dimension (profile)'
+        for variable in util.get_geophysical_variables(dataset):
+            is_valid = util.is_profile_incomplete(dataset, variable)
+            required_ctx.assert_true(
+                is_valid,
+                message.format(variable)
+            )
+        results.append(required_ctx.to_result())
         return results
 
     def check_required_attributes(self, dataset):
         '''
         Verifies that the dataset contains the NCEI required and highly recommended global attributes
         '''
-
-        out_of = 4
-        score = 0
-        messages = []
-
-
-        test = hasattr(dataset, 'nodc_template_version')
-        if test:
-            score += 1
-        else:
-            messages.append('Dataset is missing NCEI required attribute nodc_template_version')
-
-        ncei_template_version = getattr(dataset, 'nodc_template_version', None)
-        test = ncei_template_version in self.valid_templates
-        if test:
-            score += 1
-        else:
-            messages.append('nodc_template_version attribute references an invalid template: {}'.format(ncei_template_version))
-
-        test = hasattr(dataset, 'featureType')
-
-        if test:
-            score += 1
-        else:
-            messages.append('Dataset is missing NCEI profile required attribute featureType')
-
-        feature_type = getattr(dataset, 'featureType', None)
-        test = feature_type in self.valid_feature_types
-
-        if test:
-            score += 1
-        else:
-            messages.append('featureType attribute references an invalid feature type: {}'.format(feature_type)) 
-
-        return Result(BaseCheck.HIGH, (score, out_of), 'Dataset contains NCEI profile require attributes', messages)
-
-    @score_group('Required Variables')
-    def check_profile(self, dataset):
-        #Checks if the profile variable is formed properly
-        msgs=[]
-        results=[]
-
-        #Check profile Exist
-        if u'profile' in dataset.variables:
-            exists_check = True
-            results.append(Result(BaseCheck.LOW, exists_check, ('profile','exists'), msgs))       
-        else:
-            msgs = ['profile does not exist.  This is okay if there is only one profile in the dataset.']
-            exists_check = False
-            return Result(BaseCheck.LOW, (0,1), ('profile','exists'), msgs)
-
-        #Check CF Role
-        if getattr(dataset.variables[u'profile'], 'cf_role', None) in self.valid_feature_types:
-            cfrole_check = True
-        else: 
-            msgs = ['cf_role is wrong']
-            cfrole_check = False
-        results.append(Result(BaseCheck.MEDIUM, cfrole_check, ('profile','cf_role'), msgs))       
-        
-        #Check Long Name
-        if hasattr(dataset.variables[u'profile'], 'long_name'):
-            long_check = True
-        else: 
-            msgs = ['long name is missing']
-            long_check = False
-        results.append(Result(BaseCheck.MEDIUM, long_check, ('profile','long_name'), msgs))
-
+        results = []
+        required_ctx = TestCtx(BaseCheck.HIGH, 'Required Global Attributes for Profile-incomplete dataset')
+        required_ctx.assert_true(
+            getattr(dataset, 'nodc_template_version', '') == 'NODC_NetCDF_Profile_Incomplete_Template_v1.1',
+            'nodc_template_version attribute must be NODC_NetCDF_Profile_Incomplete_Template_v1.1'
+        )
+        required_ctx.assert_true(
+            getattr(dataset, 'cdm_data_type', '') == 'Profile',
+            'cdm_data_type attribute must be set to Profile'
+        )
+        required_ctx.assert_true(
+            getattr(dataset, 'featureType', '') == 'profile',
+            'featureType attribute must be set to profile'
+        )
+        results.append(required_ctx.to_result())
         return results
-        
 
-
-
-
+    def check_profile_id(self, dataset):
+        '''
+        Checks that if a variable exists for the profile id it has the appropriate attributes
+        '''
+        results = []
+        exists_ctx = TestCtx(BaseCheck.MEDIUM, 'Variable defining "profile_id" exists')
+        profile_ids = dataset.get_variables_by_attributes(cf_role='profile_id')
+        # No need to check
+        exists_ctx.assert_true(profile_ids, 'variable defining cf_role="profile_id" exists')
+        if not profile_ids:
+            return exists_ctx.to_result()
+        results.append(exists_ctx.to_result())
+        test_ctx = TestCtx(BaseCheck.MEDIUM, 'Recommended attributes for the {} variable'.format(profile_ids[0].name))
+        test_ctx.assert_true(
+            getattr(profile_ids[0].name, 'long_name', '') != "",
+            "long_name attribute should exist and not be empty"
+        )
+        results.append(test_ctx.to_result())
+        return results
