@@ -696,3 +696,150 @@ def is_timeseries_profile_incomplete(nc, variable):
     if dims == (i, j, k):
         return True
     return False
+
+
+def is_trajectory_profile_orthogonal(nc, variable):
+    '''
+    Returns true if the variable is a trajectory profile with orthogonal
+    depths.
+
+    :param netCDF4.Dataset nc: An open netCDF dataset
+    :param str variable: name of the variable to check
+    '''
+    # x(i, o), y(i, o), z(z), t(i, o)
+    # X(i, o, z)
+    dims = nc.variables[variable].dimensions
+    cmatrix = coordinate_dimension_matrix(nc)
+
+    for req in ('x', 'y', 'z', 't'):
+        if req not in cmatrix:
+            return False
+
+    if len(cmatrix['x']) != 2:
+        return False
+    if cmatrix['x'] != cmatrix['y']:
+        return False
+    if cmatrix['x'] != cmatrix['t']:
+        return False
+
+    i, o = cmatrix['x']
+
+    z = get_depth_variable(nc)
+    if cmatrix['z'] != (z,):
+        return False
+
+    if dims == (i, o, z):
+        return True
+    return False
+
+
+def is_trajectory_profile_incomplete(nc, variable):
+    '''
+    Returns true if the variable is a trajectory profile with incomplete
+    depths.
+
+    :param netCDF4.Dataset nc: An open netCDF dataset
+    :param str variable: name of the variable to check
+    '''
+    # x(i, o), y(i, o), z(i, o, j), t(i, o)
+    # X(i, o, j)
+    dims = nc.variables[variable].dimensions
+    cmatrix = coordinate_dimension_matrix(nc)
+
+    for req in ('x', 'y', 'z', 't'):
+        if req not in cmatrix:
+            return False
+
+    if len(cmatrix['x']) != 2:
+        return False
+    if cmatrix['x'] != cmatrix['y']:
+        return False
+    if cmatrix['x'] != cmatrix['t']:
+        return False
+
+    i, o = cmatrix['x']
+
+    if len(cmatrix['z']) != 3:
+        return False
+
+    if cmatrix['z'][0] != i:
+        return False
+    if cmatrix['z'][1] != o:
+        return False
+
+    j = cmatrix['z'][2]
+
+    if dims == (i, o, j):
+        return True
+    return False
+
+
+def is_2d_regular_grid(nc, variable):
+    '''
+    Returns True if the variable is a 2D Regular grid.
+
+    :param netCDF4.Dataset nc: An open netCDF dataset
+    :param str variable: name of the variable to check
+    '''
+    # x(x), y(y), t(t)
+    # X(t, y, x)
+
+    dims = nc.variables[variable].dimensions
+
+    cmatrix = coordinate_dimension_matrix(nc)
+
+    for req in ('x', 'y', 't'):
+        if req not in cmatrix:
+            return False
+
+    x = get_lon_variable(nc)
+    y = get_lat_variable(nc)
+    t = get_time_variable(nc)
+
+    if cmatrix['x'] != (x,):
+        return False
+    if cmatrix['y'] != (y,):
+        return False
+    if cmatrix['t'] != (t,):
+        return False
+
+    if dims == (t, y, x):
+        return True
+    return False
+
+
+def is_3d_regular_grid(nc, variable):
+    '''
+    Returns True if the variable is a 3D Regular grid.
+
+    :param netCDF4.Dataset nc: An open netCDF dataset
+    :param str variable: name of the variable to check
+    '''
+    # x(x), y(y), z(z), t(t)
+    # X(t, z, y, x)
+
+    dims = nc.variables[variable].dimensions
+
+    cmatrix = coordinate_dimension_matrix(nc)
+
+    for req in ('x', 'y', 'z', 't'):
+        if req not in cmatrix:
+            return False
+
+    x = get_lon_variable(nc)
+    y = get_lat_variable(nc)
+    z = get_depth_variable(nc)
+    t = get_time_variable(nc)
+
+    if cmatrix['x'] != (x,):
+        return False
+    if cmatrix['y'] != (y,):
+        return False
+    if cmatrix['z'] != (z,):
+        return False
+    if cmatrix['t'] != (t,):
+        return False
+    if dims == (t, z, y, x):
+        return True
+    return False
+
