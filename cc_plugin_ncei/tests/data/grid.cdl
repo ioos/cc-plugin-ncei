@@ -1,7 +1,7 @@
 netcdf \00000110200000-NODC-L4_GHRSST-SSTskin-AVHRR_Pathfinder-PFV5.0_Daily_Climatology_1982_2008_DayNightCombined-v02.0-fv01.0 {
 dimensions:
-	lat = 4096 ;
-	lon = 8192 ;
+	lat = 4 ;
+	lon = 4 ;
 	nv = 2 ;
 	time = 1 ;
     z=1;

@@ -56,8 +56,8 @@ class NCEITimeSeriesOrthogonal(NCEIBaseCheck):
         results = []
         required_ctx = TestCtx(BaseCheck.HIGH, 'Required Global Attributes for Timeseries')
         required_ctx.assert_true(
-            getattr(dataset, 'nodc_template_version', '') == 'NODC_NetCDF_TimeSeries_Incomplete_Template_v1.1',
-            'nodc_template_version attribute must be NODC_NetCDF_TimeSeries_Incomplete_Template_v1.1'
+            getattr(dataset, 'nodc_template_version', '').lower() == self.valid_templates[0].lower(),
+            'nodc_template_version attribute must be {}'.format(self.valid_templates[0])
         )
         required_ctx.assert_true(
             getattr(dataset, 'cdm_data_type', '') == 'Station',
@@ -134,8 +134,8 @@ class NCEITimeSeriesIncomplete(NCEIBaseCheck):
         results = []
         required_ctx = TestCtx(BaseCheck.HIGH, 'Required Global Attributes for Timeseries')
         required_ctx.assert_true(
-            getattr(dataset, 'nodc_template_version', '') == 'NODC_NetCDF_TimeSeries_Incomplete_Template_v1.1',
-            'nodc_template_version attribute must be "NODC_NetCDF_TimeSeries_Incomplete_Template_v1.1"'
+            getattr(dataset, 'nodc_template_version', '').lower() == self.valid_templates[0].lower(),
+            'nodc_template_version attribute must be "{}"'.format(self.valid_templates[0])
         )
         required_ctx.assert_true(
             getattr(dataset, 'cdm_data_type', '') == 'Station',

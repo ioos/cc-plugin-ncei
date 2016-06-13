@@ -59,8 +59,8 @@ class NCEIProfileOrthogonal(NCEIBaseCheck):
         results = []
         required_ctx = TestCtx(BaseCheck.HIGH, 'Required Global Attributes for Profile-orthogonal dataset')
         required_ctx.assert_true(
-            getattr(dataset, 'nodc_template_version', '') == 'NODC_NetCDF_Profile_Orthogonal_Template_v1.1',
-            'nodc_template_version attribute must be NODC_NetCDF_Profile_Orthogonal_Template_v1.1'
+            getattr(dataset, 'nodc_template_version', '').lower() == self.valid_templates[0].lower(),
+            'nodc_template_version attribute must be {}'.format(self.valid_templates[0])
         )
         required_ctx.assert_true(
             getattr(dataset, 'cdm_data_type', '') == 'Profile',
@@ -87,7 +87,7 @@ class NCEIProfileOrthogonal(NCEIBaseCheck):
         results.append(exists_ctx.to_result())
         test_ctx = TestCtx(BaseCheck.MEDIUM, 'Recommended attributes for the {} variable'.format(profile_ids[0].name))
         test_ctx.assert_true(
-            getattr(profile_ids[0].name, 'long_name', '') != "",
+            getattr(profile_ids[0], 'long_name', '') != "",
             "long_name attribute should exist and not be empty"
         )
         results.append(test_ctx.to_result())
@@ -144,8 +144,8 @@ class NCEIProfileIncomplete(NCEIBaseCheck):
         results = []
         required_ctx = TestCtx(BaseCheck.HIGH, 'Required Global Attributes for Profile-incomplete dataset')
         required_ctx.assert_true(
-            getattr(dataset, 'nodc_template_version', '') == 'NODC_NetCDF_Profile_Incomplete_Template_v1.1',
-            'nodc_template_version attribute must be NODC_NetCDF_Profile_Incomplete_Template_v1.1'
+            getattr(dataset, 'nodc_template_version', '').lower() == self.valid_templates[0].lower(),
+            'nodc_template_version attribute must be {}'.format(self.valid_templates[0])
         )
         required_ctx.assert_true(
             getattr(dataset, 'cdm_data_type', '') == 'Profile',

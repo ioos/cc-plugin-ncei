@@ -60,7 +60,7 @@ class NCEITrajectoryProfileOrthogonal(NCEIBaseCheck):
         results = []
         required_ctx = TestCtx(BaseCheck.HIGH, 'Required Global Attributes for Trajectory Profile orthogonal dataset')
         required_ctx.assert_true(
-            getattr(dataset, 'nodc_template_version', '') == self.valid_templates[0],
+            getattr(dataset, 'nodc_template_version', '').lower() == self.valid_templates[0].lower(),
             'nodc_template_version attribute must be {}'.format(self.valid_templates[0])
         )
         required_ctx.assert_true(
@@ -139,7 +139,7 @@ class NCEITrajectoryProfileIncomplete(NCEIBaseCheck):
         results = []
         required_ctx = TestCtx(BaseCheck.HIGH, 'Required Global Attributes for Trajectory Profile incomplete dataset')
         required_ctx.assert_true(
-            getattr(dataset, 'nodc_template_version', '') == self.valid_templates[0],
+            getattr(dataset, 'nodc_template_version', '').lower() == self.valid_templates[0].lower(),
             'nodc_template_version attribute must be {}'.format(self.valid_templates[0])
         )
         required_ctx.assert_true(
