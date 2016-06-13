@@ -222,10 +222,10 @@ def coordinate_dimension_matrix(nc):
     :param netCDF4.Dataset nc: An open netCDF dataset
     '''
     retval = {}
-    x = get_lat_variable(nc)
+    x = get_lon_variable(nc)
     if x:
         retval['x'] = nc.variables[x].dimensions
-    y = get_lon_variable(nc)
+    y = get_lat_variable(nc)
     if y:
         retval['y'] = nc.variables[y].dimensions
 
