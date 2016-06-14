@@ -1,15 +1,9 @@
-#!/usr/bin/env python
-#-*- coding: utf-8 -*-
-'''
-cc_plugin_ncei/tests/test_ncei_metadata.py
-'''
-from cc_plugin_ncei.ncei_timeseries import NCEIMetadataCheck
-from cc_plugin_ncei.tests.resources import STATIC_FILES
+from compliance_checker.suite import CheckSuite
 from netCDF4 import Dataset
 import unittest
 
 
-class TestNCEIMetadata(unittest.TestCase):
+class NCEITestCase(unittest.TestCase):
     # @see
     # http://www.saltycrane.com/blog/2012/07/how-prevent-nose-unittest-using-docstring-when-verbosity-2/
     def shortDescription(self):
@@ -25,8 +19,8 @@ class TestNCEIMetadata(unittest.TestCase):
         else:
             return "%s ( %s )" % (name[-1], '.'.join(name[:-2]) + ":" + '.'.join(name[-2:]))
     __str__ = __repr__
-    
-    def get_dataset(self, nc_dataset):
+
+    def load_dataset(self, nc_dataset):
         '''
         Return a pairwise object for the dataset
         '''
@@ -34,17 +28,26 @@ class TestNCEIMetadata(unittest.TestCase):
             nc_dataset = Dataset(nc_dataset, 'r')
             self.addCleanup(nc_dataset.close)
         return nc_dataset
-    
-    def setUp(self):
-        self.check = NCEIMetadataCheck()
 
+    def get_failed_results(self, results):
+        failed = []
+        for r in results:
+            if r.value is False or r.value[0] != r.value[1]:
+                failed.append(r)
+        return failed
 
-    def test_required_attributes(self):
-        '''
-        Verifies the test checks the required attributes
-        '''
-        dataset = self.get_dataset(STATIC_FILES['station_timeseries'])
-        result = self.check.check_required_attributes(dataset)
+    def get_failed_messages(self, results):
+        failed_results = self.get_failed_results(results)
+        messages = []
+        for result in failed_results:
+            messages.extend(result.msgs)
+        return messages
 
-        self.assertEquals(result.value, (8, 8))
+    def run_checker(self, checker, dataset_location):
+        cs = CheckSuite()
+        cs.load_all_available_checkers()
+        ds = cs.load_dataset(dataset_location)
+        score_groups = cs.run(ds, checker)
+        results, self.errors = score_groups[checker]
+        self.results = cs.build_structure(checker, results, dataset_location)
 
