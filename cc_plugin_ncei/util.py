@@ -803,7 +803,8 @@ def is_2d_regular_grid(nc, variable):
     if cmatrix['t'] != (t,):
         return False
 
-    if dims == (t, y, x):
+    # Relaxed dimension ordering
+    if len(dims) == 3 and x in dims and y in dims and t in dims:
         return True
     return False
 
@@ -839,7 +840,9 @@ def is_3d_regular_grid(nc, variable):
         return False
     if cmatrix['t'] != (t,):
         return False
-    if dims == (t, z, y, x):
+
+    # Relaxed dimension ordering
+    if len(dims) == 4 and x in dims and y in dims and t in dims and z in dims:
         return True
     return False
 
