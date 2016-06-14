@@ -87,12 +87,16 @@ class NCEIGrid(NCEIBaseCheck):
             }
         }
 
-        for variable in bounds_map:
-            ncvar = dataset.variables.get(variable, {})
-            recommended_ctx.assert_true(ncvar != {}, 'a variable {} should exist'.format(variable))
+        bounds_variables = [v.bounds for v in dataset.get_variables_by_attributes(bounds=lambda x: x is not None)]
 
-            units = ncvar.get('units', '')
-            if 'units' in bounds_map[variable]:
+        for variable in bounds_variables:
+            ncvar = dataset.variables.get(variable, {})
+            recommended_ctx.assert_true(ncvar != {}, 'a variable {} should exist as indicated by a bounds attribute'.format(variable))
+            if ncvar == {}:
+                continue
+
+            units = getattr(ncvar, 'units', '')
+            if variable in bounds_map and 'units' in bounds_map[variable]:
                 recommended_ctx.assert_true(
                     units == bounds_map[variable]['units'],
                     'variable {} should have units {}'.format(variable, bounds_map[variable]['units'])
@@ -103,13 +107,10 @@ class NCEIGrid(NCEIBaseCheck):
                     'variable {} should have a units attribute that is not empty'.format(variable)
                 )
 
-            comment = ncvar.get('comment', '')
+            comment = getattr(ncvar, 'comment', '')
             recommended_ctx.assert_true(
-                comment == bounds_map[variable]['comment'],
-                'variable {} should have a comment attribute equal to "{}"'.format(
-                    variable,
-                    bounds_map[variable]['comment']
-                )
+                comment != '',
+                'variable {} should have a comment and not be empty'
             )
 
         return recommended_ctx.to_result()

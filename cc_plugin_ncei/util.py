@@ -6,6 +6,21 @@ cc_plugin_ncei/util.py
 from compliance_checker.base import Result, BaseCheck
 from pkg_resources import resource_filename
 import csv
+import json
+
+
+UNITLESS_DB = None
+
+
+def get_unitless_standard_names():
+    '''
+    Returns a list of valid standard_names that are allowed to be unitless
+    '''
+    global UNITLESS_DB
+    if UNITLESS_DB is None:
+        with open(resource_filename('cc_plugin_ncei', 'data/unitless.json'), 'r') as f:
+            UNITLESS_DB = json.load(f)
+    return UNITLESS_DB
 
 
 def is_geophysical(ds, variable):
@@ -14,6 +29,13 @@ def is_geophysical(ds, variable):
     '''
     ncvar = ds.variables[variable]
     # Does it have a standard name and units?
+    standard_name = getattr(ncvar, 'standard_name', '')
+    if not standard_name:
+        return False
+    if standard_name and standard_name not in get_unitless_standard_names():
+        units = getattr(ncvar, 'units', '')
+        if units == '':
+            return False
     if not hasattr(ncvar, 'standard_name') or not hasattr(ncvar, 'units'):
         return False
     if getattr(ncvar, 'standard_name') in ('time', 'latitude', 'longitude', 'height', 'depth', 'altitude'):

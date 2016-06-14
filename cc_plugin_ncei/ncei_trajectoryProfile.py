@@ -11,7 +11,7 @@ from cc_plugin_ncei import util
 
 class NCEITrajectoryProfileOrthogonal(NCEIBaseCheck):
     register_checker = True
-    _cc_spec = 'ncei-trajectoryProfile-orthogonal'
+    _cc_spec = 'ncei-trajectoryprofile-orthogonal'
     _cc_spec_version = '1.1'
     _cc_description = '''These templates are intended as a service to our community of Data Producers, and are also being used internally at NCEI in our own data development efforts. We hope the templates will serve as good starting points for Data Producers who wish to create preservable, discoverable, accessible, and interoperable data. It is important to note that these templates do not represent an attempt to create a new standard, and they are not absolutely required for archiving data at NCEI. However, we do hope that you will see the benefits in structuring your data following these conventions and NCEI stands ready to assist you in doing so.'''
     _cc_url = 'http://www.nodc.noaa.gov/data/formats/necdf/v1.1/trajectoryProfileIncomplete.cdl'
@@ -88,7 +88,7 @@ class NCEITrajectoryProfileOrthogonal(NCEIBaseCheck):
         results.append(exists_ctx.to_result())
         test_ctx = TestCtx(BaseCheck.MEDIUM, 'Recommended attributes for the {} variable'.format(trajectory_ids[0].name))
         test_ctx.assert_true(
-            getattr(trajectory_ids[0].name, 'long_name', '') != "",
+            getattr(trajectory_ids[0], 'long_name', '') != "",
             "long_name attribute should exist and not be empty"
         )
         results.append(test_ctx.to_result())

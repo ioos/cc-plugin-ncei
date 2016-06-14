@@ -68,8 +68,8 @@ class NCEITimeSeriesProfileOrthogonal(NCEIBaseCheck):
             'nodc_template_version attribute must be {}'.format(self.valid_templates[0])
         )
         required_ctx.assert_true(
-            getattr(dataset, 'cdm_data_type', '') == 'Profile',
-            'cdm_data_type attribute must be set to Profile'
+            getattr(dataset, 'cdm_data_type', '') == 'Station',
+            'cdm_data_type attribute must be set to Station'
         )
         required_ctx.assert_true(
             getattr(dataset, 'featureType', '') == 'timeSeriesProfile',
@@ -160,8 +160,8 @@ class NCEITimeSeriesProfileOrthTimeIncompleteDepth(NCEIBaseCheck):
             'nodc_template_version attribute must be {}'.format(self.valid_templates[0])
         )
         required_ctx.assert_true(
-            getattr(dataset, 'cdm_data_type', '') == 'Profile',
-            'cdm_data_type attribute must be set to Profile'
+            getattr(dataset, 'cdm_data_type', '') == 'Station',
+            'cdm_data_type attribute must be set to Station'
         )
         required_ctx.assert_true(
             getattr(dataset, 'featureType', '') == 'timeSeriesProfile',
@@ -249,8 +249,8 @@ class NCEITimeSeriesProfileIncomplete(NCEIBaseCheck):
             'nodc_template_version attribute must be {}'.format(self.valid_templates[0])
         )
         required_ctx.assert_true(
-            getattr(dataset, 'cdm_data_type', '') == 'Profile',
-            'cdm_data_type attribute must be set to Profile'
+            getattr(dataset, 'cdm_data_type', '') == 'Station',
+            'cdm_data_type attribute must be set to Station'
         )
         required_ctx.assert_true(
             getattr(dataset, 'featureType', '') == 'timeSeriesProfile',
@@ -339,8 +339,8 @@ class NCEITimeSeriesProfileIncompleteTimeOrthDepth(NCEIBaseCheck):
             'nodc_template_version attribute must be {}'.format(self.valid_templates[0])
         )
         required_ctx.assert_true(
-            getattr(dataset, 'cdm_data_type', '') == 'Profile',
-            'cdm_data_type attribute must be set to Profile'
+            getattr(dataset, 'cdm_data_type', '') == 'Station',
+            'cdm_data_type attribute must be set to Station'
         )
         required_ctx.assert_true(
             getattr(dataset, 'featureType', '') == 'timeSeriesProfile',

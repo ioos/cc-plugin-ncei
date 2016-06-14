@@ -72,10 +72,10 @@ class NCEIPoint(NCEIBaseCheck):
             'cdm_data_type attribute must be set to Point'
         )
         required_ctx.assert_true(
-            getattr(dataset, 'featureType', '') == 'station',
-            'featureType attribute must be set to station'
+            getattr(dataset, 'featureType', '') == 'point',
+            'featureType attribute must be set to point'
         )
         results.append(required_ctx.to_result())
         return results
 
-        
+

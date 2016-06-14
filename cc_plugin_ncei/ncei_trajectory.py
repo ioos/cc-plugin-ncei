@@ -86,7 +86,7 @@ class NCEITrajectory(NCEIBaseCheck):
         results.append(exists_ctx.to_result())
         test_ctx = TestCtx(BaseCheck.MEDIUM, 'Recommended attributes for the {} variable'.format(trajectory_ids[0].name))
         test_ctx.assert_true(
-            getattr(trajectory_ids[0].name, 'long_name', '') != "",
+            getattr(trajectory_ids[0], 'long_name', '') != "",
             "long_name attribute should exist and not be empty"
         )
         results.append(test_ctx.to_result())

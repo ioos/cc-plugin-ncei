@@ -73,10 +73,10 @@ class NCEIBaseCheck(BaseNCCheck):
                              'Conventions attribute is missing or is not equal to CF-1.6: {}'.format(conventions))
         test_ctx.assert_true(metadata_conventions == 'Unidata Dataset Discovery v1.0',
                              "Metadata_Conventions attribute is required to be 'Unidata Dataset Discovery v1.0': {}".format(metadata_conventions))
-        test_ctx.assert_true(feature_type in ['station', 'timeSeries', 'trajectory', 'profile', 'timeSeriesProfile', 'grid'],
-                             'Feature type must be one of station, timeSeries, trajectory, profile, timeSeriesProfile, grid: {}'.format(feature_type))
-        test_ctx.assert_true(cdm_data_type in ['Point', 'Station', 'Trajectory', 'Profile', 'Grid'],
-                             'cdm_data_type must be one of Point, Station, Trajectory, Profile, Grid: {}'.format(cdm_data_type))
+        test_ctx.assert_true(feature_type in ['point', 'timeSeries', 'trajectory', 'profile', 'timeSeriesProfile', 'trajectoryProfile'],
+                             'Feature type must be one of point, timeSeries, trajectory, profile, timeSeriesProfile, trajectoryProfile: {}'.format(feature_type))
+        test_ctx.assert_true(cdm_data_type.lower() in ['grid', 'image', 'point', 'radial', 'station', 'swath', 'trajectory'],
+                             'cdm_data_type must be one of Grid, Image, Point, Radial, Station, Swath, Trajectory: {}'.format(cdm_data_type))
 
         regex = re.compile(r'[sS]tandard [nN]ame [tT]able')
         test_ctx.assert_true(regex.search(standard_name_vocab),
@@ -196,7 +196,7 @@ class NCEIBaseCheck(BaseNCCheck):
         ]
 
         if calendar:
-            required_ctx.assert_true(calendar in valid_calendars, 'time contains a valid calendar https://unidata.github.io/netcdf4-python/#netCDF4.date2num')
+            required_ctx.assert_true(calendar.lower() in valid_calendars, 'calendar attribute should be a valid calendar in ({})'.format(', '.join(valid_calendars)))
 
         results.append(required_ctx.to_result())
         recommended_ctx = TestCtx(BaseCheck.MEDIUM, 'Recommended attributes for variable time')

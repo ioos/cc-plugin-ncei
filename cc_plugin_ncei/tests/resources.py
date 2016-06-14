@@ -16,16 +16,11 @@ def generate_dataset(cdl_path, nc_path):
     sh.ncgen('-o', nc_path, cdl_path)
 
 STATIC_FILES = {
-    'timeSeriesOrthogonal' : get_filename('tests/data/timeSeriesOrthogonal.nc'),
-    'timeSeriesIncomplete' : get_filename('tests/data/timeSeriesIncomplete.nc'),
-    'grid' : get_filename('tests/data/grid.nc'),
-    'point' : get_filename('tests/data/point.nc'),
-    'profileIncomplete' : get_filename('tests/data/profileIncomplete.nc'),
-    'profileOrthogonal' : get_filename('tests/data/profileOrthogonal.nc'),
-    'timeSeriesProfileIncomplete' : get_filename('tests/data/timeSeriesProfileIncomplete.nc'),
-    'timeSeriesProfileIncompleteTimeOrthDepth' : get_filename('tests/data/timeSeriesProfileIncompleteTimeOrthDepth.nc'),
-    'timeSeriesProfileOrthTimeIncompleteDepth' : get_filename('tests/data/timeSeriesProfileOrthTimeIncompleteDepth.nc'),
-    'timeSeriesProfileOrthogonal' : get_filename('tests/data/timeSeriesProfileOrthogonal.nc'),
-    'trajectory' : get_filename('tests/data/trajectory.nc'),
+    'point': get_filename('tests/data/NODC_point_template_v1.1_2016-06-14_125317.379316.nc'),
+    'profile': get_filename('tests/data/NODC_profile_template_v1.1_2016-06-14_125318.375947.nc'),
+    'timeseries': get_filename('tests/data/NODC_timeSeries_template_v1.1_2016-06-14_125320.125407.nc'),
+    'timeseries-profile': get_filename('tests/data/NODC_timeSeriesProfile_template_v1.1_2016-06-14_125321.546019.nc'),
+    'trajectory-profile': get_filename('tests/data/NODC_trajectoryProfile_template_v1.1_2016-06-14_125323.993167.nc'),
+    'trajectory': get_filename('tests/data/NODC_trajectory_template_v1.1_2016-06-14_125322.975680.nc')
 }
 
