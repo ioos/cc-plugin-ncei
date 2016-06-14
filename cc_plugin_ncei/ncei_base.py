@@ -599,9 +599,15 @@ class NCEIBaseCheck(BaseNCCheck):
             platform_name = getattr(dataset, 'platform', '')
             recommended_ctx.assert_true(platform_name and platform_name in dataset.variables, 'platform should exist and point to a variable.')
 
-        sea_names = util.get_sea_names()
+        sea_names = [sn.lower() for sn in util.get_sea_names()]
         sea_name = getattr(dataset, 'sea_name', '')
-        recommended_ctx.assert_true(sea_name and sea_name in sea_names, 'sea_name attribute should exist and should be from the NODC sea names list')
+        sea_name = sea_name.replace(', ', ',')
+        sea_name = sea_name.split(',') if sea_name else []
+        for sea in sea_name:
+            recommended_ctx.assert_true(
+                sea.lower() in sea_names,
+                'sea_name attribute should exist and should be from the NODC sea names list: {} is not a valid sea name'.format(sea)
+            )
 
         # Source: http://www.pelagodesign.com/blog/2009/05/20/iso-8601-date-validation-that-doesnt-suck/
         iso8601_regex = r'^([\+-]?\d{4}(?!\d{2}\b))((-?)((0[1-9]|1[0-2])(\3([12]\d|0[1-9]|3[01]))?|W([0-4]\d|5[0-2])(-?[1-7])?|(00[1-9]|0[1-9]\d|[12]\d{2}|3([0-5]\d|6[1-6])))([T\s]((([01]\d|2[0-3])((:?)[0-5]\d)?|24\:?00)([\.,]\d+(?!:))?)?(\17[0-5]\d([\.,]\d+)?)?([zZ]|([\+-])([01]\d|2[0-3]):?([0-5]\d)?)?)?)?$'
