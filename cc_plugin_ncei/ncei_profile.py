@@ -172,7 +172,7 @@ class NCEIProfileIncomplete(NCEIBaseCheck):
         results.append(exists_ctx.to_result())
         test_ctx = TestCtx(BaseCheck.MEDIUM, 'Recommended attributes for the {} variable'.format(profile_ids[0].name))
         test_ctx.assert_true(
-            getattr(profile_ids[0].name, 'long_name', '') != "",
+            getattr(profile_ids[0], 'long_name', '') != "",
             "long_name attribute should exist and not be empty"
         )
         results.append(test_ctx.to_result())
