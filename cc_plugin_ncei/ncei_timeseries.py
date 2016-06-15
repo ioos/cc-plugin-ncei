@@ -162,7 +162,7 @@ class NCEITimeSeriesIncomplete(NCEIBaseCheck):
         if not timeseries_ids:
             return results
 
-        timevar = util.find_time_variable(dataset)
+        timevar = util.get_time_variable(dataset)
         nc_timevar = dataset.variables[timevar]
         time_dimensions = nc_timevar.dimensions
 

@@ -40,12 +40,12 @@ setup(name                 = "cc-plugin-ncei",
             'ncei-trajectory = cc_plugin_ncei.ncei_trajectory:NCEITrajectory',
             'ncei-profile-incomplete = cc_plugin_ncei.ncei_profile:NCEIProfileIncomplete',
             'ncei-profile-orthogonal = cc_plugin_ncei.ncei_profile:NCEIProfileOrthogonal',
-            'ncei-timeseriesprofile-orthogonal = cc_plugin_ncei.ncei_timeseriesprofile:NCEITimeSeriesProfileOrthogonal',
-            'ncei-timeseriesprofile-orthtime-incompletedepth = cc_plugin_ncei.ncei_timeseriesprofile:NCEITimeSeriesProfileOrthTimeIncompleteDepth',
-            'ncei-timeseriesprofile-incomplete = cc_plugin_ncei.ncei_timeseriesprofile:NCEITimeSeriesProfileIncomplete',
-            'ncei-timeseriesprofile-incompletetime-orthdepth = cc_plugin_ncei.ncei_timeseriesprofile:NCEITimeSeriesProfileIncompleteTimeOrthDepth',
-            'ncei-trajectoryProfile-orthogonal = cc_plugin_ncei.ncei_trajectoryProfile:NCEITrajectoryProfileOrthogonal',
-            'ncei-trajectoryProfile-incomplete = cc_plugin_ncei.ncei_trajectoryProfile:NCEITrajectoryProfileIncomplete',
+            'ncei-timeseries-profile-orthogonal = cc_plugin_ncei.ncei_timeseries_profile:NCEITimeSeriesProfileOrthogonal',
+            'ncei-timeseries-profile-orthtime-incompletedepth = cc_plugin_ncei.ncei_timeseries_profile:NCEITimeSeriesProfileOrthTimeIncompleteDepth',
+            'ncei-timeseries-profile-incomplete = cc_plugin_ncei.ncei_timeseries_profile:NCEITimeSeriesProfileIncomplete',
+            'ncei-timeseries-profile-incompletetime-orthdepth = cc_plugin_ncei.ncei_timeseries_profile:NCEITimeSeriesProfileIncompleteTimeOrthDepth',
+            'ncei-trajectory-profile-orthogonal = cc_plugin_ncei.ncei_trajectory_profile:NCEITrajectoryProfileOrthogonal',
+            'ncei-trajectory-profile-incomplete = cc_plugin_ncei.ncei_trajectory_profile:NCEITrajectoryProfileIncomplete',
         ]
     }
 )
