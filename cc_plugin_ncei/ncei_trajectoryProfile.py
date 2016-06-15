@@ -68,8 +68,8 @@ class NCEITrajectoryProfileOrthogonal(NCEIBaseCheck):
             'cdm_data_type attribute must be set to Trajectory'
         )
         required_ctx.assert_true(
-            getattr(dataset, 'featureType', '') == 'trajectory',
-            'featureType attribute must be set to trajectory'
+            getattr(dataset, 'featureType', '') == 'trajectoryProfile',
+            'featureType attribute must be set to trajectoryProfile'
         )
         results.append(required_ctx.to_result())
         return results
@@ -147,8 +147,8 @@ class NCEITrajectoryProfileIncomplete(NCEIBaseCheck):
             'cdm_data_type attribute must be set to Trajectory'
         )
         required_ctx.assert_true(
-            getattr(dataset, 'featureType', '') == 'trajectory',
-            'featureType attribute must be set to trajectory'
+            getattr(dataset, 'featureType', '') == 'trajectoryProfile',
+            'featureType attribute must be set to trajectoryProfile'
         )
         results.append(required_ctx.to_result())
         return results
