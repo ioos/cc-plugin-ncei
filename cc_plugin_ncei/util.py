@@ -3,24 +3,41 @@
 '''
 cc_plugin_ncei/util.py
 '''
-from compliance_checker.base import Result, BaseCheck
 from pkg_resources import resource_filename
 import csv
 import json
 
 
-UNITLESS_DB = None
+_UNITLESS_DB = None
+_SEA_NAMES = None
 
 
 def get_unitless_standard_names():
     '''
     Returns a list of valid standard_names that are allowed to be unitless
     '''
-    global UNITLESS_DB
-    if UNITLESS_DB is None:
+    global _UNITLESS_DB
+    if _UNITLESS_DB is None:
         with open(resource_filename('cc_plugin_ncei', 'data/unitless.json'), 'r') as f:
-            UNITLESS_DB = json.load(f)
-    return UNITLESS_DB
+            _UNITLESS_DB = json.load(f)
+    return _UNITLESS_DB
+
+
+def get_sea_names():
+    '''
+    Returns a list of NODC sea names
+
+    source of list: https://www.nodc.noaa.gov/General/NODC-Archive/seanamelist.txt
+    '''
+    global _SEA_NAMES
+    if _SEA_NAMES is None:
+        buf = {}
+        with open(resource_filename('cc_plugin_ncei', 'data/seanames.csv'), 'r') as f:
+            reader = csv.reader(f)
+            for code, sea_name in reader:
+                buf[sea_name] = code
+        _SEA_NAMES = buf
+    return _SEA_NAMES
 
 
 def is_geophysical(ds, variable):
@@ -58,7 +75,10 @@ def is_geophysical(ds, variable):
 
 def get_geophysical_variables(ds):
     '''
-    Returns a list of geophysical variables
+    Returns a list of variable names for the variables detected as geophysical
+    variables.
+
+    :param netCDF4.Dataset nc: An open netCDF dataset
     '''
 
     parameters = []
@@ -68,9 +88,9 @@ def get_geophysical_variables(ds):
     return parameters
 
 
-def find_z_dimension(nc):
+def get_z_variable(nc):
     '''
-    Returns true if the variable is a heigh or depth variable
+    Returns the name of the variable that defines the Z axis or height/depth
 
     :param netCDF4.Dataset nc: netCDF dataset
     '''
@@ -112,9 +132,11 @@ def get_lon_variable(nc):
     return None
 
 
-def find_platform_variables(ds):
+def get_platform_variables(ds):
     '''
     Returns a list of platform variable NAMES
+
+    :param netCDF4.Dataset ds: An open netCDF4 Dataset
     '''
     candidates = []
     for variable in ds.variables:
@@ -130,9 +152,11 @@ def find_platform_variables(ds):
     return candidates
 
 
-def find_instrument_variables(ds):
+def get_instrument_variables(ds):
     '''
     Returns a list of instrument variables
+
+    :param netCDF4.Dataset ds: An open netCDF4 Dataset
     '''
     candidates = []
     for variable in ds.variables:
@@ -148,9 +172,11 @@ def find_instrument_variables(ds):
     return candidates
 
 
-def find_time_variable(ds):
+def get_time_variable(ds):
     '''
     Returns the likeliest variable to be the time coordiante variable
+
+    :param netCDF4.Dataset ds: An open netCDF4 Dataset
     '''
     for var in ds.variables:
         if getattr(ds.variables[var], 'axis', '') == 'T':
@@ -163,78 +189,17 @@ def find_time_variable(ds):
     return None
 
 
-# alias for backwards compatibility
-get_depth_variable = find_z_dimension
-get_time_variable = find_time_variable
-
-
-def getattr_check(ds, var, attr, val, level):
+def get_crs_variable(ds):
     '''
-    Returns a Result object with the value (boolean) set to True if var has attr and is equal to val
+    Returns the name of the variable identified by a grid_mapping attribute
 
-    :param netCDF4.Dataset ds: An open netCDF4 dataset
-    :param str var: Name of the variable
-    :param str attr: Name of the attribute
-    :param int level: Level of importance BaseCheck.LOW, BaseCheck.HIGH etc.
+    :param netCDF4.Dataset ds: An open netCDF4 Dataset
     '''
-    msgs = []
-    attr_value = getattr(ds.variables[var], attr, None) == val
-    if attr_value:
-        check = True
-    else: 
-        msgs = ['{} is missing attribute {}, which should have a value of {}: {}'.format(var, attr, val, attr_value)]
-        check = False
-    return Result(level, check, '{} has attribute {}'.format(var, attr), msgs)
-
-
-def hasattr_check(ds, var, attr, level):
-    '''
-    Returns a Result object with the value (boolean) set to True if var has attr
-    '''
-    msgs = []
-    if hasattr(ds.variables[var], attr):
-        check = True
-    else:
-        msgs = ['{} is missing attribute {}'.format(var, attr)]
-        check = False
-    return Result(level, check, '{} has attribute {}'.format(var, attr), msgs)
-
-
-def var_dtype(ds, var, valid_types, level):
-    '''
-    Returns a Result object with the value (boolean) set to True if the
-    variable has a dtype in valid_types
-    '''
-    msgs = []
-    data_type = str(ds.variables[var].dtype)
-    if any(valid_type in data_type for valid_type in valid_types):
-        check = True
-    else:
-        msgs = ['data type for {} is invalid'.format(var)]
-        check = False
-    return Result(level, check, '{} correct data type'.format(var), msgs)
-
-
-def find_crs_variable(ds):
     for var in ds.variables:
         grid_mapping = getattr(ds.variables[var], 'grid_mapping', '')
         if grid_mapping and grid_mapping in ds.variables:
-            return ds.variables[grid_mapping]
+            return grid_mapping
     return None
-
-_SEA_NAMES = None
-
-
-def get_sea_names():
-    global _SEA_NAMES
-    if _SEA_NAMES is None:
-        buf = {}
-        with open(resource_filename('cc_plugin_ncei', 'data/seanames.csv'), 'r') as f:
-            reader = csv.reader(f)
-            for code, sea_name in reader:
-                buf[sea_name] = code
-        _SEA_NAMES = buf
-    return _SEA_NAMES
 
 
 def coordinate_dimension_matrix(nc):
@@ -251,7 +216,7 @@ def coordinate_dimension_matrix(nc):
     if y:
         retval['y'] = nc.variables[y].dimensions
 
-    z = get_depth_variable(nc)
+    z = get_z_variable(nc)
     if z:
         retval['z'] = nc.variables[z].dimensions
 
@@ -512,7 +477,7 @@ def is_timeseries_profile_single_station(nc, variable):
     if cmatrix['x'] != cmatrix['y']:
         return False
 
-    z = get_depth_variable(nc)
+    z = get_z_variable(nc)
     if cmatrix['z'] != (z,):
         return False
     t = get_time_variable(nc)
@@ -545,7 +510,7 @@ def is_timeseries_profile_multi_station(nc, variable):
         return False
     i = cmatrix['x'][0]
 
-    z = get_depth_variable(nc)
+    z = get_z_variable(nc)
     if cmatrix['z'] != (z,):
         return False
     t = get_time_variable(nc)
@@ -660,7 +625,7 @@ def is_timeseries_profile_ortho_depth(nc, variable):
     if cmatrix['x'] != cmatrix['y']:
         return False
 
-    z = get_depth_variable(nc)
+    z = get_z_variable(nc)
     if cmatrix['z'] != (z,):
         return False
 
@@ -746,7 +711,7 @@ def is_trajectory_profile_orthogonal(nc, variable):
 
     i, o = cmatrix['x']
 
-    z = get_depth_variable(nc)
+    z = get_z_variable(nc)
     if cmatrix['z'] != (z,):
         return False
 
@@ -851,7 +816,7 @@ def is_3d_regular_grid(nc, variable):
 
     x = get_lon_variable(nc)
     y = get_lat_variable(nc)
-    z = get_depth_variable(nc)
+    z = get_z_variable(nc)
     t = get_time_variable(nc)
 
     if cmatrix['x'] != (x,):

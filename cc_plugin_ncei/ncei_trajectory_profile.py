@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 '''
-cc_plugin_ncei/ncei_trajectoryProfile.py
+cc_plugin_ncei/ncei_trajectory_profile.py
 '''
 
 from compliance_checker.base import BaseCheck
@@ -11,7 +11,7 @@ from cc_plugin_ncei import util
 
 class NCEITrajectoryProfileOrthogonal(NCEIBaseCheck):
     register_checker = True
-    _cc_spec = 'ncei-trajectoryprofile-orthogonal'
+    _cc_spec = 'ncei-trajectory-profile-orthogonal'
     _cc_spec_version = '1.1'
     _cc_description = '''These templates are intended as a service to our community of Data Producers, and are also being used internally at NCEI in our own data development efforts. We hope the templates will serve as good starting points for Data Producers who wish to create preservable, discoverable, accessible, and interoperable data. It is important to note that these templates do not represent an attempt to create a new standard, and they are not absolutely required for archiving data at NCEI. However, we do hope that you will see the benefits in structuring your data following these conventions and NCEI stands ready to assist you in doing so.'''
     _cc_url = 'http://www.nodc.noaa.gov/data/formats/necdf/v1.1/trajectoryProfileIncomplete.cdl'
@@ -97,7 +97,7 @@ class NCEITrajectoryProfileOrthogonal(NCEIBaseCheck):
 
 class NCEITrajectoryProfileIncomplete(NCEIBaseCheck):
     register_checker = True
-    _cc_spec = 'ncei-trajectoryProfile-incomplete'
+    _cc_spec = 'ncei-trajectory-profile-incomplete'
     _cc_spec_version = '1.1'
     _cc_description = '''These templates are intended as a service to our community of Data Producers, and are also being used internally at NCEI in our own data development efforts. We hope the templates will serve as good starting points for Data Producers who wish to create preservable, discoverable, accessible, and interoperable data. It is important to note that these templates do not represent an attempt to create a new standard, and they are not absolutely required for archiving data at NCEI. However, we do hope that you will see the benefits in structuring your data following these conventions and NCEI stands ready to assist you in doing so.'''
     _cc_url = 'http://www.nodc.noaa.gov/data/formats/necdf/v1.1/trajectoryProfileIncomplete.cdl'

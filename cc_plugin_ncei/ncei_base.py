@@ -8,7 +8,6 @@ from __future__ import print_function
 from compliance_checker.base import Result, BaseCheck, BaseNCCheck
 from compliance_checker.cf.util import StandardNameTable, units_convertible
 from cc_plugin_ncei import util
-from cc_plugin_ncei.nc_structure import NCStructure
 from cf_units import Unit
 import re
 
@@ -103,8 +102,7 @@ class NCEIBaseCheck(BaseNCCheck):
         '''
 
         results = []
-        struct = NCStructure(dataset)
-        lat = struct.get_lat()
+        lat = util.get_lat_variable(dataset)
         if not lat:
             return Result(BaseCheck.HIGH, False, 'latitude', ['a variable for latitude doesn\'t exist'])
         lat_var = dataset.variables[lat]
@@ -139,8 +137,7 @@ class NCEIBaseCheck(BaseNCCheck):
             lon:comment = "" ; //........................................ RECOMMENDED - Add useful, additional information here.
         '''
         results = []
-        struct = NCStructure(dataset)
-        lon = struct.get_lon()
+        lon = util.get_lon_variable(dataset)
         if not lon:
             return Result(BaseCheck.HIGH, False, 'longitude', ['a variable for longitude doesn\'t exist'])
         lon_var = dataset.variables[lon]
@@ -174,7 +171,7 @@ class NCEIBaseCheck(BaseNCCheck):
             time:comment = "" ; //....................................... RECOMMENDED - Add useful, additional information here.
         '''
         results = []
-        time_var = util.find_time_variable(dataset)
+        time_var = util.get_time_variable(dataset)
         if not time_var:
             return Result(BaseCheck.HIGH, False, 'Coordinate variable time', ['Time coordinate variable was not found'])
         required_ctx = TestCtx(BaseCheck.HIGH, 'Required attributes for variable time')
@@ -241,7 +238,7 @@ class NCEIBaseCheck(BaseNCCheck):
         ]
 
         exists_ctx = TestCtx(BaseCheck.HIGH, 'Variable for height must exist')
-        var = util.find_z_dimension(dataset)
+        var = util.get_z_variable(dataset)
         exists_ctx.assert_true(var is not None, "A variable for height must exist")
         if var is None:
             return exists_ctx.to_result()
@@ -265,7 +262,7 @@ class NCEIBaseCheck(BaseNCCheck):
 
         # Check Units
         valid_units = False
-        units = getattr(dataset.variables[var], 'units', '')
+        units = getattr(dataset.variables[var], 'units', '1')
         try:
             # If cf_units fails to read the units, then it's not a valid unit
             Unit(units)
@@ -420,7 +417,7 @@ class NCEIBaseCheck(BaseNCCheck):
                 platform_variable:imo_code  = "";//.......................... RECOMMENDED - This attribute identifies the International Maritime Organization (IMO) number assigned by Lloyd's register.
         '''
         # Check for the platform variable
-        platforms = util.find_platform_variables(dataset)
+        platforms = util.get_platform_variables(dataset)
         if not platforms:
             return Result(BaseCheck.MEDIUM,
                           False,
@@ -458,8 +455,8 @@ class NCEIBaseCheck(BaseNCCheck):
             instrument_parameter_variable:long_name = "" ; // RECOMMENDED - Provide a descriptive, long name for this variable.
             instrument_parameter_variable:comment = "" ; //.. RECOMMENDED - Add useful, additional information here.
         '''
-        #Check for the instrument variable
-        instruments = util.find_instrument_variables(dataset)
+        # Check for the instrument variable
+        instruments = util.get_instrument_variables(dataset)
         if not instruments:
             return Result(BaseCheck.MEDIUM, False, 'Recommended variable for instrument should exist', ['No instrument variables found'])
         results = []
@@ -484,9 +481,15 @@ class NCEIBaseCheck(BaseNCCheck):
                 crs:semi_major_axis = 6378137.0 ; //......................... RECOMMENDED
                 crs:inverse_flattening = 298.257223563 ; //.................. RECOMMENDED
         '''
-        crs_variable = util.find_crs_variable(dataset)
-        if crs_variable is None:
-            return Result(BaseCheck.MEDIUM, False, 'Recommended variable for grid mapping should exist', ['A variable to describe the grid mapping should exist'])
+        grid_mapping = util.get_crs_variable(dataset)
+        if grid_mapping is None:
+            return Result(
+                BaseCheck.MEDIUM,
+                False,
+                'Recommended variable for grid mapping should exist',
+                ['A variable to describe the grid mapping should exist']
+            )
+        crs_variable = dataset.variables[grid_mapping]
         test_ctx = TestCtx(BaseCheck.MEDIUM, 'Recommended attributes for grid mapping variable {}'.format(crs_variable.name))
         test_ctx.assert_true(crs_variable is not None, 'A container variable storing the grid mapping should exist for this dataset.')
 
