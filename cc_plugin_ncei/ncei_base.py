@@ -79,7 +79,7 @@ class NCEIBaseCheck(BaseNCCheck):
 
         regex = re.compile(r'[sS]tandard [nN]ame [tT]able')
         test_ctx.assert_true(regex.search(standard_name_vocab),
-                             "standard_name_vocabulary doesn't container 'Standard Name Table': {}".format(standard_name_vocab))
+                             "standard_name_vocabulary doesn't contain 'Standard Name Table': {}".format(standard_name_vocab))
 
         return test_ctx.to_result()
 
@@ -626,7 +626,7 @@ class NCEIBaseCheck(BaseNCCheck):
         recommended_ctx.assert_true(units == 'degrees_east', 'geospatial_lon_units attribute should be degrees_east: {}'.format(units))
 
         value = getattr(dataset, 'geospatial_vertical_positive', '')
-        recommended_ctx.assert_true(value.lower() in ['up', 'down'], 'value must be either up or down: {}'.format(value))
+        recommended_ctx.assert_true(value.lower() in ['up', 'down'], 'geospatial_vertical_positive attribute should be up or down: {}'.format(value))
 
         # I hate english.
         ack_exists = any((getattr(dataset, attr, '') != '' for attr in ['acknowledgment', 'acknowledgement']))
