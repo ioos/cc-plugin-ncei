@@ -6,7 +6,7 @@ from cc_plugin_ncei.tests.resources import STATIC_FILES
 class TestNCEITrajectory(NCEITestCase):
 
     def setUp(self):
-        self.run_checker('ncei-trajectory', STATIC_FILES['trajectory'])
+        self.run_checker('ncei-trajectory', STATIC_FILES['nodc-trajectory'])
 
     def test_global_profile_score(self):
         assert not self.errors

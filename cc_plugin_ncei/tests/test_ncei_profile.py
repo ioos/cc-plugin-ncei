@@ -5,7 +5,7 @@ from cc_plugin_ncei.tests.resources import STATIC_FILES
 class TestNCEIProfile(NCEITestCase):
 
     def setUp(self):
-        self.run_checker('ncei-profile-orthogonal', STATIC_FILES['profile'])
+        self.run_checker('ncei-profile-orthogonal', STATIC_FILES['nodc-profile'])
 
     def test_global_profile_score(self):
         assert not self.errors
