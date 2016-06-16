@@ -41,9 +41,11 @@ class NCEITrajectory(NCEIBaseCheck):
         results = []
         required_ctx = TestCtx(BaseCheck.HIGH, 'All geophysical variables are trajectory feature types')
 
-        message = '{} must be a valid trajectory feature type. It must have dimensions of (time). And all coordinates must have dimensions (time)'
+        message = ("{} must be a valid trajectory feature type. It must have dimensions of (trajectoryID, time)."
+                   " And all coordinates must have dimensions (trajectoryID, time)")
         for variable in util.get_geophysical_variables(dataset):
             is_valid = util.is_cf_trajectory(dataset, variable)
+            is_valid = is_valid or util.is_single_trajectory(dataset, variable)
             required_ctx.assert_true(
                 is_valid,
                 message.format(variable)
