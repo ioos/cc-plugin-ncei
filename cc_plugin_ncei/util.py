@@ -304,7 +304,6 @@ def is_multi_timeseries_orthogonal(nc, variable):
 
     for req in ('x', 'y', 't'):
         if req not in cmatrix:
-            print req, "missing"
             return False
     if len(cmatrix['x']) != 1 or cmatrix['x'] != cmatrix['y']:
         return False
@@ -375,6 +374,35 @@ def is_cf_trajectory(nc, variable):
         if req not in cmatrix:
             return False
     if len(cmatrix['x']) != 2:
+        return False
+    if cmatrix['x'] != cmatrix['y']:
+        return False
+    if cmatrix['x'] != cmatrix['t']:
+        return False
+    if 'z' in cmatrix and cmatrix['x'] != cmatrix['z']:
+        return False
+    if dims == cmatrix['x']:
+        return True
+    return False
+
+
+def is_single_trajectory(nc, variable):
+    '''
+    Returns true if the variable is a single trajectory feature
+
+    :param netCDF4.Dataset nc: An open netCDF dataset
+    :param str variable: name of the variable to check
+    '''
+    # x(t), y(t), z(t), t(t)
+    # X(t)
+    dims = nc.variables[variable].dimensions
+    cmatrix = coordinate_dimension_matrix(nc)
+
+    for req in ('x', 'y', 't'):
+        if req not in cmatrix:
+            return False
+    t = get_time_variable(nc)
+    if cmatrix['x'] != (t,):
         return False
     if cmatrix['x'] != cmatrix['y']:
         return False

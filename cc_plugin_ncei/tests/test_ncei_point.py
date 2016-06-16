@@ -6,7 +6,7 @@ from cc_plugin_ncei.tests.resources import STATIC_FILES
 class TestNCEIPoint(NCEITestCase):
 
     def setUp(self):
-        self.run_checker('ncei-point', STATIC_FILES['point'])
+        self.run_checker('ncei-point', STATIC_FILES['nodc-point'])
 
     def test_global_point_score(self):
         assert not self.errors

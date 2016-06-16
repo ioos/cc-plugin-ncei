@@ -5,7 +5,7 @@ from cc_plugin_ncei.tests.resources import STATIC_FILES
 class TestNCEITimeSeriesProfile(NCEITestCase):
 
     def setUp(self):
-        self.run_checker('ncei-timeseries-profile-orthogonal', STATIC_FILES['timeseries-profile'])
+        self.run_checker('ncei-timeseries-profile-orthogonal', STATIC_FILES['nodc-timeseries-profile'])
 
     def test_global_profile_score(self):
         assert not self.errors
