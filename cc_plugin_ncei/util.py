@@ -185,6 +185,10 @@ def get_time_variable(ds):
         candidates = ds.get_variables_by_attributes(standard_name='time')
         if len(candidates) == 1:
             return candidates[0].name
+        else:  # Look for a coordinate variable time
+            for candidate in candidates:
+                if candidate.dimensions == (candidate.name,):
+                    return candidate.name
 
     return None
 
@@ -242,7 +246,11 @@ def is_point(nc, variable):
     for req in ('x', 'y', 't'):
         if req not in cmatrix:
             return False
+    t = get_time_variable(nc)
     if cmatrix['x'] != cmatrix['y'] or cmatrix['x'] != cmatrix['t']:
+        return False
+    # This is a trajectory
+    if cmatrix['t'] == (t,):
         return False
     if len(cmatrix['x']) != 1:
         return False
