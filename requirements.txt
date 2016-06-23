@@ -1,1 +1,1 @@
-compliance-checker>=1.0.0
+compliance-checker>=2.2.0
