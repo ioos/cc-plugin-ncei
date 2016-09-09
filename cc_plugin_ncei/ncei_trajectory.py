@@ -13,7 +13,7 @@ class NCEITrajectory(NCEIBaseCheck):
     register_checker = True
     _cc_spec = 'ncei-trajectory'
     _cc_spec_version = '1.1'
-    _cc_description = '''These templates are intended as a service to our community of Data Producers, and are also being used internally at NCEI in our own data development efforts. We hope the templates will serve as good starting points for Data Producers who wish to create preservable, discoverable, accessible, and interoperable data. It is important to note that these templates do not represent an attempt to create a new standard, and they are not absolutely required for archiving data at NCEI. However, we do hope that you will see the benefits in structuring your data following these conventions and NCEI stands ready to assist you in doing so.'''
+    _cc_description = '''This test checks the selected file against the NCEI netCDF trajectory Incomplete template version 1.1 (found at https://www.nodc.noaa.gov/data/formats/netcdf/v1.1/trajectoryIncomplete.cdl). The NCEI version 1.1 templates are based on “feature types”, as identified by Unidata and CF, and conform to ACDD version 1.0 and CF version 1.6. You can find more information about the version 1.1 templates at https://www.nodc.noaa.gov/data/formats/netcdf/v1.1/. This test is specifically for the trajectory feature type in an Incomplete multidimensional array representation. This representation is typically used for a series of data points along a path through space with monotonically increasing times.'''
     _cc_url = 'http://www.nodc.noaa.gov/data/formats/netcdf/v1.1/trajectoryIncomplete.cdl'
     _cc_authors = 'Luke Campbell, Dan Maher'
     _cc_checker_version = '2.1.0'
