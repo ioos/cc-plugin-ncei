@@ -9,11 +9,21 @@ from cc_plugin_ncei.ncei_base import NCEIBaseCheck, TestCtx
 from cc_plugin_ncei import util
 
 
-class NCEITimeSeriesOrthogonal(NCEIBaseCheck):
+class NCEITimeSeriesOrthogonal1_1(NCEIBaseCheck):
     register_checker = True
     _cc_spec = 'ncei-timeseries-orthogonal'
     _cc_spec_version = '1.1'
-    _cc_description = '''This test checks the selected file against the NCEI netCDF timeSeries Orthogonal template version 1.1 (found at https://www.nodc.noaa.gov/data/formats/netcdf/v1.1/timeSeriesOrthogonal.cdl). The NCEI version 1.1 templates are based on “feature types”, as identified by Unidata and CF, and conform to ACDD version 1.0 and CF version 1.6. You can find more information about the version 1.1 templates at https://www.nodc.noaa.gov/data/formats/netcdf/v1.1/. This test is specifically for the timeSeries feature type in an Orthogonal multidimensional array representation. This representation is typically used for a series of data points at the same spatial location with monotonically increaing times and all instruments measure at the exact same time.'''
+    _cc_description = (
+        'This test checks the selected file against the NCEI netCDF timeSeries Orthogonal '
+        'template version 1.1 (found at https://www.nodc.noaa.gov/data/formats/netcdf/v1.1/'
+        'timeSeriesOrthogonal.cdl). The NCEI version 1.1 templates are based on “feature '
+        'types”, as identified by Unidata and CF, and conform to ACDD version 1.0 and CF '
+        'version 1.6. You can find more information about the version 1.1 templates at '
+        'https://www.nodc.noaa.gov/data/formats/netcdf/v1.1/. This test is specifically '
+        'for the timeSeries feature type in an Orthogonal multidimensional array representation. '
+        'This representation is typically used for a series of data points at the same spatial '
+        'location with monotonically increaing times and all instruments measure at the '
+        'exact same time.')
     _cc_url = 'http://www.nodc.noaa.gov/data/formats/netcdf/v1.1/timeSeriesOrthogonal.cdl'
     _cc_authors = 'Luke Campbell, Dan Maher'
     _cc_checker_version = '2.1.0'
@@ -87,12 +97,51 @@ class NCEITimeSeriesOrthogonal(NCEIBaseCheck):
         return test_ctx.to_result()
 
 
-class NCEITimeSeriesIncomplete(NCEIBaseCheck):
+class NCEITimeSeriesOrthogonal2_0(NCEIBaseCheck):
+    register_checker = True
+    _cc_spec = 'ncei-timeseries-orthogonal'
+    _cc_spec_version = '2.0'
+    _cc_description = (
+        'This test checks the selected file against the NCEI netCDF timeSeries Orthogonal '
+        'template version 2.0 (found at https://www.nodc.noaa.gov/data/formats/netcdf/v2.0/'
+        'timeSeriesOrthogonal.cdl). The NCEI version 2.0 templates are based on “feature '
+        'types”, as identified by Unidata and CF, and conform to ACDD version 1.3 and CF '
+        'version 1.6. You can find more information about the version 2.0 templates at '
+        'https://www.nodc.noaa.gov/data/formats/netcdf/v2.0/. This test is specifically '
+        'for the timeSeries feature type in an Orthogonal multidimensional array representation. '
+        'This representation is typically used for a series of data points at the same spatial '
+        'location with monotonically increaing times and all instruments measure at the '
+        'exact same time.')
+    _cc_url = 'http://www.nodc.noaa.gov/data/formats/netcdf/v2.0/timeSeriesOrthogonal.cdl'
+    _cc_authors = 'Luke Campbell, Dan Maher'
+    _cc_checker_version = '2.1.0'
+
+    valid_templates = [
+        "NCEI_NetCDF_TimeSeries_Orthogonal_Template_v2.0",
+    ]
+
+    valid_feature_types = [
+        'timeSeries',
+        'timeseries_id'
+    ]
+
+
+class NCEITimeSeriesIncomplete1_1(NCEIBaseCheck):
     register_checker = True
     _cc_spec = 'ncei-timeseries-incomplete'
     _cc_spec_version = '1.1'
-    _cc_description = '''This test checks the selected file against the NCEI netCDF timeSeries Incomplete template version 1.1 (found at https://www.nodc.noaa.gov/data/formats/netcdf/v1.1/timeSeriesOrthogonal.cdl). The NCEI version 1.1 templates are based on “feature types”, as identified by Unidata and CF, and conform to ACDD version 1.0 and CF version 1.6. You can find more information about the version 1.1 templates at https://www.nodc.noaa.gov/data/formats/netcdf/v1.1/. This test is specifically for the timeSeries feature type in an Incomplete multidimensional array representation. This representation is typically used for a series of data points at the same spatial location with monotonically increaing times and all instruments measure at different time intevals.'''
-    _cc_url = 'http://www.nodc.noaa.gov/data/formats/netcdf/v2.0/timeSeriesIncomplete.cdl'
+    _cc_description = (
+        'This test checks the selected file against the NCEI netCDF timeSeries Incomplete '
+        'template version 1.1 (found at https://www.nodc.noaa.gov/data/formats/netcdf/v1.1'
+        '/timeSeriesOrthogonal.cdl). The NCEI version 1.1 templates are based on “feature types”,'
+        ' as identified by Unidata and CF, and conform to ACDD version 1.0 and CF version 1.6. '
+        'You can find more information about the version 1.1 templates at '
+        'https://www.nodc.noaa.gov/data/formats/netcdf/v1.1/. This test is specifically for the '
+        'timeSeries feature type in an Incomplete multidimensional array representation. This '
+        'representation is typically used for a series of data points at the same spatial '
+        'location with monotonically increaing times and all instruments measure at different '
+        'time intevals.')
+    _cc_url = 'http://www.nodc.noaa.gov/data/formats/netcdf/v1.1/timeSeriesIncomplete.cdl'
     _cc_authors = 'Luke Campbell, Dan Maher'
     _cc_checker_version = '2.1.0'
 
@@ -178,3 +227,32 @@ class NCEITimeSeriesIncomplete(NCEIBaseCheck):
         )
         results.append(recommended_ctx.to_result())
         return results
+
+
+class NCEITimeSeriesIncomplete2_0(NCEIBaseCheck):
+    register_checker = True
+    _cc_spec = 'ncei-timeseries-incomplete'
+    _cc_spec_version = '2.0'
+    _cc_description = (
+        'This test checks the selected file against the NCEI netCDF timeSeries Incomplete '
+        'template version 2.0 (found at https://www.nodc.noaa.gov/data/formats/netcdf/v2.0'
+        '/timeSeriesOrthogonal.cdl). The NCEI version 2.0 templates are based on “feature types”,'
+        ' as identified by Unidata and CF, and conform to ACDD version 1.0 and CF version 1.6. '
+        'You can find more information about the version 2.0 templates at '
+        'https://www.nodc.noaa.gov/data/formats/netcdf/v2.0/. This test is specifically for the '
+        'timeSeries feature type in an Incomplete multidimensional array representation. This '
+        'representation is typically used for a series of data points at the same spatial '
+        'location with monotonically increaing times and all instruments measure at different '
+        'time intevals.')
+    _cc_url = 'http://www.nodc.noaa.gov/data/formats/netcdf/v2.0/timeSeriesIncomplete.cdl'
+    _cc_authors = 'Luke Campbell, Dan Maher'
+    _cc_checker_version = '2.1.0'
+
+    valid_templates = [
+        "NCEI_NetCDF_TimeSeries_Incomplete_Template_v2.0"
+    ]
+
+    valid_feature_types = [
+        'timeSeries',
+        'timeseries_id'
+    ]

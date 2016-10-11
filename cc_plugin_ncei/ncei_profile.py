@@ -9,11 +9,19 @@ from cc_plugin_ncei.ncei_base import NCEIBaseCheck, TestCtx
 from cc_plugin_ncei import util
 
 
-class NCEIProfileOrthogonal(NCEIBaseCheck):
+class NCEIProfileOrthogonal1_1(NCEIBaseCheck):
     register_checker = True
     _cc_spec = 'ncei-profile-orthogonal'
     _cc_spec_version = '1.1'
-    _cc_description = '''This test checks the selected file against the NCEI netCDF Profile Orthogonal template version 1.1 (found at https://www.nodc.noaa.gov/data/formats/netcdf/v1.1/profileOrthogonal.cdl). The NCEI version 1.1 templates are based on “feature types”, as identified by Unidata and CF, and conform to ACDD version 1.0 and CF version 1.6. You can find more information about the version 1.1 templates at https://www.nodc.noaa.gov/data/formats/netcdf/v1.1/. This test is specifically for the Profile feature type in an Orthogonal multidimensional array representation, which is typically used for an ordered set of data points along a vertical line at a fixed horizontal position and fixed time and all data points have the exact same depth values.'''
+    _cc_description = (
+        'This test checks the selected file against the NCEI netCDF Profile Orthogonal template '
+        'version 1.1 (found at https://www.nodc.noaa.gov/data/formats/netcdf/v1.1/profileOrthogonal.cdl).'
+        ' The NCEI version 1.1 templates are based on “feature types”, as identified by Unidata '
+        'and CF, and conform to ACDD version 1.0 and CF version 1.6. You can find more information about '
+        'the version 1.1 templates at https://www.nodc.noaa.gov/data/formats/netcdf/v1.1/. '
+        'This test is specifically for the Profile feature type in an Orthogonal multidimensional array '
+        'representation, which is typically used for an ordered set of data points along a vertical line '
+        'at a fixed horizontal position and fixed time and all data points have the exact same depth values.')
     _cc_url = 'http://www.nodc.noaa.gov/data/formats/netcdf/v1.1/profileOrthogonal.cdl'
     _cc_authors = 'Luke Campbell, Dan Maher'
     _cc_checker_version = '2.1.0'
@@ -94,11 +102,47 @@ class NCEIProfileOrthogonal(NCEIBaseCheck):
         return results
 
 
-class NCEIProfileIncomplete(NCEIBaseCheck):
+class NCEIProfileOrthogonal2_0(NCEIBaseCheck):
+    register_checker = True
+    _cc_spec = 'ncei-profile-orthogonal'
+    _cc_spec_version = '2.0'
+    _cc_description = (
+        'This test checks the selected file against the NCEI netCDF Profile Orthogonal template '
+        'version 2.0 (found at https://www.nodc.noaa.gov/data/formats/netcdf/v2.0/profileOrthogonal.cdl).'
+        ' The NCEI version 2.0 templates are based on “feature types”, as identified by Unidata '
+        'and CF, and conform to ACDD version 1.3 and CF version 1.6. You can find more information about '
+        'the version 2.0 templates at https://www.nodc.noaa.gov/data/formats/netcdf/v2.0/. '
+        'This test is specifically for the Profile feature type in an Orthogonal multidimensional array '
+        'representation, which is typically used for an ordered set of data points along a vertical line '
+        'at a fixed horizontal position and fixed time and all data points have the exact same depth values.')
+    _cc_url = 'http://www.nodc.noaa.gov/data/formats/netcdf/v2.0/profileOrthogonal.cdl'
+    _cc_authors = 'Luke Campbell, Dan Maher'
+    _cc_checker_version = '2.1.0'
+
+    valid_templates = [
+        "NCEI_NetCDF_Profile_Orthogonal_Template_v2.0",
+    ]
+
+    valid_feature_types = [
+        'profile',
+        'profile_id'
+    ]
+
+
+class NCEIProfileIncomplete1_1(NCEIBaseCheck):
     register_checker = True
     _cc_spec = 'ncei-profile-incomplete'
     _cc_spec_version = '1.1'
-    _cc_description = '''This test checks the selected file against the NCEI netCDF Profile Incomplete template version 1.1 (found at https://www.nodc.noaa.gov/data/formats/netcdf/v1.1/profileIncomplete.cdl). The NCEI version 1.1 templates are based on “feature types”, as identified by Unidata and CF, and conform to ACDD version 1.0 and CF version 1.6. You can find more information about the version 1.1 templates at https://www.nodc.noaa.gov/data/formats/netcdf/v1.1/. This test is specifically for the Profile feature type in an Incomplete multidimensional array representation, which is typically used for an ordered set of data points along a vertical line at a fixed horizontal position and fixed time and all data points do not have the exact same depth values.'''
+    _cc_description = (
+        'This test checks the selected file against the NCEI netCDF Profile Incomplete template '
+        'version 1.1 (found at https://www.nodc.noaa.gov/data/formats/netcdf/v1.1/profileIncomplete.cdl).'
+        ' The NCEI version 1.1 templates are based on “feature types”, as identified by Unidata '
+        'and CF, and conform to ACDD version 1.0 and CF version 1.6. You can find more information '
+        'about the version 1.1 templates at https://www.nodc.noaa.gov/data/formats/netcdf/v1.1/. '
+        'This test is specifically for the Profile feature type in an Incomplete multidimensional '
+        'array representation, which is typically used for an ordered set of data points along a '
+        'vertical line at a fixed horizontal position and fixed time and all data points do not '
+        'have the exact same depth values.')
     _cc_url = 'http://www.nodc.noaa.gov/data/formats/netcdf/v1.1/profileIncomplete.cdl'
     _cc_authors = 'Luke Campbell, Dan Maher'
     _cc_checker_version = '2.1.0'
@@ -177,3 +221,31 @@ class NCEIProfileIncomplete(NCEIBaseCheck):
         )
         results.append(test_ctx.to_result())
         return results
+
+
+class NCEIProfileIncomplete2_0(NCEIBaseCheck):
+    register_checker = True
+    _cc_spec = 'ncei-profile-incomplete'
+    _cc_spec_version = '2.0'
+    _cc_description = (
+        'This test checks the selected file against the NCEI netCDF Profile Incomplete template '
+        'version 2.0 (found at https://www.nodc.noaa.gov/data/formats/netcdf/v2.0/profileIncomplete.cdl).'
+        ' The NCEI version 2.0 templates are based on “feature types”, as identified by Unidata '
+        'and CF, and conform to ACDD version 1.3 and CF version 1.6. You can find more information '
+        'about the version 2.0 templates at https://www.nodc.noaa.gov/data/formats/netcdf/v2.0/. '
+        'This test is specifically for the Profile feature type in an Incomplete multidimensional '
+        'array representation, which is typically used for an ordered set of data points along a '
+        'vertical line at a fixed horizontal position and fixed time and all data points do not '
+        'have the exact same depth values.')
+    _cc_url = 'http://www.nodc.noaa.gov/data/formats/netcdf/v1.1/profileIncomplete.cdl'
+    _cc_authors = 'Luke Campbell, Dan Maher'
+    _cc_checker_version = '2.3.0'
+
+    valid_templates = [
+        "NCEI_NetCDF_Profile_Incomplete_Template_v2.0"
+    ]
+
+    valid_feature_types = [
+        'profile',
+        'profile_id'
+    ]

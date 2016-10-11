@@ -9,7 +9,7 @@ from cc_plugin_ncei.ncei_base import NCEIBaseCheck, TestCtx
 from cc_plugin_ncei import util
 
 
-class NCEIPoint(NCEIBaseCheck):
+class NCEIPoint1_1(NCEIBaseCheck):
     register_checker = True
     _cc_spec = 'ncei-point'
     _cc_spec_version = '1.1'
@@ -79,3 +79,28 @@ class NCEIPoint(NCEIBaseCheck):
         return results
 
 
+class NCEIPoint2_0(NCEIBaseCheck):
+    register_checker = True
+    _cc_spec = 'ncei-point'
+    _cc_spec_version = '2.0'
+    _cc_description = (
+        'This test checks the selected file against the NCEI netCDF Point template'
+        'version 2.0 (found at https://www.nodc.noaa.gov/data/formats/netcdf/v2.0/point.cdl). The NCEI '
+        'version 2.0 templates are based on “feature types”, as identified by Unidata and CF, and '
+        'conform to ACDD version 1.3 and CF version 1.6. You can find more information about the '
+        'version 2.0 templates at https://www.nodc.noaa.gov/data/formats/netcdf/v2.0/. This test is '
+        'specifically for the Point feature type which is typically used for a single data point with '
+        'one or more recorded observations that have no temporal or spatial relationship (where each '
+        'observation equals one point in time and space).')
+    _cc_url = 'http://www.nodc.noaa.gov/data/formats/netcdf/v2.0/point.cdl'
+    _cc_authors = 'Luke Campbell, Dan Maher'
+    _cc_checker_version = '2.3.0'
+
+    valid_templates = [
+        "NCEI_Point_Template_v2.0"
+    ]
+
+    valid_feature_types = [
+        'station',
+        'point'
+    ]

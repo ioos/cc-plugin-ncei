@@ -7,6 +7,7 @@ from __future__ import print_function
 
 from compliance_checker.base import Result, BaseCheck, BaseNCCheck
 from compliance_checker.cf.util import StandardNameTable, units_convertible
+from compliance_checker.cf import CFBaseCheck
 from cc_plugin_ncei import util
 from cf_units import Unit
 import re
@@ -47,6 +48,7 @@ class NCEIBaseCheck(BaseNCCheck):
 
     def setup(self, ds):
         pass
+        # self._find_cf_standard_name_table(ds)
 
     def check_base_required_attributes(self, dataset):
         '''

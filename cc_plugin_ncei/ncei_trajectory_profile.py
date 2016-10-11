@@ -9,11 +9,20 @@ from cc_plugin_ncei.ncei_base import NCEIBaseCheck, TestCtx
 from cc_plugin_ncei import util
 
 
-class NCEITrajectoryProfileOrthogonal(NCEIBaseCheck):
+class NCEITrajectoryProfileOrthogonal1_1(NCEIBaseCheck):
     register_checker = True
     _cc_spec = 'ncei-trajectory-profile-orthogonal'
     _cc_spec_version = '1.1'
-    _cc_description = '''This test checks the selected file against the NCEI netCDF trajectoryProfile Orthogonal template version 1.1 (found at https://www.nodc.noaa.gov/data/formats/netcdf/v1.1/trajectoryProfileOrtho.cdl). The NCEI version 1.1 templates are based on “feature types”, as identified by Unidata and CF, and conform to ACDD version 1.0 and CF version 1.6. You can find more information about the version 1.1 templates at https://www.nodc.noaa.gov/data/formats/netcdf/v1.1/. This test is specifically for the trajectoryProfile feature type in an Orthogonal multidimensional array representation, which is typically used for a series of profile features located at points ordered along a trajectory and all data points have the exact same depth values.'''
+    _cc_description = (
+        'This test checks the selected file against the NCEI netCDF trajectoryProfile Orthogonal '
+        'template version 1.1 (found at https://www.nodc.noaa.gov/data/formats/netcdf/v1.1/'
+        'trajectoryProfileOrtho.cdl). The NCEI version 1.1 templates are based on “feature types”'
+        ', as identified by Unidata and CF, and conform to ACDD version 1.0 and CF version 1.6. '
+        'You can find more information about the version 1.1 templates at https://www.nodc.noaa.'
+        'gov/data/formats/netcdf/v1.1/. This test is specifically for the trajectoryProfile '
+        'feature type in an Orthogonal multidimensional array representation, which is typically '
+        'used for a series of profile features located at points ordered along a trajectory and '
+        'all data points have the exact same depth values.')
     _cc_url = 'http://www.nodc.noaa.gov/data/formats/necdf/v1.1/trajectoryProfileIncomplete.cdl'
     _cc_authors = 'Luke Campbell, Dan Maher'
     _cc_checker_version = '2.1.0'
@@ -95,11 +104,48 @@ class NCEITrajectoryProfileOrthogonal(NCEIBaseCheck):
         return results
 
 
-class NCEITrajectoryProfileIncomplete(NCEIBaseCheck):
+class NCEITrajectoryProfileOrthogonal2_0(NCEIBaseCheck):
+    register_checker = True
+    _cc_spec = 'ncei-trajectory-profile-orthogonal'
+    _cc_spec_version = '2.0'
+    _cc_description = (
+        'This test checks the selected file against the NCEI netCDF trajectoryProfile Orthogonal '
+        'template version 2.0 (found at https://www.nodc.noaa.gov/data/formats/netcdf/v2.0/'
+        'trajectoryProfileOrtho.cdl). The NCEI version 2.0 templates are based on “feature types”'
+        ', as identified by Unidata and CF, and conform to ACDD version 1.3 and CF version 1.6. '
+        'You can find more information about the version 2.0 templates at https://www.nodc.noaa.'
+        'gov/data/formats/netcdf/v2.0/. This test is specifically for the trajectoryProfile '
+        'feature type in an Orthogonal multidimensional array representation, which is typically '
+        'used for a series of profile features located at points ordered along a trajectory and '
+        'all data points have the exact same depth values.')
+    _cc_url = 'http://www.nodc.noaa.gov/data/formats/necdf/v2.0/trajectoryProfileIncomplete.cdl'
+    _cc_authors = 'Luke Campbell, Dan Maher'
+    _cc_checker_version = '2.1.0'
+
+    valid_templates = [
+        "NCEI_NetCDF_TrajectoryProfile_Orthogonal_Template_v2.0"
+    ]
+
+    valid_feature_types = [
+        'trajectory',
+        'trajectory_id'
+    ]
+
+
+class NCEITrajectoryProfileIncomplete1_1(NCEIBaseCheck):
     register_checker = True
     _cc_spec = 'ncei-trajectory-profile-incomplete'
     _cc_spec_version = '1.1'
-    _cc_description = '''This test checks the selected file against the NCEI netCDF trajectoryProfile Incomplete template version 1.1 (found at https://www.nodc.noaa.gov/data/formats/netcdf/v1.1/trajectoryProfileIncom.cdl). The NCEI version 1.1 templates are based on “feature types”, as identified by Unidata and CF, and conform to ACDD version 1.0 and CF version 1.6. You can find more information about the version 1.1 templates at https://www.nodc.noaa.gov/data/formats/netcdf/v1.1/. This test is specifically for the trajectoryProfile feature type in an Incomplete multidimensional array representation, which is typically used for a series of profile features located at points ordered along a trajectory and all data points do not have the exact same number of elements.'''
+    _cc_description = (
+        'This test checks the selected file against the NCEI netCDF trajectoryProfile '
+        'Incomplete template version 1.1 (found at https://www.nodc.noaa.gov/data/formats/'
+        'netcdf/v1.1/trajectoryProfileIncom.cdl). The NCEI version 1.1 templates are based '
+        'on “feature types”, as identified by Unidata and CF, and conform to ACDD version 1.0'
+        ' and CF version 1.6. You can find more information about the version 1.1 templates at '
+        'https://www.nodc.noaa.gov/data/formats/netcdf/v1.1/. This test is specifically for the '
+        'trajectoryProfile feature type in an Incomplete multidimensional array representation, '
+        'which is typically used for a series of profile features located at points ordered along '
+        'a trajectory and all data points do not have the exact same number of elements.')
     _cc_url = 'http://www.nodc.noaa.gov/data/formats/necdf/v1.1/trajectoryProfileIncomplete.cdl'
     _cc_authors = 'Luke Campbell, Dan Maher'
     _cc_checker_version = '2.1.0'
@@ -172,3 +218,31 @@ class NCEITrajectoryProfileIncomplete(NCEIBaseCheck):
         )
         results.append(test_ctx.to_result())
         return results
+
+
+class NCEITrajectoryProfileIncomplete2_0(NCEIBaseCheck):
+    register_checker = True
+    _cc_spec = 'ncei-trajectory-profile-incomplete'
+    _cc_spec_version = '2.0'
+    _cc_description = (
+        'This test checks the selected file against the NCEI netCDF trajectoryProfile '
+        'Incomplete template version 2.0 (found at https://www.nodc.noaa.gov/data/formats/'
+        'netcdf/v2.0/trajectoryProfileIncom.cdl). The NCEI version 2.0 templates are based '
+        'on “feature types”, as identified by Unidata and CF, and conform to ACDD version 1.3'
+        ' and CF version 1.6. You can find more information about the version 2.0 templates at '
+        'https://www.nodc.noaa.gov/data/formats/netcdf/v2.0/. This test is specifically for the '
+        'trajectoryProfile feature type in an Incomplete multidimensional array representation, '
+        'which is typically used for a series of profile features located at points ordered along '
+        'a trajectory and all data points do not have the exact same number of elements.')
+    _cc_url = 'http://www.nodc.noaa.gov/data/formats/necdf/v2.0/trajectoryProfileIncomplete.cdl'
+    _cc_authors = 'Luke Campbell, Dan Maher'
+    _cc_checker_version = '2.1.0'
+
+    valid_templates = [
+        "NCEI_NetCDF_TrajectoryProfile_Incomplete_Template_v2.0"
+    ]
+
+    valid_feature_types = [
+        'trajectory',
+        'trajectory_id'
+    ]
