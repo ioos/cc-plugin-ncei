@@ -4,44 +4,18 @@
 cc_plugin_ncei/ncei_trajectory.py
 '''
 
-from compliance_checker.base import Result, BaseCheck, score_group
-from cc_plugin_ncei.ncei_base import NCEIBaseCheck, TestCtx
+from compliance_checker.base import BaseCheck
+from cc_plugin_ncei.ncei_base import TestCtx, NCEI1_1Check, NCEI2_0Check
 from cc_plugin_ncei import util
+from isodate import parse_duration
 
 
-class NCEITrajectory1_1(NCEIBaseCheck):
-    register_checker = True
+class NCEITrajectoryBase(BaseCheck):
     _cc_spec = 'ncei-trajectory'
-    _cc_spec_version = '1.1'
-    _cc_description = (
-        'This test checks the selected file against the NCEI netCDF trajectory Incomplete '
-        'template version 1.1 (found at https://www.nodc.noaa.gov/data/formats/netcdf/v1.1/'
-        'trajectoryIncomplete.cdl). The NCEI version 1.1 templates are based on “feature types”, '
-        'as identified by Unidata and CF, and conform to ACDD version 1.0 and CF version 1.6. You '
-        'can find more information about the version 1.1 templates at https://www.nodc.noaa.gov/'
-        'data/formats/netcdf/v1.1/. This test is specifically for the trajectory feature type '
-        'in an Incomplete multidimensional array representation. This representation is typically '
-        'used for a series of data points along a path through space with monotonically '
-        'increasing times.')
-    _cc_url = 'http://www.nodc.noaa.gov/data/formats/netcdf/v1.1/trajectoryIncomplete.cdl'
-    _cc_authors = 'Luke Campbell, Dan Maher'
-    _cc_checker_version = '2.1.0'
-
-    valid_templates = [
-        "NODC_NetCDF_Trajectory_Template_v1.1"
-    ]
-
     valid_feature_types = [
         'trajectory',
         'trajectory_id'
     ]
-
-    @classmethod
-    def beliefs(cls):
-        '''
-        Not applicable for gliders
-        '''
-        return {}
 
     def check_dimensions(self, dataset):
         '''
@@ -59,27 +33,6 @@ class NCEITrajectory1_1(NCEIBaseCheck):
                 is_valid,
                 message.format(variable)
             )
-        results.append(required_ctx.to_result())
-        return results
-
-    def check_required_attributes(self, dataset):
-        '''
-        Verifies that the dataset contains the NCEI required and highly recommended global attributes
-        '''
-        results = []
-        required_ctx = TestCtx(BaseCheck.HIGH, 'Required Global Attributes for Trajectory dataset')
-        required_ctx.assert_true(
-            getattr(dataset, 'nodc_template_version', '').lower() == self.valid_templates[0].lower(),
-            'nodc_template_version attribute must be {}'.format(self.valid_templates[0])
-        )
-        required_ctx.assert_true(
-            getattr(dataset, 'cdm_data_type', '') == 'Trajectory',
-            'cdm_data_type attribute must be set to Trajectory'
-        )
-        required_ctx.assert_true(
-            getattr(dataset, 'featureType', '') == 'trajectory',
-            'featureType attribute must be set to trajectory'
-        )
         results.append(required_ctx.to_result())
         return results
 
@@ -104,9 +57,58 @@ class NCEITrajectory1_1(NCEIBaseCheck):
         return results
 
 
-class NCEITrajectory2_0(NCEIBaseCheck):
+class NCEITrajectory1_1(NCEI1_1Check, NCEITrajectoryBase):
     register_checker = True
-    _cc_spec = 'ncei-trajectory'
+    _cc_spec_version = '1.1'
+    _cc_description = (
+        'This test checks the selected file against the NCEI netCDF trajectory Incomplete '
+        'template version 1.1 (found at https://www.nodc.noaa.gov/data/formats/netcdf/v1.1/'
+        'trajectoryIncomplete.cdl). The NCEI version 1.1 templates are based on “feature types”, '
+        'as identified by Unidata and CF, and conform to ACDD version 1.0 and CF version 1.6. You '
+        'can find more information about the version 1.1 templates at https://www.nodc.noaa.gov/'
+        'data/formats/netcdf/v1.1/. This test is specifically for the trajectory feature type '
+        'in an Incomplete multidimensional array representation. This representation is typically '
+        'used for a series of data points along a path through space with monotonically '
+        'increasing times.')
+    _cc_url = 'http://www.nodc.noaa.gov/data/formats/netcdf/v1.1/trajectoryIncomplete.cdl'
+    _cc_authors = 'Luke Campbell, Dan Maher'
+    _cc_checker_version = '2.1.0'
+
+    valid_templates = [
+        "NODC_NetCDF_Trajectory_Template_v1.1"
+    ]
+
+    @classmethod
+    def beliefs(cls):
+        '''
+        Not applicable for gliders
+        '''
+        return {}
+
+    def check_required_attributes(self, dataset):
+        '''
+        Verifies that the dataset contains the NCEI required and highly recommended global attributes
+        '''
+        results = []
+        required_ctx = TestCtx(BaseCheck.HIGH, 'Required Global Attributes for Trajectory dataset')
+        required_ctx.assert_true(
+            getattr(dataset, 'nodc_template_version', '').lower() == self.valid_templates[0].lower(),
+            'nodc_template_version attribute must be {}'.format(self.valid_templates[0])
+        )
+        required_ctx.assert_true(
+            getattr(dataset, 'cdm_data_type', '') == 'Trajectory',
+            'cdm_data_type attribute must be set to Trajectory'
+        )
+        required_ctx.assert_true(
+            getattr(dataset, 'featureType', '') == 'trajectory',
+            'featureType attribute must be set to trajectory'
+        )
+        results.append(required_ctx.to_result())
+        return results
+
+
+class NCEITrajectory2_0(NCEI2_0Check, NCEITrajectoryBase):
+    register_checker = True
     _cc_spec_version = '2.0'
     _cc_description = (
         'This test checks the selected file against the NCEI netCDF trajectory Incomplete '
@@ -120,13 +122,47 @@ class NCEITrajectory2_0(NCEIBaseCheck):
         'increasing times.')
     _cc_url = 'http://www.nodc.noaa.gov/data/formats/netcdf/v2.0/trajectoryIncomplete.cdl'
     _cc_authors = 'Luke Campbell, Dan Maher'
-    _cc_checker_version = '2.1.0'
+    _cc_checker_version = '2.3.0'
 
     valid_templates = [
         "NCEI_NetCDF_Trajectory_Template_v2.0"
     ]
 
-    valid_feature_types = [
-        'trajectory',
-        'trajectory_id'
-    ]
+    def check_required_attributes(self, dataset):
+        '''
+        Verifies that the dataset contains the NCEI required and highly recommended global attributes
+        '''
+        results = []
+        required_ctx = TestCtx(BaseCheck.HIGH, 'Required Global Attributes for Trajectory dataset')
+        required_ctx.assert_true(
+            getattr(dataset, 'ncei_template_version', '').lower() == self.valid_templates[0].lower(),
+            'ncei_template_version attribute must be {}'.format(self.valid_templates[0])
+        )
+        required_ctx.assert_true(
+            getattr(dataset, 'cdm_data_type', '') == 'Trajectory',
+            'cdm_data_type attribute must be set to Trajectory'
+        )
+        required_ctx.assert_true(
+            getattr(dataset, 'featureType', '') == 'trajectory',
+            'featureType attribute must be set to trajectory'
+        )
+        results.append(required_ctx.to_result())
+        return results
+
+    def check_recommended_attributes(self, dataset):
+        '''
+         Verifies that the dataset contains the NCEI recommended global attributes
+        '''
+        results = []
+        recommended_ctx = TestCtx(BaseCheck.MEDIUM, 'Recommended global attributes')
+        # Check time_coverage_duration and resolution
+        for attr in ['time_coverage_duration', 'time_coverage_resolution']:
+            attr_value = getattr(dataset, attr, '')
+            try:
+                parse_duration(attr_value)
+                print "SUCCESS"
+                recommended_ctx.assert_true(True, '')  # Score it True!
+            except Exception:
+                recommended_ctx.assert_true(False, '{} should exist and be ISO-8601 format (example: PT1M30S), currently: {}'.format(attr, attr_value))
+        results.append(recommended_ctx.to_result())
+        return results

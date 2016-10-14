@@ -1,4 +1,5 @@
 from compliance_checker.suite import CheckSuite
+from compliance_checker.runner import ComplianceChecker
 from netCDF4 import Dataset
 import unittest
 
@@ -47,7 +48,6 @@ class NCEITestCase(unittest.TestCase):
         cs = CheckSuite()
         cs.load_all_available_checkers()
         ds = cs.load_dataset(dataset_location)
-        score_groups = cs.run(ds, checker)
+        score_groups = cs.run(ds, [], checker)
         results, self.errors = score_groups[checker]
         self.results = cs.build_structure(checker, results, dataset_location)
-
