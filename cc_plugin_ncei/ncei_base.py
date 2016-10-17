@@ -9,6 +9,7 @@ from compliance_checker.base import Result, BaseCheck, BaseNCCheck
 from compliance_checker.cf.util import StandardNameTable, units_convertible
 from cc_plugin_ncei import util
 from cf_units import Unit
+from isodate import parse_datetime, ISO8601Error
 import re
 
 
@@ -559,12 +560,14 @@ class NCEI1_1Check(BaseNCEICheck):
                 'sea_name attribute should exist and should be from the NODC sea names list: {} is not a valid sea name'.format(sea)
             )
 
-        # Source: http://www.pelagodesign.com/blog/2009/05/20/iso-8601-date-validation-that-doesnt-suck/
-        iso8601_regex = r'^([\+-]?\d{4}(?!\d{2}\b))((-?)((0[1-9]|1[0-2])(\3([12]\d|0[1-9]|3[01]))?|W([0-4]\d|5[0-2])(-?[1-7])?|(00[1-9]|0[1-9]\d|[12]\d{2}|3([0-5]\d|6[1-6])))([T\s]((([01]\d|2[0-3])((:?)[0-5]\d)?|24\:?00)([\.,]\d+(?!:))?)?(\17[0-5]\d([\.,]\d+)?)?([zZ]|([\+-])([01]\d|2[0-3]):?([0-5]\d)?)?)?)?$'
+        # Parse dates, check for ISO 8601
         for attr in ['time_coverage_start', 'time_coverage_end', 'date_created', 'date_modified']:
             attr_value = getattr(dataset, attr, '')
-            regex_match = re.match(iso8601_regex, attr_value)
-            recommended_ctx.assert_true(attr_value and regex_match is not None, '{} should exist and is a ISO-8601 valid string, is currently: {}'.format(attr, attr_value))
+            try:
+                parse_datetime(attr_value)
+                recommended_ctx.assert_true(True, '')  # Score it True!
+            except ISO8601Error:
+                recommended_ctx.assert_true(False, '{} should exist and be ISO-8601 format (example: PT1M30S), currently: {}'.format(attr, attr_value))
 
         units = getattr(dataset, 'geospatial_lat_units', '').lower()
         recommended_ctx.assert_true(units == 'degrees_north', 'geospatial_lat_units attribute should be degrees_north: {}'.format(units))
@@ -736,10 +739,16 @@ class NCEI2_0Check(BaseNCEICheck):
         feature_type = getattr(dataset, 'featureType', '')
 
         # Define conventions
-        accepted_conventions = ['CF-1.6, ACDD-1.3', 'CF-1.6,ACDD-1.3']
+        accepted_conventions = ['CF-1.6', 'ACDD-1.3']
+        dataset_conventions = conventions.replace(' ', '').split(',')
+        for accepted_convention in accepted_conventions:
+            if accepted_convention not in dataset_conventions:
+                test_ctx.assert_true(False, 'Conventions attribute is missing or is not equal to "CF-1.6, ACDD-1.3": {}'.format(conventions))
+                break
+        else:
+            test_ctx.assert_true(True, '')
 
-        test_ctx.assert_true(conventions in accepted_conventions,
-                             'Conventions attribute is missing or is not equal to "CF-1.6, ACDD-1.3": {}'.format(conventions))
+        # Check feature types
         test_ctx.assert_true(feature_type in ['point', 'timeSeries', 'trajectory', 'profile', 'timeSeriesProfile', 'trajectoryProfile'],
                              'Feature type must be one of point, timeSeries, trajectory, profile, timeSeriesProfile, trajectoryProfile: {}'.format(feature_type))
 
@@ -800,12 +809,14 @@ class NCEI2_0Check(BaseNCEICheck):
                 'sea_name attribute should exist and should be from the NODC sea names list: {} is not a valid sea name'.format(sea)
             )
 
-        # Source: http://www.pelagodesign.com/blog/2009/05/20/iso-8601-date-validation-that-doesnt-suck/
-        iso8601_regex = r'^([\+-]?\d{4}(?!\d{2}\b))((-?)((0[1-9]|1[0-2])(\3([12]\d|0[1-9]|3[01]))?|W([0-4]\d|5[0-2])(-?[1-7])?|(00[1-9]|0[1-9]\d|[12]\d{2}|3([0-5]\d|6[1-6])))([T\s]((([01]\d|2[0-3])((:?)[0-5]\d)?|24\:?00)([\.,]\d+(?!:))?)?(\17[0-5]\d([\.,]\d+)?)?([zZ]|([\+-])([01]\d|2[0-3]):?([0-5]\d)?)?)?)?$'
+        # Parse dates, check for ISO 8601
         for attr in ['time_coverage_start', 'time_coverage_end', 'date_created', 'date_modified']:
             attr_value = getattr(dataset, attr, '')
-            regex_match = re.match(iso8601_regex, attr_value)
-            recommended_ctx.assert_true(attr_value and regex_match is not None, '{} should exist and is a ISO-8601 valid string, is currently: {}'.format(attr, attr_value))
+            try:
+                parse_datetime(attr_value)
+                recommended_ctx.assert_true(True, '')  # Score it True!
+            except ISO8601Error:
+                recommended_ctx.assert_true(False, '{} should exist and be ISO-8601 format (example: PT1M30S), currently: {}'.format(attr, attr_value))
 
         value = getattr(dataset, 'geospatial_vertical_positive', '')
         recommended_ctx.assert_true(value.lower() in ['up', 'down'], 'geospatial_vertical_positive attribute should be up or down: {}'.format(value))
@@ -861,12 +872,14 @@ class NCEI2_0Check(BaseNCEICheck):
         suggested_ctx.assert_true(cdm_data_type.lower() in ['grid', 'image', 'point', 'radial', 'station', 'swath', 'trajectory'],
                      'cdm_data_type must be one of Grid, Image, Point, Radial, Station, Swath, Trajectory: {}'.format(cdm_data_type))
 
-        # Source: http://www.pelagodesign.com/blog/2009/05/20/iso-8601-date-validation-that-doesnt-suck/
-        iso8601_regex = r'^([\+-]?\d{4}(?!\d{2}\b))((-?)((0[1-9]|1[0-2])(\3([12]\d|0[1-9]|3[01]))?|W([0-4]\d|5[0-2])(-?[1-7])?|(00[1-9]|0[1-9]\d|[12]\d{2}|3([0-5]\d|6[1-6])))([T\s]((([01]\d|2[0-3])((:?)[0-5]\d)?|24\:?00)([\.,]\d+(?!:))?)?(\17[0-5]\d([\.,]\d+)?)?([zZ]|([\+-])([01]\d|2[0-3]):?([0-5]\d)?)?)?)?$'
+        # Parse dates, check for ISO 8601
         for attr in ['date_modified', 'date_issued', 'date_metadata_modified']:
             attr_value = getattr(dataset, attr, '')
-            regex_match = re.match(iso8601_regex, attr_value)
-            suggested_ctx.assert_true(attr_value and regex_match is not None, '{} should exist and is a ISO-8601 valid string, is currently: {}'.format(attr, attr_value))
+            try:
+                parse_datetime(attr_value)
+                suggested_ctx.assert_true(True, '')  # Score it True!
+            except ISO8601Error:
+                suggested_ctx.assert_true(False, '{} should exist and be ISO-8601 format (example: PT1M30S), currently: {}'.format(attr, attr_value))
 
         units = getattr(dataset, 'geospatial_lat_units', '').lower()
         suggested_ctx.assert_true(units == 'degrees_north', 'geospatial_lat_units attribute should be degrees_north: {}'.format(units))
