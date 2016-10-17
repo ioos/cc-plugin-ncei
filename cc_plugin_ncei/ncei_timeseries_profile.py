@@ -21,6 +21,8 @@ class NCEITimeSeriesProfileOrthogonalBase(BaseCheck):
     def check_dimensions(self, dataset):
         '''
         Checks that the feature types of this dataset are consistent with a timeseries-profile-orthogonal dataset.
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
         '''
         results = []
         required_ctx = TestCtx(BaseCheck.HIGH, 'All geophysical variables are timeseries-profile-orthogonal feature types')
@@ -43,6 +45,8 @@ class NCEITimeSeriesProfileOrthogonalBase(BaseCheck):
     def check_timeseries_id(self, dataset):
         '''
         Checks that if a variable exists for the timeseries id it has the appropriate attributes
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
         '''
         results = []
         exists_ctx = TestCtx(BaseCheck.MEDIUM, 'Variable defining "timeseries_id" exists')
@@ -92,7 +96,9 @@ class NCEITimeSeriesProfileOrthogonal1_1(NCEI1_1Check, NCEITimeSeriesProfileOrth
 
     def check_required_attributes(self, dataset):
         '''
-        Verifies that the dataset contains the NCEI required and highly recommended global attributes
+        Feature type specific check of global required and highly recommended attributes.
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
         '''
         results = []
         required_ctx = TestCtx(BaseCheck.HIGH, 'Required Global Attributes for Timeseries Profile orthogonal dataset')
@@ -136,7 +142,9 @@ class NCEITimeSeriesProfileOrthogonal2_0(NCEI2_0Check, NCEITimeSeriesProfileOrth
 
     def check_required_attributes(self, dataset):
         '''
-        Verifies that the dataset contains the NCEI required and highly recommended global attributes
+        Feature type specific check of global required and highly recommended attributes.
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
         '''
         results = []
         required_ctx = TestCtx(BaseCheck.HIGH, 'Required Global Attributes for Timeseries Profile orthogonal dataset')
@@ -157,7 +165,9 @@ class NCEITimeSeriesProfileOrthogonal2_0(NCEI2_0Check, NCEITimeSeriesProfileOrth
 
     def check_recommended_attributes(self, dataset):
         '''
-         Verifies that the dataset contains the NCEI recommended global attributes
+        Feature type specific check of global recommended attributes.
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
         '''
         results = []
         recommended_ctx = TestCtx(BaseCheck.MEDIUM, 'Recommended global attributes')
@@ -166,7 +176,6 @@ class NCEITimeSeriesProfileOrthogonal2_0(NCEI2_0Check, NCEITimeSeriesProfileOrth
             attr_value = getattr(dataset, attr, '')
             try:
                 parse_duration(attr_value)
-                print "SUCCESS"
                 recommended_ctx.assert_true(True, '')  # Score it True!
             except Exception:
                 recommended_ctx.assert_true(False, '{} should exist and be ISO-8601 format (example: PT1M30S), currently: {}'.format(attr, attr_value))
@@ -186,6 +195,8 @@ class NCEITimeSeriesProfileOrthTimeIncompleteDepthBase(BaseCheck):
     def check_dimensions(self, dataset):
         '''
         Checks that the feature types of this dataset are consistent with a timeseries-profile-orthogonal dataset.
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
         '''
         results = []
         required_ctx = TestCtx(BaseCheck.HIGH, 'All geophysical variables are timeseries-profile-ortho-time-incomplete-depth feature types')
@@ -209,6 +220,8 @@ class NCEITimeSeriesProfileOrthTimeIncompleteDepthBase(BaseCheck):
     def check_timeseries_id(self, dataset):
         '''
         Checks that if a variable exists for the timeseries id it has the appropriate attributes
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
         '''
         results = []
         exists_ctx = TestCtx(BaseCheck.MEDIUM, 'Variable defining "timeseries_id" exists')
@@ -259,7 +272,9 @@ class NCEITimeSeriesProfileOrthTimeIncompleteDepth1_1(NCEI1_1Check, NCEITimeSeri
 
     def check_required_attributes(self, dataset):
         '''
-        Verifies that the dataset contains the NCEI required and highly recommended global attributes
+        Feature type specific check of global required and highly recommended attributes.
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
         '''
         results = []
         required_ctx = TestCtx(BaseCheck.HIGH, 'Required Global Attributes for Timeseries Profile orthogonal dataset')
@@ -304,7 +319,9 @@ class NCEITimeSeriesProfileOrthTimeIncompleteDepth2_0(NCEI2_0Check, NCEITimeSeri
 
     def check_required_attributes(self, dataset):
         '''
-        Verifies that the dataset contains the NCEI required and highly recommended global attributes
+        Feature type specific check of global required and highly recommended attributes.
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
         '''
         results = []
         required_ctx = TestCtx(BaseCheck.HIGH, 'Required Global Attributes for Timeseries Profile orthogonal dataset')
@@ -325,7 +342,9 @@ class NCEITimeSeriesProfileOrthTimeIncompleteDepth2_0(NCEI2_0Check, NCEITimeSeri
 
     def check_recommended_attributes(self, dataset):
         '''
-         Verifies that the dataset contains the NCEI recommended global attributes
+        Feature type specific check of global recommended attributes.
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
         '''
         results = []
         recommended_ctx = TestCtx(BaseCheck.MEDIUM, 'Recommended global attributes')
@@ -334,7 +353,6 @@ class NCEITimeSeriesProfileOrthTimeIncompleteDepth2_0(NCEI2_0Check, NCEITimeSeri
             attr_value = getattr(dataset, attr, '')
             try:
                 parse_duration(attr_value)
-                print "SUCCESS"
                 recommended_ctx.assert_true(True, '')  # Score it True!
             except Exception:
                 recommended_ctx.assert_true(False, '{} should exist and be ISO-8601 format (example: PT1M30S), currently: {}'.format(attr, attr_value))
@@ -354,6 +372,8 @@ class NCEITimeSeriesProfileIncompleteBase(BaseCheck):
     def check_dimensions(self, dataset):
         '''
         Checks that the feature types of this dataset are consistent with a timeseries-profile-incomplete dataset.
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
         '''
         results = []
         required_ctx = TestCtx(BaseCheck.HIGH, 'All geophysical variables are timeseries-profile-incomplete feature types')
@@ -374,6 +394,8 @@ class NCEITimeSeriesProfileIncompleteBase(BaseCheck):
     def check_timeseries_id(self, dataset):
         '''
         Checks that if a variable exists for the timeseries id it has the appropriate attributes
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
         '''
         results = []
         exists_ctx = TestCtx(BaseCheck.MEDIUM, 'Variable defining "timeseries_id" exists')
@@ -421,7 +443,9 @@ class NCEITimeSeriesProfileIncomplete1_1(NCEI1_1Check, NCEITimeSeriesProfileInco
 
     def check_required_attributes(self, dataset):
         '''
-        Verifies that the dataset contains the NCEI required and highly recommended global attributes
+        Feature type specific check of global required and highly recommended attributes.
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
         '''
         results = []
         required_ctx = TestCtx(BaseCheck.HIGH, 'Required Global Attributes for Timeseries Profile Incomplete dataset')
@@ -463,7 +487,9 @@ class NCEITimeSeriesProfileIncomplete2_0(NCEI2_0Check, NCEITimeSeriesProfileInco
 
     def check_required_attributes(self, dataset):
         '''
-        Verifies that the dataset contains the NCEI required and highly recommended global attributes
+        Feature type specific check of global required and highly recommended attributes.
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
         '''
         results = []
         required_ctx = TestCtx(BaseCheck.HIGH, 'Required Global Attributes for Timeseries Profile Incomplete dataset')
@@ -484,7 +510,9 @@ class NCEITimeSeriesProfileIncomplete2_0(NCEI2_0Check, NCEITimeSeriesProfileInco
 
     def check_recommended_attributes(self, dataset):
         '''
-         Verifies that the dataset contains the NCEI recommended global attributes
+        Feature type specific check of global recommended attributes.
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
         '''
         results = []
         recommended_ctx = TestCtx(BaseCheck.MEDIUM, 'Recommended global attributes')
@@ -493,7 +521,6 @@ class NCEITimeSeriesProfileIncomplete2_0(NCEI2_0Check, NCEITimeSeriesProfileInco
             attr_value = getattr(dataset, attr, '')
             try:
                 parse_duration(attr_value)
-                print "SUCCESS"
                 recommended_ctx.assert_true(True, '')  # Score it True!
             except Exception:
                 recommended_ctx.assert_true(False, '{} should exist and be ISO-8601 format (example: PT1M30S), currently: {}'.format(attr, attr_value))
@@ -513,6 +540,8 @@ class NCEITimeSeriesProfileIncompleteTimeOrthDepthBase(BaseCheck):
     def check_dimensions(self, dataset):
         '''
         Checks that the feature types of this dataset are consistent with a timeseries-profile-orthogonal dataset.
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
         '''
         results = []
         required_ctx = TestCtx(BaseCheck.HIGH, 'All geophysical variables are timeseries-profile-ortho-depth-incomplete-time feature types')
@@ -534,6 +563,8 @@ class NCEITimeSeriesProfileIncompleteTimeOrthDepthBase(BaseCheck):
     def check_timeseries_id(self, dataset):
         '''
         Checks that if a variable exists for the timeseries id it has the appropriate attributes
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
         '''
         results = []
         exists_ctx = TestCtx(BaseCheck.MEDIUM, 'Variable defining "timeseries_id" exists')
@@ -581,7 +612,9 @@ class NCEITimeSeriesProfileIncompleteTimeOrthDepth1_1(NCEI1_1Check, NCEITimeSeri
 
     def check_required_attributes(self, dataset):
         '''
-        Verifies that the dataset contains the NCEI required and highly recommended global attributes
+        Feature type specific check of global required and highly recommended attributes.
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
         '''
         results = []
         required_ctx = TestCtx(BaseCheck.HIGH, 'Required Global Attributes for Timeseries Profile Incomplete Time and Depth')
@@ -623,7 +656,9 @@ class NCEITimeSeriesProfileIncompleteTimeOrthDepth2_0(NCEI2_0Check, NCEITimeSeri
 
     def check_required_attributes(self, dataset):
         '''
-        Verifies that the dataset contains the NCEI required and highly recommended global attributes
+        Feature type specific check of global required and highly recommended attributes.
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
         '''
         results = []
         required_ctx = TestCtx(BaseCheck.HIGH, 'Required Global Attributes for Timeseries Profile Incomplete Time and Depth')
@@ -644,7 +679,9 @@ class NCEITimeSeriesProfileIncompleteTimeOrthDepth2_0(NCEI2_0Check, NCEITimeSeri
 
     def check_recommended_attributes(self, dataset):
         '''
-         Verifies that the dataset contains the NCEI recommended global attributes
+        Feature type specific check of global recommended attributes.
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
         '''
         results = []
         recommended_ctx = TestCtx(BaseCheck.MEDIUM, 'Recommended global attributes')
@@ -653,7 +690,6 @@ class NCEITimeSeriesProfileIncompleteTimeOrthDepth2_0(NCEI2_0Check, NCEITimeSeri
             attr_value = getattr(dataset, attr, '')
             try:
                 parse_duration(attr_value)
-                print "SUCCESS"
                 recommended_ctx.assert_true(True, '')  # Score it True!
             except Exception:
                 recommended_ctx.assert_true(False, '{} should exist and be ISO-8601 format (example: PT1M30S), currently: {}'.format(attr, attr_value))

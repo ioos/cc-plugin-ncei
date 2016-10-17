@@ -18,7 +18,9 @@ class NCEIGridBase(BaseCheck):
 
     def check_dimensions(self, dataset):
         '''
-        Checks that the feature types of this dataset are consitent with a regular gridded dataset
+        Checks that the feature types of this dataset are consistent with a regular gridded dataset
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
         '''
         results = []
         required_ctx = TestCtx(BaseCheck.HIGH, 'All geophysical variables are regular gridded feature types')
@@ -38,6 +40,11 @@ class NCEIGridBase(BaseCheck):
         return results
 
     def check_bounds_variables(self, dataset):
+        '''
+        Checks the grid boundary variables.
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
+        '''
         recommended_ctx = TestCtx(BaseCheck.MEDIUM, 'Recommended variables to describe grid boundaries')
 
         bounds_map = {
@@ -107,7 +114,9 @@ class NCEIGrid1_1(NCEI1_1Check, NCEIGridBase):
 
     def check_required_attributes(self, dataset):
         '''
-        Verifies that the dataset contains the NCEI required and highly recommended global attributes
+        Feature type specific check of global required and highly recommended attributes.
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
         '''
         results = []
         required_ctx = TestCtx(BaseCheck.HIGH, 'Required Global Attributes for Grid')
@@ -148,7 +157,9 @@ class NCEIGrid2_0(NCEI2_0Check, NCEIGridBase):
 
     def check_required_attributes(self, dataset):
         '''
-        Verifies that the dataset contains the NCEI required and highly recommended global attributes
+        Feature type specific check of global required and highly recommended attributes.
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
         '''
         results = []
         required_ctx = TestCtx(BaseCheck.HIGH, 'Required Global Attributes for Grid')
@@ -169,7 +180,9 @@ class NCEIGrid2_0(NCEI2_0Check, NCEIGridBase):
 
     def check_recommended_attributes(self, dataset):
         '''
-         Verifies that the dataset contains the NCEI recommended global attributes
+        Feature type specific check of global recommended and highly recommended attributes.
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
         '''
         results = []
         recommended_ctx = TestCtx(BaseCheck.MEDIUM, 'Recommended global attributes')
@@ -178,7 +191,6 @@ class NCEIGrid2_0(NCEI2_0Check, NCEIGridBase):
             attr_value = getattr(dataset, attr, '')
             try:
                 parse_duration(attr_value)
-                print "SUCCESS"
                 recommended_ctx.assert_true(True, '')  # Score it True!
             except Exception:
                 recommended_ctx.assert_true(False, '{} should exist and be ISO-8601 format (example: PT1M30S), currently: {}'.format(attr, attr_value))

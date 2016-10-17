@@ -20,6 +20,8 @@ class NCEITrajectoryBase(BaseCheck):
     def check_dimensions(self, dataset):
         '''
         Checks that the feature types of this dataset are consitent with a trajectory dataset
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
         '''
         results = []
         required_ctx = TestCtx(BaseCheck.HIGH, 'All geophysical variables are trajectory feature types')
@@ -39,6 +41,8 @@ class NCEITrajectoryBase(BaseCheck):
     def check_trajectory_id(self, dataset):
         '''
         Checks that if a variable exists for the trajectory id it has the appropriate attributes
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
         '''
         results = []
         exists_ctx = TestCtx(BaseCheck.MEDIUM, 'Variable defining "trajectory_id" exists')
@@ -87,7 +91,9 @@ class NCEITrajectory1_1(NCEI1_1Check, NCEITrajectoryBase):
 
     def check_required_attributes(self, dataset):
         '''
-        Verifies that the dataset contains the NCEI required and highly recommended global attributes
+        Feature type specific check of global required and highly recommended attributes.
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
         '''
         results = []
         required_ctx = TestCtx(BaseCheck.HIGH, 'Required Global Attributes for Trajectory dataset')
@@ -130,7 +136,9 @@ class NCEITrajectory2_0(NCEI2_0Check, NCEITrajectoryBase):
 
     def check_required_attributes(self, dataset):
         '''
-        Verifies that the dataset contains the NCEI required and highly recommended global attributes
+        Feature type specific check of global required and highly recommended attributes.
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
         '''
         results = []
         required_ctx = TestCtx(BaseCheck.HIGH, 'Required Global Attributes for Trajectory dataset')
@@ -151,7 +159,9 @@ class NCEITrajectory2_0(NCEI2_0Check, NCEITrajectoryBase):
 
     def check_recommended_attributes(self, dataset):
         '''
-         Verifies that the dataset contains the NCEI recommended global attributes
+        Feature type specific check of global recommended attributes.
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
         '''
         results = []
         recommended_ctx = TestCtx(BaseCheck.MEDIUM, 'Recommended global attributes')
@@ -160,7 +170,6 @@ class NCEITrajectory2_0(NCEI2_0Check, NCEITrajectoryBase):
             attr_value = getattr(dataset, attr, '')
             try:
                 parse_duration(attr_value)
-                print "SUCCESS"
                 recommended_ctx.assert_true(True, '')  # Score it True!
             except Exception:
                 recommended_ctx.assert_true(False, '{} should exist and be ISO-8601 format (example: PT1M30S), currently: {}'.format(attr, attr_value))

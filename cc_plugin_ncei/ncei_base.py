@@ -17,7 +17,7 @@ class TestCtx(object):
     Simple struct object that holds score values and messages to compile into a result
     '''
     def __init__(self, category=None, description='', out_of=0, score=0, messages=None):
-        self.category = category
+        self.category = category or BaseCheck.LOW
         self.out_of = out_of
         self.score = score
         self.messages = messages or []
@@ -83,11 +83,7 @@ class BaseNCEICheck(BaseNCCheck):
 
     def setup(self, ds):
         pass
-        # self._find_cf_standard_name_table(ds)
 
-    ################################################################################
-    # Checks for Required Variables
-    ################################################################################
     def check_lat(self, dataset):
         '''
         float lat(time) ;//....................................... Depending on the precision used for the variable, the data type could be int or double instead of float.
@@ -292,10 +288,6 @@ class BaseNCEICheck(BaseNCCheck):
         results.append(recommended_ctx.to_result())
         return results
 
-    ################################################################################
-    # Checks for QA/QC Variables
-    ################################################################################
-
     def check_qaqc(self, dataset):
         '''
         byte boolean_flag_variable(timeSeries,time); //............................. A boolean flag variable, in which each bit of the flag can be a 1 or 0.
@@ -334,10 +326,6 @@ class BaseNCEICheck(BaseNCCheck):
 
             results.append(recommended_ctx.to_result())
         return results
-
-    ################################################################################
-    # Checks for Instrument and Platform Variables
-    ################################################################################
 
     def check_platform(self, dataset):
         '''
@@ -402,10 +390,6 @@ class BaseNCEICheck(BaseNCCheck):
 
         return results
 
-
-################################################################################
-# CF Checks
-################################################################################
     def check_crs(self, dataset):
         '''
         int crs; //.......................................................... RECOMMENDED - A container variable storing information about the grid_mapping. All the attributes within a grid_mapping variable are described in http://cf-pcmdi.llnl.gov/documents/cf-conventions/1.6/cf-conventions.html#appendix-grid-mappings. For all the measurements based on WSG84, the default coordinate system used for GPS measurements, the values shown here should be used.
@@ -438,33 +422,18 @@ class BaseNCEICheck(BaseNCCheck):
                              'Attribute inverse_flattening should exist and not be empty: {}'.format(epsg_code))
         return test_ctx.to_result()
 
-    ###############################################################################
-    #
-    # HIGHLY RECOMMENDED ATTRIBUTES
-    #
-    ###############################################################################
     def check_high(self, ds):
         highly_recommended = TestCtx(BaseCheck.HIGH, 'Highly Recommended global attributes')
         for attr in self.high_rec_atts:
             highly_recommended.assert_true(getattr(ds, attr, '') != '', '{} should exist and not be empty.'.format(attr))
         return highly_recommended.to_result()
 
-    ###############################################################################
-    #
-    # RECOMMENDED ATTRIBUTES
-    #
-    ###############################################################################
     def check_recommended(self, ds):
         recommended_ctx = TestCtx(BaseCheck.MEDIUM, 'Recommended global attributes')
         for attr in self.rec_atts:
             recommended_ctx.assert_true(getattr(ds, attr, '') != '', '{} should exist and not be empty.'.format(attr))
         return recommended_ctx.to_result()
 
-    ###############################################################################
-    #
-    # SUGGESTED ATTRIBUTES
-    #
-    ###############################################################################
     def check_suggested(self, ds):
         suggested_ctx = TestCtx(BaseCheck.LOW, 'Suggested global attributes')
         for attr in self.sug_atts:
@@ -478,7 +447,11 @@ class NCEI1_1Check(BaseNCEICheck):
 
     def check_base_required_attributes(self, dataset):
         '''
-        Verifies that the dataset contains the NCEI required and highly recommended global attributes
+        Check the global required and highly recommended attributes for 1.1 templates. These go an extra step besides
+        just checking that they exist.
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
+
 
         :Conventions = "CF-1.6" ; //......................................... REQUIRED    - Always try to use latest value. (CF)
         :Metadata_Conventions = "Unidata Dataset Discovery v1.0" ; //........ REQUIRED    - Do not change. (ACDD)
@@ -514,7 +487,10 @@ class NCEI1_1Check(BaseNCEICheck):
 
     def check_recommended_global_attributes(self, dataset):
         '''
-        Returns a result that contains the result-values mapped from REQUIRED, RECOMMENDED appropriately based on the following global attributes:
+        Check the global recommended attributes for 1.1 templates. These go an extra step besides
+        just checking that they exist.
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
 
         Basic "does it exist" checks are done in BaseNCEICheck:check_recommended
         :title = "" ; //..................................................... RECOMMENDED - Provide a useful title for the data in the file. (ACDD)
@@ -614,12 +590,12 @@ class NCEI1_1Check(BaseNCEICheck):
 
         return recommended_ctx.to_result()
 
-    ################################################################################
-    # Checks geophysical variables
-    ################################################################################
-
     def check_geophysical(self, dataset):
         '''
+        Check the geophysical variable attributes for 1.1 templates.
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
+
         float geophysical_variable_1(time) ;//................................ This is an example of how each and every geophysical variable in the file should be represented. Replace the name of the variable("geophysical_variable_1") with a suitable name. Replace "float" by data type which is appropriate for the variable.
             geophysical_variable_1:long_name = "" ; //................... RECOMMENDED - Provide a descriptive, long name for this variable.
             geophysical_variable_1:standard_name = "" ; //............... REQUIRED    - If using a CF standard name and a suitable name exists in the CF standard name table.
@@ -740,7 +716,10 @@ class NCEI2_0Check(BaseNCEICheck):
 
     def check_base_required_attributes(self, dataset):
         '''
-        Verifies that the dataset contains the NCEI required and highly recommended global attributes
+        Check the global required and highly recommended attributes for 2.0 templates. These go an extra step besides
+        just checking that they exist.
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
 
         :Conventions = "CF-1.6, ACDD-1.3" ; //............................... REQUIRED - Always try to use latest value. (CF)
         :featureType = "timeSeries" ; //..................................... REQUIRED - CF attribute for identifying the featureType.
@@ -768,7 +747,10 @@ class NCEI2_0Check(BaseNCEICheck):
 
     def check_recommended_global_attributes(self, dataset):
         '''
-        Returns a result that contains the result-values mapped from, RECOMMENDED appropriately based on the following global attributes:
+        Check the global recommended attributes for 2.0 templates. These go an extra step besides
+        just checking that they exist.
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
 
         :id = "" ; //.................................................. RECOMMENDED - Should be a human readable unique identifier for data set. (ACDD)
         :naming_authority = "" ; //.................................... RECOMMENDED - Backward URL of institution (for example, gov.noaa.ncei). (ACDD)
@@ -841,6 +823,11 @@ class NCEI2_0Check(BaseNCEICheck):
 
     def check_base_suggested_attributes(self, dataset):
         '''
+        Check the global suggested attributes for 2.0 templates. These go an extra step besides
+        just checking that they exist.
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
+
         :creator_type = "" ; //........................................ SUGGESTED - Specifies type of creator with one of the following: 'person', 'group', 'institution', or 'position'. (ACDD)
         :creator_institution = "" ; //................................. SUGGESTED - The institution of the creator; should uniquely identify the creator's institution. (ACDD)
         :publisher_type = "" ; //...................................... SUGGESTED - Specifies type of publisher with one of the following: 'person', 'group', 'institution', or 'position'. (ACDD)
@@ -898,13 +885,12 @@ class NCEI2_0Check(BaseNCEICheck):
 
         return suggested_ctx.to_result()
 
-    ################################################################################
-    # Checks geophysical variables
-    ################################################################################
-
     def check_geophysical(self, dataset):
         '''
-        missing_value and coverage_content_type have been added in NCEI 2.0
+        Check the geophysical variable attributes for 2.0 templates.
+        Attributes missing_value and coverage_content_type have been added in NCEI 2.0
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
 
         float geophysical_variable_1(time) ;//................................ This is an example of how each and every geophysical variable in the file should be represented. Replace the name of the variable("geophysical_variable_1") with a suitable name. Replace "float" by data type which is appropriate for the variable.
             geophysical_variable_1:long_name = "" ; //................... RECOMMENDED - Provide a descriptive, long name for this variable.
@@ -928,7 +914,6 @@ class NCEI2_0Check(BaseNCEICheck):
             geophysical_variable_1:instrument = "instrument_variable";//..RECOMMENDED - Refers to name of variable containing information on the instrument from which this variable was collected.
             geophysical_variable_1:comment = "" ; //..................... RECOMMENDED - Add useful, additional information here.
         '''
-        # Check the science variables to ensure they are good
 
         results = []
         for var in util.get_geophysical_variables(dataset):

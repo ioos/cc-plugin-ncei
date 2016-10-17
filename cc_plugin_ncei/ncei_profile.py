@@ -19,6 +19,8 @@ class NCEIProfileOrthogonalBase(BaseCheck):
     def check_dimensions(self, dataset):
         '''
         Checks that the feature types of this dataset are consistent with a profile-orthogonal dataset.
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
         '''
         results = []
         required_ctx = TestCtx(BaseCheck.HIGH, 'All geophysical variables are profile-orthogonal feature types')
@@ -37,6 +39,8 @@ class NCEIProfileOrthogonalBase(BaseCheck):
     def check_profile_id(self, dataset):
         '''
         Checks that if a variable exists for the profile id it has the appropriate attributes
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
         '''
         results = []
         exists_ctx = TestCtx(BaseCheck.MEDIUM, 'Variable defining "profile_id" exists')
@@ -84,7 +88,9 @@ class NCEIProfileOrthogonal1_1(NCEI1_1Check, NCEIProfileOrthogonalBase):
 
     def check_required_attributes(self, dataset):
         '''
-        Verifies that the dataset contains the NCEI required and highly recommended global attributes
+        Feature type specific check of global required and highly recommended attributes.
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
         '''
         results = []
         required_ctx = TestCtx(BaseCheck.HIGH, 'Required Global Attributes for Profile-orthogonal dataset')
@@ -126,7 +132,9 @@ class NCEIProfileOrthogonal2_0(NCEI2_0Check, NCEIProfileOrthogonalBase):
 
     def check_required_attributes(self, dataset):
         '''
-        Verifies that the dataset contains the NCEI required and highly recommended global attributes
+        Feature type specific check of global required and highly recommended attributes.
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
         '''
         results = []
         required_ctx = TestCtx(BaseCheck.HIGH, 'Required Global Attributes for Profile-orthogonal dataset')
@@ -156,6 +164,8 @@ class NCEIProfileIncomplete(BaseCheck):
     def check_dimensions(self, dataset):
         '''
         Checks that the feature types of this dataset are consistent with a profile-incomplete dataset.
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
         '''
         results = []
         required_ctx = TestCtx(BaseCheck.HIGH, 'All geophysical variables are profile-incomplete feature types')
@@ -174,6 +184,8 @@ class NCEIProfileIncomplete(BaseCheck):
     def check_profile_id(self, dataset):
         '''
         Checks that if a variable exists for the profile id it has the appropriate attributes
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
         '''
         results = []
         exists_ctx = TestCtx(BaseCheck.MEDIUM, 'Variable defining "profile_id" exists')
@@ -222,7 +234,9 @@ class NCEIProfileIncomplete1_1(NCEI1_1Check, NCEIProfileIncomplete):
 
     def check_required_attributes(self, dataset):
         '''
-        Verifies that the dataset contains the NCEI required and highly recommended global attributes
+        Feature type specific check of global required and highly recommended attributes.
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
         '''
         results = []
         required_ctx = TestCtx(BaseCheck.HIGH, 'Required Global Attributes for Profile-incomplete dataset')
@@ -265,7 +279,9 @@ class NCEIProfileIncomplete2_0(NCEI2_0Check, NCEIProfileIncomplete):
 
     def check_required_attributes(self, dataset):
         '''
-        Verifies that the dataset contains the NCEI required and highly recommended global attributes
+        Feature type specific check of global required and highly recommended attributes.
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
         '''
         results = []
         required_ctx = TestCtx(BaseCheck.HIGH, 'Required Global Attributes for Profile-incomplete dataset')
