@@ -28,8 +28,8 @@ class TestNCEITrajectory2_0(NCEITestCase):
     def test_global_profile_score(self):
         assert not self.errors
 
-        assert self.results['scored_points'] == 144
-        assert self.results['possible_points'] == 147
+        assert self.results['scored_points'] == 145
+        assert self.results['possible_points'] == 148
         known_messages = [
             'wmo_code should not be empty if specified',
             'sea_name attribute should exist and should be from the NODC sea names list: Cordell Bank National Marine Sanctuary is not a valid sea name',

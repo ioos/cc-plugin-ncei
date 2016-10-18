@@ -30,8 +30,8 @@ class TestNCEITimeSeriesProfile2_0(NCEITestCase):
     def test_global_profile_score(self):
         assert not self.errors
 
-        assert self.results['scored_points'] == 142
-        assert self.results['possible_points'] == 147
+        assert self.results['scored_points'] == 143
+        assert self.results['possible_points'] == 148
         known_messages = [
             'wmo_code should not be empty if specified',
             'imo_code should not be empty if specified',

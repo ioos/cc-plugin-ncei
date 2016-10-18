@@ -31,8 +31,8 @@ class TestNCEIPoint2_0(NCEITestCase):
     def test_global_point_score(self):
         assert not self.errors
 
-        assert self.results['scored_points'] == 139
-        assert self.results['possible_points'] == 143
+        assert self.results['scored_points'] == 140
+        assert self.results['possible_points'] == 144
         known_messages = [
             'wmo_code should not be empty if specified',
             'imo_code should not be empty if specified',

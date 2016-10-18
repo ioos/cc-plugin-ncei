@@ -27,8 +27,8 @@ class TestNCEITrajectoryProfile2_0(NCEITestCase):
 
     def test_global_profile_score(self):
         assert not self.errors
-        assert self.results['scored_points'] == 143
-        assert self.results['possible_points'] == 147
+        assert self.results['scored_points'] == 144
+        assert self.results['possible_points'] == 148
         known_messages = [
             'imo_code should not be empty if specified',
             'call_sign attribute should not be empty if specified',

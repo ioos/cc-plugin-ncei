@@ -72,7 +72,6 @@ class BaseNCEICheck(BaseNCCheck):
             'references',
             'keywords_vocabulary',
             'keywords',
-            'comment',
             'publisher_name',
             'publisher_email',
             'publisher_url',
@@ -116,6 +115,8 @@ class BaseNCEICheck(BaseNCCheck):
         test_ctx.assert_true(getattr(lat_var, 'long_name', '') != '', 'long_name attribute should exist and not be empty')
         test_ctx.assert_true(getattr(lat_var, 'valid_min', '') != '', 'valid_min attribute should exist and not be empty')
         test_ctx.assert_true(getattr(lat_var, 'valid_max', '') != '', 'valid_max attribute should exist and not be empty')
+        if hasattr(lat_var, 'comment'):
+            test_ctx.assert_true(getattr(lat_var, 'comment', '') != '', 'comment attribute should not be empty if specified')
         test_ctx.assert_true(getattr(lat_var, 'comment', '') != '', 'comment attribute should exist and not be empty')
         test_ctx.assert_true(units == 'degrees_north', '{} should have units degrees_north'.format(lat))
         results.append(test_ctx.to_result())
@@ -151,7 +152,9 @@ class BaseNCEICheck(BaseNCCheck):
         test_ctx.assert_true(getattr(lon_var, 'long_name', '') != '', 'long_name attribute should exist and not be empty')
         test_ctx.assert_true(getattr(lon_var, 'valid_min', '') != '', 'valid_min attribute should exist and not be empty')
         test_ctx.assert_true(getattr(lon_var, 'valid_max', '') != '', 'valid_max attribute should exist and not be empty')
-        test_ctx.assert_true(getattr(lon_var, 'comment', '') != '', 'comment attribute should exist and not be empty')
+
+        if hasattr(lon_var, 'comment'):
+            test_ctx.assert_true(getattr(lon_var, 'comment', '') != '', 'comment attribute should not be empty if specified')
         test_ctx.assert_true(units == 'degrees_east', '{} should have units degrees_east'.format(lon))
         results.append(test_ctx.to_result())
         return results
@@ -196,7 +199,8 @@ class BaseNCEICheck(BaseNCCheck):
         results.append(required_ctx.to_result())
         recommended_ctx = TestCtx(BaseCheck.MEDIUM, 'Recommended attributes for variable time')
         recommended_ctx.assert_true(getattr(dataset.variables[time_var], 'long_name', '') != '', 'long_name attribute should exist and not be empty')
-        recommended_ctx.assert_true(getattr(dataset.variables[time_var], 'comment', '') != '', 'comment should exist and not be empty')
+        if hasattr(dataset.variables[time_var], 'comment'):
+            recommended_ctx.assert_true(getattr(dataset.variables[time_var], 'comment', '') != '', 'comment attribute should not be empty if specified')
         results.append(recommended_ctx.to_result())
 
         return results
@@ -216,24 +220,6 @@ class BaseNCEICheck(BaseNCCheck):
                 z:comment = "" ; //.......................................... RECOMMENDED - Add useful, additional information here.
                 '''
         results = []
-        # best guess for variable name and units
-        valid_variable_names = [
-            "depth",
-            "depths",
-            "height",
-            "altitude",
-            "alt",
-            "h",
-            "s_rho",
-            "s_w",
-            "z",
-            "siglay",
-            "siglev",
-            "sigma",
-            "vertical",
-            "lev",
-            "level",
-        ]
 
         exists_ctx = TestCtx(BaseCheck.HIGH, 'Variable for height must exist')
         var = util.get_z_variable(dataset)
@@ -243,7 +229,6 @@ class BaseNCEICheck(BaseNCCheck):
 
         # Check Height Name
         required_ctx = TestCtx(BaseCheck.HIGH, 'Required attributes for variable {}'.format(var))
-        required_ctx.assert_true(var in valid_variable_names, '{} is not a valid variable name for height'.format(var))
 
         # Check Standard Name
         standard_name = getattr(dataset.variables[var], 'standard_name', '')
@@ -278,13 +263,15 @@ class BaseNCEICheck(BaseNCCheck):
         recommended_ctx = TestCtx(BaseCheck.MEDIUM, 'Recommended attributes for coordinate variable {}'.format(var))
         recommended_attrs = [
             'valid_min',
-            'valid_max',
-            'comment'
+            'valid_max'
         ]
 
         for attr in recommended_attrs:
             varattr = getattr(dataset.variables[var], attr, '')
             recommended_ctx.assert_true(varattr != '', 'it is recommended for height to have a {} attribute and it not be empty'.format(attr))
+
+        if hasattr(dataset.variables[var], 'comment'):
+            recommended_ctx.assert_true(getattr(dataset.variables[var], 'comment', '') != '', 'comment attribute should not be empty if specified')
 
         results.append(recommended_ctx.to_result())
         return results
@@ -321,54 +308,13 @@ class BaseNCEICheck(BaseNCCheck):
             standard_name = getattr(flag_variable, 'standard_name', '')
             recommended_ctx.assert_true(standard_name.endswith(' status_flag'), 'The standard_name attribute should end with status_flag')
 
-            for attr in ('long_name', 'comment'):
-                varattr = getattr(flag_variable, attr, '')
-                recommended_ctx.assert_true(varattr != '', 'The {} attribute should exist and not be empty'.format(attr))
+            varattr = getattr(flag_variable, 'long_name', '')
+            recommended_ctx.assert_true(varattr != '', 'The {} attribute should exist and not be empty'.format('long_name'))
+
+            if hasattr(flag_variable, 'comment'):
+                recommended_ctx.assert_true(getattr(flag_variable, 'comment', '') != '', 'comment attribute should not be empty if specified')
 
             results.append(recommended_ctx.to_result())
-        return results
-
-    def check_platform(self, dataset):
-        '''
-        int platform_variable; //............................................ RECOMMENDED - a container variable storing information about the platform. If more than one, can expand each attribute into a variable. For example, platform_call_sign and platform_nodc_code. See instrument_parameter_variable for an example.
-                platform_variable:long_name = "" ; //........................ RECOMMENDED - Provide a descriptive, long name for this variable.
-                platform_variable:comment = "" ; //.......................... RECOMMENDED - Add useful, additional information here.
-                platform_variable:call_sign = "" ; //........................ RECOMMENDED - This attribute identifies the call sign of the platform.
-                platform_variable:nodc_code = ""; //......................... RECOMMENDED - This attribute identifies the NODC code of the platform. Look at http://www.nodc.noaa.gov/cgi-bin/OAS/prd/platform to find if NODC codes are available.
-                platform_variable:wmo_code = "";//........................... RECOMMENDED - This attribute identifies the wmo code of the platform. Information on getting WMO codes is available at http://www.wmo.int/pages/prog/amp/mmop/wmo-number-rules.html
-                platform_variable:imo_code  = "";//.......................... RECOMMENDED - This attribute identifies the International Maritime Organization (IMO) number assigned by Lloyd's register.
-        '''
-        # Check for the platform variable
-        platforms = util.get_platform_variables(dataset)
-        if not platforms:
-            return Result(BaseCheck.MEDIUM,
-                          False,
-                          'A container variable storing information about the platform exists',
-                          ['Create a variable to store the platform information'])
-
-        results = []
-        for platform in platforms:
-            test_ctx = TestCtx(BaseCheck.MEDIUM, 'Recommended attributes for platform variable {}'.format(platform))
-            pvar = dataset.variables[platform]
-            test_ctx.assert_true(getattr(pvar, 'long_name', '') != '', 'long_name attribute should exist and not be empty')
-            test_ctx.assert_true(getattr(pvar, 'comment', '') != '', 'comment attribute should exist and not be empty')
-            # We only check to see if nodc_code, wmo_code and imo_code are empty. They are only recommended if they exist for the platform.
-            found_identifier = False
-            if hasattr(pvar, 'nodc_code'):
-                test_ctx.assert_true(getattr(pvar, 'nodc_code', '') != '', 'nodc_code should not be empty if specified')
-                found_identifier = True
-            if hasattr(pvar, 'wmo_code'):
-                test_ctx.assert_true(getattr(pvar, 'wmo_code', '') != '', 'wmo_code should not be empty if specified')
-                found_identifier = True
-            if hasattr(pvar, 'imo_code'):
-                test_ctx.assert_true(getattr(pvar, 'imo_code', '') != '', 'imo_code should not be empty if specified')
-                found_identifier = True
-            if hasattr(pvar, 'call_sign'):
-                test_ctx.assert_true(getattr(pvar, 'call_sign', '') != '', 'call_sign attribute should not be empty if specified')
-                found_identifier = True
-            test_ctx.assert_true(found_identifier, 'At least one attribute should be defined to identify the platform: nodc_code, wmo_code, imo_code, call_sign.')
-            results.append(test_ctx.to_result())
-
         return results
 
     def check_instrument(self, dataset):
@@ -386,7 +332,10 @@ class BaseNCEICheck(BaseNCCheck):
             test_ctx = TestCtx(BaseCheck.MEDIUM, 'Recommended attributes for instrument variable {}'.format(instrument))
             var = dataset.variables[instrument]
             test_ctx.assert_true(getattr(var, 'long_name', '') != '', 'long_name attribute should exist and not be empty')
-            test_ctx.assert_true(getattr(var, 'comment', '') != '', 'comment attribute should exist and not be empty')
+
+            if hasattr(var, 'comment'):
+                test_ctx.assert_true(getattr(var, 'comment', '') != '', 'comment attribute should not be empty if specified')
+
             results.append(test_ctx.to_result())
 
         return results
@@ -591,6 +540,9 @@ class NCEI1_1Check(BaseNCEICheck):
         recommended_ctx.assert_true(contributor_role != '', 'contributor_role should exist and not be empty.')
         recommended_ctx.assert_true(len(names) == len(roles), 'length of contributor names matches length of roles')
 
+        if hasattr(dataset, 'comment'):
+            recommended_ctx.assert_true(getattr(dataset, 'comment', '') != '', 'comment attribute should not be empty if specified')
+
         return recommended_ctx.to_result()
 
     def check_geophysical(self, dataset):
@@ -656,7 +608,54 @@ class NCEI1_1Check(BaseNCEICheck):
             instrument = getattr(ncvar, 'instrument', '')
             if instrument:
                 test_ctx.assert_true(instrument in dataset.variables, 'instrument attribute points to variable')
-            test_ctx.assert_true(getattr(ncvar, 'comment', '') != '', 'comment should exist and not be empty')
+
+            if hasattr(ncvar, 'comment'):
+                test_ctx.assert_true(getattr(ncvar, 'comment', '') != '', 'comment attribute should not be empty if specified')
+
+            results.append(test_ctx.to_result())
+
+        return results
+
+    def check_platform(self, dataset):
+        '''
+        int platform_variable; //............................................ RECOMMENDED - a container variable storing information about the platform. If more than one, can expand each attribute into a variable. For example, platform_call_sign and platform_nodc_code. See instrument_parameter_variable for an example.
+                platform_variable:long_name = "" ; //........................ RECOMMENDED - Provide a descriptive, long name for this variable.
+                platform_variable:comment = "" ; //.......................... RECOMMENDED - Add useful, additional information here.
+                platform_variable:call_sign = "" ; //........................ RECOMMENDED - This attribute identifies the call sign of the platform.
+                platform_variable:nodc_code = ""; //......................... RECOMMENDED - This attribute identifies the NODC code of the platform. Look at http://www.nodc.noaa.gov/cgi-bin/OAS/prd/platform to find if NODC codes are available.
+                platform_variable:wmo_code = "";//........................... RECOMMENDED - This attribute identifies the wmo code of the platform. Information on getting WMO codes is available at http://www.wmo.int/pages/prog/amp/mmop/wmo-number-rules.html
+                platform_variable:imo_code  = "";//.......................... RECOMMENDED - This attribute identifies the International Maritime Organization (IMO) number assigned by Lloyd's register.
+        '''
+        # Check for the platform variable
+        platforms = util.get_platform_variables(dataset)
+        if not platforms:
+            return Result(BaseCheck.MEDIUM,
+                          False,
+                          'A container variable storing information about the platform exists',
+                          ['Create a variable to store the platform information'])
+
+        results = []
+        for platform in platforms:
+            test_ctx = TestCtx(BaseCheck.MEDIUM, 'Recommended attributes for platform variable {}'.format(platform))
+            pvar = dataset.variables[platform]
+            test_ctx.assert_true(getattr(pvar, 'long_name', '') != '', 'long_name attribute should exist and not be empty')
+            if hasattr(pvar, 'comment'):
+                test_ctx.assert_true(getattr(pvar, 'comment', '') != '', 'comment attribute should not be empty if specified')
+            # We only check to see if nodc_code, wmo_code and imo_code are empty. They are only recommended if they exist for the platform.
+            found_identifier = False
+            if hasattr(pvar, 'nodc_code'):
+                test_ctx.assert_true(getattr(pvar, 'nodc_code', '') != '', 'nodc_code should not be empty if specified')
+                found_identifier = True
+            if hasattr(pvar, 'wmo_code'):
+                test_ctx.assert_true(getattr(pvar, 'wmo_code', '') != '', 'wmo_code should not be empty if specified')
+                found_identifier = True
+            if hasattr(pvar, 'imo_code'):
+                test_ctx.assert_true(getattr(pvar, 'imo_code', '') != '', 'imo_code should not be empty if specified')
+                found_identifier = True
+            if hasattr(pvar, 'call_sign'):
+                test_ctx.assert_true(getattr(pvar, 'call_sign', '') != '', 'call_sign attribute should not be empty if specified')
+                found_identifier = True
+            test_ctx.assert_true(found_identifier, 'At least one attribute should be defined to identify the platform: nodc_code, wmo_code, imo_code, call_sign.')
             results.append(test_ctx.to_result())
 
         return results
@@ -687,7 +686,6 @@ class NCEI2_0Check(BaseNCEICheck):
             'creator_email',
             'project',
             'processing_level',
-            'comment',
             'publisher_name',
             'publisher_email',
             'publisher_url',
@@ -830,6 +828,8 @@ class NCEI2_0Check(BaseNCEICheck):
         recommended_ctx.assert_true(regex.search(standard_name_vocab),
                                     "standard_name_vocabulary doesn't contain 'Standard Name Table': {}".format(standard_name_vocab))
 
+        if hasattr(dataset, 'comment'):
+            recommended_ctx.assert_true(getattr(dataset, 'comment', '') != '', 'comment attribute should not be empty if specified')
         return recommended_ctx.to_result()
 
     def check_base_suggested_attributes(self, dataset):
@@ -972,7 +972,53 @@ class NCEI2_0Check(BaseNCEICheck):
             instrument = getattr(ncvar, 'instrument', '')
             if instrument:
                 test_ctx.assert_true(instrument in dataset.variables, 'instrument attribute points to variable')
-            test_ctx.assert_true(getattr(ncvar, 'comment', '') != '', 'comment should exist and not be empty')
+
+            if hasattr(ncvar, 'comment'):
+                test_ctx.assert_true(getattr(dataset, 'comment', '') != '', 'comment attribute should not be empty if specified')
+            results.append(test_ctx.to_result())
+
+        return results
+
+    def check_platform(self, dataset):
+        '''
+        int platform_variable; //............................................ RECOMMENDED - a container variable storing information about the platform. If more than one, can expand each attribute into a variable. For example, platform_call_sign and platform_nodc_code. See instrument_parameter_variable for an example.
+                platform_variable:long_name = "" ; //........................ RECOMMENDED - Provide a descriptive, long name for this variable.
+                platform_variable:comment = "" ; //.......................... RECOMMENDED - Add useful, additional information here.
+                platform_variable:call_sign = "" ; //........................ RECOMMENDED - This attribute identifies the call sign of the platform.
+                platform_variable:ncei_code = ""; //......................... RECOMMENDED - This attribute identifies the NCEI code of the platform. Look at http://www.nodc.noaa.gov/cgi-bin/OAS/prd/platform to find if NCEI codes are available.
+                platform_variable:wmo_code = "";//........................... RECOMMENDED - This attribute identifies the wmo code of the platform. Information on getting WMO codes is available at http://www.wmo.int/pages/prog/amp/mmop/wmo-number-rules.html
+                platform_variable:imo_code  = "";//.......................... RECOMMENDED - This attribute identifies the International Maritime Organization (IMO) number assigned by Lloyd's register.
+        '''
+        # Check for the platform variable
+        platforms = util.get_platform_variables(dataset)
+        if not platforms:
+            return Result(BaseCheck.MEDIUM,
+                          False,
+                          'A container variable storing information about the platform exists',
+                          ['Create a variable to store the platform information'])
+
+        results = []
+        for platform in platforms:
+            test_ctx = TestCtx(BaseCheck.MEDIUM, 'Recommended attributes for platform variable {}'.format(platform))
+            pvar = dataset.variables[platform]
+            test_ctx.assert_true(getattr(pvar, 'long_name', '') != '', 'long_name attribute should exist and not be empty')
+            if hasattr(pvar, 'comment'):
+                test_ctx.assert_true(getattr(pvar, 'comment', '') != '', 'comment attribute should not be empty if specified')
+            # We only check to see if nodc_code, wmo_code and imo_code are empty. They are only recommended if they exist for the platform.
+            found_identifier = False
+            if hasattr(pvar, 'ncei_code'):
+                test_ctx.assert_true(getattr(pvar, 'ncei_code', '') != '', 'ncei_code should not be empty if specified')
+                found_identifier = True
+            if hasattr(pvar, 'wmo_code'):
+                test_ctx.assert_true(getattr(pvar, 'wmo_code', '') != '', 'wmo_code should not be empty if specified')
+                found_identifier = True
+            if hasattr(pvar, 'imo_code'):
+                test_ctx.assert_true(getattr(pvar, 'imo_code', '') != '', 'imo_code should not be empty if specified')
+                found_identifier = True
+            if hasattr(pvar, 'call_sign'):
+                test_ctx.assert_true(getattr(pvar, 'call_sign', '') != '', 'call_sign attribute should not be empty if specified')
+                found_identifier = True
+            test_ctx.assert_true(found_identifier, 'At least one attribute should be defined to identify the platform: ncei_code, wmo_code, imo_code, call_sign.')
             results.append(test_ctx.to_result())
 
         return results
