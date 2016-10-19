@@ -5,39 +5,24 @@ cc_plugin_ncei/ncei_timeseries_profile.py
 '''
 
 from compliance_checker.base import BaseCheck
-from cc_plugin_ncei.ncei_base import NCEIBaseCheck, TestCtx
+from cc_plugin_ncei.ncei_base import TestCtx, NCEI1_1Check, NCEI2_0Check
 from cc_plugin_ncei import util
+from isodate import parse_duration
 
 
-class NCEITimeSeriesProfileOrthogonal(NCEIBaseCheck):
-    register_checker = True
+class NCEITimeSeriesProfileOrthogonalBase(BaseCheck):
     _cc_spec = 'ncei-timeseries-profile-orthogonal'
-    _cc_spec_version = '1.1'
-    _cc_description = '''This test checks the selected file against the NCEI netCDF timeSeriesProfile Orthogonal Time and Depth template version 1.1 (found at https://www.nodc.noaa.gov/data/formats/netcdf/v1.1/timeSeriesProfileOrthoVOrthoT.cdl). The NCEI version 1.1 templates are based on “feature types”, as identified by Unidata and CF, and conform to ACDD version 1.0 and CF version 1.6. You can find more information about the version 1.1 templates at https://www.nodc.noaa.gov/data/formats/netcdf/v1.1/. This test is specifically for the timeSeriesProfile feature type in an Orthogonal time and depth multidimensional array representation. This representation is typically used for a series of profile features at the same horizontal position with monotonically increasing time and all instruments are at the same depths and measuring at the same points in time.'''
-    _cc_url = 'http://www.nodc.noaa.gov/data/formats/netcdf/v1.1/timeSeriesOrthogonal.cdl'
-    _cc_authors = 'Luke Campbell, Dan Maher'
-    _cc_checker_version = '2.1.0'
-
-    valid_templates = [
-        "NODC_NetCDF_TimeSeriesProfile_Orthogonal_Template_v1.1",
-    ]
-
     valid_feature_types = [
         'timeseries',
         'timeseries_id',
         'timeSeriesProfile'
     ]
 
-    @classmethod
-    def beliefs(cls):
-        '''
-        Not applicable for gliders
-        '''
-        return {}
-
     def check_dimensions(self, dataset):
         '''
         Checks that the feature types of this dataset are consistent with a timeseries-profile-orthogonal dataset.
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
         '''
         results = []
         required_ctx = TestCtx(BaseCheck.HIGH, 'All geophysical variables are timeseries-profile-orthogonal feature types')
@@ -57,30 +42,11 @@ class NCEITimeSeriesProfileOrthogonal(NCEIBaseCheck):
         results.append(required_ctx.to_result())
         return results
 
-    def check_required_attributes(self, dataset):
-        '''
-        Verifies that the dataset contains the NCEI required and highly recommended global attributes
-        '''
-        results = []
-        required_ctx = TestCtx(BaseCheck.HIGH, 'Required Global Attributes for Timeseries Profile orthogonal dataset')
-        required_ctx.assert_true(
-            getattr(dataset, 'nodc_template_version', '').lower() == self.valid_templates[0].lower(),
-            'nodc_template_version attribute must be {}'.format(self.valid_templates[0])
-        )
-        required_ctx.assert_true(
-            getattr(dataset, 'cdm_data_type', '') == 'Station',
-            'cdm_data_type attribute must be set to Station'
-        )
-        required_ctx.assert_true(
-            getattr(dataset, 'featureType', '') == 'timeSeriesProfile',
-            'featureType attribute must be set to timeSeriesProfile'
-        )
-        results.append(required_ctx.to_result())
-        return results
-
     def check_timeseries_id(self, dataset):
         '''
         Checks that if a variable exists for the timeseries id it has the appropriate attributes
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
         '''
         results = []
         exists_ctx = TestCtx(BaseCheck.MEDIUM, 'Variable defining "timeseries_id" exists')
@@ -99,24 +65,26 @@ class NCEITimeSeriesProfileOrthogonal(NCEIBaseCheck):
         return results
 
 
-class NCEITimeSeriesProfileOrthTimeIncompleteDepth(NCEIBaseCheck):
+class NCEITimeSeriesProfileOrthogonal1_1(NCEI1_1Check, NCEITimeSeriesProfileOrthogonalBase):
     register_checker = True
-    _cc_spec = 'ncei-timeseries-profile-orthtime-incompletedepth'
     _cc_spec_version = '1.1'
-    _cc_description = '''This test checks the selected file against the NCEI netCDF timeSeriesProfile Orthogonal Time and Incomplete Depth template version 1.1 (found at https://www.nodc.noaa.gov/data/formats/netcdf/v1.1/timeSeriesProfileIncomVOrthoT.cdl). The NCEI version 1.1 templates are based on “feature types”, as identified by Unidata and CF, and conform to ACDD version 1.0 and CF version 1.6. You can find more information about the version 1.1 templates at https://www.nodc.noaa.gov/data/formats/netcdf/v1.1/. This test is specifically for the timeSeriesProfile feature type in an Orthogonal time and Incomplete depth multidimensional array representation. This representation is typically used for a series of profile features at the same horizontal position with monotonically increasing time and the stationary instruments measure at different depths but at the same points in time.'''
-    _cc_url = 'http://www.nodc.noaa.gov/data/formats/netcdf/v2.0/timeSeriesIncomplete.cdl'
+    _cc_description = (
+        'This test checks the selected file against the NCEI netCDF timeSeriesProfile Orthogonal '
+        'Time and Depth template version 1.1 (found at https://www.nodc.noaa.gov/data/formats/'
+        'netcdf/v1.1/timeSeriesProfileOrthoVOrthoT.cdl). The NCEI version 1.1 templates are based '
+        'on “feature types”, as identified by Unidata and CF, and conform to ACDD version 1.0 and '
+        'CF version 1.6. You can find more information about the version 1.1 templates at '
+        'https://www.nodc.noaa.gov/data/formats/netcdf/v1.1/. This test is specifically for the '
+        'timeSeriesProfile feature type in an Orthogonal time and depth multidimensional array '
+        'representation. This representation is typically used for a series of profile features at'
+        ' the same horizontal position with monotonically increasing time and all instruments are '
+        'at the same depths and measuring at the same points in time.')
+    _cc_url = 'http://www.nodc.noaa.gov/data/formats/netcdf/v1.1/timeSeriesOrthogonal.cdl'
     _cc_authors = 'Luke Campbell, Dan Maher'
     _cc_checker_version = '2.1.0'
 
     valid_templates = [
-        "NODC_NetCDF_TimeSeriesProfile_IncompleteVertical_OrthogonalTemporal_Template_v1.1"
-    ]
-
-    valid_feature_types = [
-        'timeSeries',
-        'timeseries_id',
-        'timeSeriesProfile',
-        'timeseriesprofile_id'
+        "NODC_NetCDF_TimeSeriesProfile_Orthogonal_Template_v1.1",
     ]
 
     @classmethod
@@ -126,9 +94,109 @@ class NCEITimeSeriesProfileOrthTimeIncompleteDepth(NCEIBaseCheck):
         '''
         return {}
 
+    def check_required_attributes(self, dataset):
+        '''
+        Feature type specific check of global required and highly recommended attributes.
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
+        '''
+        results = []
+        required_ctx = TestCtx(BaseCheck.HIGH, 'Required Global Attributes for Timeseries Profile orthogonal dataset')
+        required_ctx.assert_true(
+            getattr(dataset, 'nodc_template_version', '').lower() == self.valid_templates[0].lower(),
+            'nodc_template_version attribute must be {}'.format(self.valid_templates[0])
+        )
+        required_ctx.assert_true(
+            getattr(dataset, 'cdm_data_type', '') == 'Station',
+            'cdm_data_type attribute must be set to Station'
+        )
+        required_ctx.assert_true(
+            getattr(dataset, 'featureType', '') == 'timeSeriesProfile',
+            'featureType attribute must be set to timeSeriesProfile'
+        )
+        results.append(required_ctx.to_result())
+        return results
+
+
+class NCEITimeSeriesProfileOrthogonal2_0(NCEI2_0Check, NCEITimeSeriesProfileOrthogonalBase):
+    register_checker = True
+    _cc_spec_version = '2.0'
+    _cc_description = (
+        'This test checks the selected file against the NCEI netCDF timeSeriesProfile Orthogonal '
+        'Time and Depth template version 2.0 (found at https://www.nodc.noaa.gov/data/formats/'
+        'netcdf/v2.0/timeSeriesProfileOrthoVOrthoT.cdl). The NCEI version 2.0 templates are based '
+        'on “feature types”, as identified by Unidata and CF, and conform to ACDD version 1.3 and '
+        'CF version 1.6. You can find more information about the version 2.0 templates at '
+        'https://www.nodc.noaa.gov/data/formats/netcdf/v2.0/. This test is specifically for the '
+        'timeSeriesProfile feature type in an Orthogonal time and depth multidimensional array '
+        'representation. This representation is typically used for a series of profile features at'
+        ' the same horizontal position with monotonically increasing time and all instruments are '
+        'at the same depths and measuring at the same points in time.')
+    _cc_url = 'http://www.nodc.noaa.gov/data/formats/netcdf/v2.0/timeSeriesOrthogonal.cdl'
+    _cc_authors = 'Luke Campbell, Dan Maher'
+    _cc_checker_version = '2.3.0'
+
+    valid_templates = [
+        "NCEI_NetCDF_TimeSeriesProfile_Orthogonal_Template_v2.0",
+    ]
+
+    def check_required_attributes(self, dataset):
+        '''
+        Feature type specific check of global required and highly recommended attributes.
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
+        '''
+        results = []
+        required_ctx = TestCtx(BaseCheck.HIGH, 'Required Global Attributes for Timeseries Profile orthogonal dataset')
+        required_ctx.assert_true(
+            getattr(dataset, 'ncei_template_version', '').lower() == self.valid_templates[0].lower(),
+            'ncei_template_version attribute must be {}'.format(self.valid_templates[0])
+        )
+        required_ctx.assert_true(
+            getattr(dataset, 'cdm_data_type', '') == 'Station',
+            'cdm_data_type attribute must be set to Station'
+        )
+        required_ctx.assert_true(
+            getattr(dataset, 'featureType', '') == 'timeSeriesProfile',
+            'featureType attribute must be set to timeSeriesProfile'
+        )
+        results.append(required_ctx.to_result())
+        return results
+
+    def check_recommended_attributes(self, dataset):
+        '''
+        Feature type specific check of global recommended attributes.
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
+        '''
+        results = []
+        recommended_ctx = TestCtx(BaseCheck.MEDIUM, 'Recommended global attributes')
+        # Check time_coverage_duration and resolution
+        for attr in ['time_coverage_duration', 'time_coverage_resolution']:
+            attr_value = getattr(dataset, attr, '')
+            try:
+                parse_duration(attr_value)
+                recommended_ctx.assert_true(True, '')  # Score it True!
+            except Exception:
+                recommended_ctx.assert_true(False, '{} should exist and be ISO-8601 format (example: PT1M30S), currently: {}'.format(attr, attr_value))
+        results.append(recommended_ctx.to_result())
+        return results
+
+
+class NCEITimeSeriesProfileOrthTimeIncompleteDepthBase(BaseCheck):
+    _cc_spec = 'ncei-timeseries-profile-orthtime-incompletedepth'
+    valid_feature_types = [
+        'timeSeries',
+        'timeseries_id',
+        'timeSeriesProfile',
+        'timeseriesprofile_id'
+    ]
+
     def check_dimensions(self, dataset):
         '''
         Checks that the feature types of this dataset are consistent with a timeseries-profile-orthogonal dataset.
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
         '''
         results = []
         required_ctx = TestCtx(BaseCheck.HIGH, 'All geophysical variables are timeseries-profile-ortho-time-incomplete-depth feature types')
@@ -149,30 +217,11 @@ class NCEITimeSeriesProfileOrthTimeIncompleteDepth(NCEIBaseCheck):
         results.append(required_ctx.to_result())
         return results
 
-    def check_required_attributes(self, dataset):
-        '''
-        Verifies that the dataset contains the NCEI required and highly recommended global attributes
-        '''
-        results = []
-        required_ctx = TestCtx(BaseCheck.HIGH, 'Required Global Attributes for Timeseries Profile orthogonal dataset')
-        required_ctx.assert_true(
-            getattr(dataset, 'nodc_template_version', '').lower() == self.valid_templates[0].lower(),
-            'nodc_template_version attribute must be {}'.format(self.valid_templates[0])
-        )
-        required_ctx.assert_true(
-            getattr(dataset, 'cdm_data_type', '') == 'Station',
-            'cdm_data_type attribute must be set to Station'
-        )
-        required_ctx.assert_true(
-            getattr(dataset, 'featureType', '') == 'timeSeriesProfile',
-            'featureType attribute must be set to timeSeriesProfile'
-        )
-        results.append(required_ctx.to_result())
-        return results
-
     def check_timeseries_id(self, dataset):
         '''
         Checks that if a variable exists for the timeseries id it has the appropriate attributes
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
         '''
         results = []
         exists_ctx = TestCtx(BaseCheck.MEDIUM, 'Variable defining "timeseries_id" exists')
@@ -191,24 +240,27 @@ class NCEITimeSeriesProfileOrthTimeIncompleteDepth(NCEIBaseCheck):
         return results
 
 
-class NCEITimeSeriesProfileIncomplete(NCEIBaseCheck):
+class NCEITimeSeriesProfileOrthTimeIncompleteDepth1_1(NCEI1_1Check, NCEITimeSeriesProfileOrthTimeIncompleteDepthBase):
     register_checker = True
-    _cc_spec = 'ncei-timeseries-profile-incomplete'
     _cc_spec_version = '1.1'
-    _cc_description = '''These templates are intended as a service to our community of Data Producers, and are also being used internally at NCEI in our own data development efforts. We hope the templates will serve as good starting points for Data Producers who wish to create preservable, discoverable, accessible, and interoperable data. It is important to note that these templates do not represent an attempt to create a new standard, and they are not absolutely required for archiving data at NCEI. However, we do hope that you will see the benefits in structuring your data following these conventions and NCEI stands ready to assist you in doing so.'''
-    _cc_url = 'http://www.nodc.noaa.gov/data/formats/netcdf/v2.0/timeSeriesIncomplete.cdl'
+    _cc_description = (
+        'This test checks the selected file against the NCEI netCDF timeSeriesProfile Orthogonal '
+        'Time and Incomplete Depth template version 1.1 (found at https://www.nodc.noaa.gov/data/'
+        'formats/netcdf/v1.1/timeSeriesProfileIncomVOrthoT.cdl). The NCEI version 1.1 templates '
+        'are based on “feature types”, as identified by Unidata and CF, and conform to ACDD '
+        'version 1.0 and CF version 1.6. You can find more information about the version 1.1 '
+        'templates at https://www.nodc.noaa.gov/data/formats/netcdf/v1.1/. This test is '
+        'specifically for the timeSeriesProfile feature type in an Orthogonal time and Incomplete '
+        'depth multidimensional array representation. This representation is typically used for a '
+        'series of profile features at the same horizontal position with monotonically increasing '
+        'time and the stationary instruments measure at different depths but at the same points '
+        'in time.')
+    _cc_url = 'http://www.nodc.noaa.gov/data/formats/netcdf/v1.1/timeSeriesIncomplete.cdl'
     _cc_authors = 'Luke Campbell, Dan Maher'
     _cc_checker_version = '2.1.0'
 
     valid_templates = [
-        "NODC_NetCDF_TimeSeriesProfile_Incomplete_Template_v1.1"
-    ]
-
-    valid_feature_types = [
-        'timeSeries',
-        'timeseries_id',
-        'timeSeriesProfile',
-        'timeseriesprofile_id'
+        "NODC_NetCDF_TimeSeriesProfile_IncompleteVertical_OrthogonalTemporal_Template_v1.1"
     ]
 
     @classmethod
@@ -218,9 +270,110 @@ class NCEITimeSeriesProfileIncomplete(NCEIBaseCheck):
         '''
         return {}
 
+    def check_required_attributes(self, dataset):
+        '''
+        Feature type specific check of global required and highly recommended attributes.
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
+        '''
+        results = []
+        required_ctx = TestCtx(BaseCheck.HIGH, 'Required Global Attributes for Timeseries Profile orthogonal dataset')
+        required_ctx.assert_true(
+            getattr(dataset, 'nodc_template_version', '').lower() == self.valid_templates[0].lower(),
+            'nodc_template_version attribute must be {}'.format(self.valid_templates[0])
+        )
+        required_ctx.assert_true(
+            getattr(dataset, 'cdm_data_type', '') == 'Station',
+            'cdm_data_type attribute must be set to Station'
+        )
+        required_ctx.assert_true(
+            getattr(dataset, 'featureType', '') == 'timeSeriesProfile',
+            'featureType attribute must be set to timeSeriesProfile'
+        )
+        results.append(required_ctx.to_result())
+        return results
+
+
+class NCEITimeSeriesProfileOrthTimeIncompleteDepth2_0(NCEI2_0Check, NCEITimeSeriesProfileOrthTimeIncompleteDepthBase):
+    register_checker = True
+    _cc_spec_version = '2.0'
+    _cc_description = (
+        'This test checks the selected file against the NCEI netCDF timeSeriesProfile Orthogonal '
+        'Time and Incomplete Depth template version 2.0 (found at https://www.nodc.noaa.gov/data/'
+        'formats/netcdf/v2.0/timeSeriesProfileIncomVOrthoT.cdl). The NCEI version 2.0 templates '
+        'are based on “feature types”, as identified by Unidata and CF, and conform to ACDD '
+        'version 1.3 and CF version 1.6. You can find more information about the version 2.0 '
+        'templates at https://www.nodc.noaa.gov/data/formats/netcdf/v2.0/. This test is '
+        'specifically for the timeSeriesProfile feature type in an Orthogonal time and Incomplete '
+        'depth multidimensional array representation. This representation is typically used for a '
+        'series of profile features at the same horizontal position with monotonically increasing '
+        'time and the stationary instruments measure at different depths but at the same points '
+        'in time.')
+    _cc_url = 'http://www.nodc.noaa.gov/data/formats/netcdf/v2.0/timeSeriesIncomplete.cdl'
+    _cc_authors = 'Luke Campbell, Dan Maher'
+    _cc_checker_version = '2.3.0'
+
+    valid_templates = [
+        "NCEI_NetCDF_TimeSeriesProfile_IncompleteVertical_OrthogonalTemporal_Template_v2.0"
+    ]
+
+    def check_required_attributes(self, dataset):
+        '''
+        Feature type specific check of global required and highly recommended attributes.
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
+        '''
+        results = []
+        required_ctx = TestCtx(BaseCheck.HIGH, 'Required Global Attributes for Timeseries Profile orthogonal dataset')
+        required_ctx.assert_true(
+            getattr(dataset, 'ncei_template_version', '').lower() == self.valid_templates[0].lower(),
+            'ncei_template_version attribute must be {}'.format(self.valid_templates[0])
+        )
+        required_ctx.assert_true(
+            getattr(dataset, 'cdm_data_type', '') == 'Station',
+            'cdm_data_type attribute must be set to Station'
+        )
+        required_ctx.assert_true(
+            getattr(dataset, 'featureType', '') == 'timeSeriesProfile',
+            'featureType attribute must be set to timeSeriesProfile'
+        )
+        results.append(required_ctx.to_result())
+        return results
+
+    def check_recommended_attributes(self, dataset):
+        '''
+        Feature type specific check of global recommended attributes.
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
+        '''
+        results = []
+        recommended_ctx = TestCtx(BaseCheck.MEDIUM, 'Recommended global attributes')
+        # Check time_coverage_duration and resolution
+        for attr in ['time_coverage_duration', 'time_coverage_resolution']:
+            attr_value = getattr(dataset, attr, '')
+            try:
+                parse_duration(attr_value)
+                recommended_ctx.assert_true(True, '')  # Score it True!
+            except Exception:
+                recommended_ctx.assert_true(False, '{} should exist and be ISO-8601 format (example: PT1M30S), currently: {}'.format(attr, attr_value))
+        results.append(recommended_ctx.to_result())
+        return results
+
+
+class NCEITimeSeriesProfileIncompleteBase(BaseCheck):
+    _cc_spec = 'ncei-timeseries-profile-incomplete'
+    valid_feature_types = [
+        'timeSeries',
+        'timeseries_id',
+        'timeSeriesProfile',
+        'timeseriesprofile_id'
+    ]
+
     def check_dimensions(self, dataset):
         '''
         Checks that the feature types of this dataset are consistent with a timeseries-profile-incomplete dataset.
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
         '''
         results = []
         required_ctx = TestCtx(BaseCheck.HIGH, 'All geophysical variables are timeseries-profile-incomplete feature types')
@@ -238,30 +391,11 @@ class NCEITimeSeriesProfileIncomplete(NCEIBaseCheck):
         results.append(required_ctx.to_result())
         return results
 
-    def check_required_attributes(self, dataset):
-        '''
-        Verifies that the dataset contains the NCEI required and highly recommended global attributes
-        '''
-        results = []
-        required_ctx = TestCtx(BaseCheck.HIGH, 'Required Global Attributes for Timeseries Profile orthogonal dataset')
-        required_ctx.assert_true(
-            getattr(dataset, 'nodc_template_version', '').lower() == self.valid_templates[0].lower(),
-            'nodc_template_version attribute must be {}'.format(self.valid_templates[0])
-        )
-        required_ctx.assert_true(
-            getattr(dataset, 'cdm_data_type', '') == 'Station',
-            'cdm_data_type attribute must be set to Station'
-        )
-        required_ctx.assert_true(
-            getattr(dataset, 'featureType', '') == 'timeSeriesProfile',
-            'featureType attribute must be set to timeSeriesProfile'
-        )
-        results.append(required_ctx.to_result())
-        return results
-
     def check_timeseries_id(self, dataset):
         '''
         Checks that if a variable exists for the timeseries id it has the appropriate attributes
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
         '''
         results = []
         exists_ctx = TestCtx(BaseCheck.MEDIUM, 'Variable defining "timeseries_id" exists')
@@ -280,24 +414,24 @@ class NCEITimeSeriesProfileIncomplete(NCEIBaseCheck):
         return results
 
 
-class NCEITimeSeriesProfileIncompleteTimeOrthDepth(NCEIBaseCheck):
+class NCEITimeSeriesProfileIncomplete1_1(NCEI1_1Check, NCEITimeSeriesProfileIncompleteBase):
     register_checker = True
-    _cc_spec = 'ncei-timeseries-profile-incompletetime-orthdepth'
     _cc_spec_version = '1.1'
-    _cc_description = '''These templates are intended as a service to our community of Data Producers, and are also being used internally at NCEI in our own data development efforts. We hope the templates will serve as good starting points for Data Producers who wish to create preservable, discoverable, accessible, and interoperable data. It is important to note that these templates do not represent an attempt to create a new standard, and they are not absolutely required for archiving data at NCEI. However, we do hope that you will see the benefits in structuring your data following these conventions and NCEI stands ready to assist you in doing so.'''
-    _cc_url = 'http://www.nodc.noaa.gov/data/formats/netcdf/v2.0/timeSeriesIncomplete.cdl'
+    _cc_description = (
+        'These templates are intended as a service to our community of Data Producers, and are '
+        'also being used internally at NCEI in our own data development efforts. We hope the '
+        'templates will serve as good starting points for Data Producers who wish to create '
+        'preservable, discoverable, accessible, and interoperable data. It is important to note '
+        'that these templates do not represent an attempt to create a new standard, and they are '
+        'not absolutely required for archiving data at NCEI. However, we do hope that you will '
+        'see the benefits in structuring your data following these conventions and NCEI stands '
+        'ready to assist you in doing so.')
+    _cc_url = 'http://www.nodc.noaa.gov/data/formats/netcdf/v1.1/timeSeriesIncomplete.cdl'
     _cc_authors = 'Luke Campbell, Dan Maher'
     _cc_checker_version = '2.1.0'
 
     valid_templates = [
-        "NODC_NetCDF_TimeSeriesProfile_OrthogonalVertical_IncompleteTemporal_Template_v1.1"
-    ]
-
-    valid_feature_types = [
-        'timeSeries',
-        'timeseries_id',
-        'timeSeriesProfile',
-        'timeseriesprofile_id'
+        "NODC_NetCDF_TimeSeriesProfile_Incomplete_Template_v1.1"
     ]
 
     @classmethod
@@ -307,9 +441,107 @@ class NCEITimeSeriesProfileIncompleteTimeOrthDepth(NCEIBaseCheck):
         '''
         return {}
 
+    def check_required_attributes(self, dataset):
+        '''
+        Feature type specific check of global required and highly recommended attributes.
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
+        '''
+        results = []
+        required_ctx = TestCtx(BaseCheck.HIGH, 'Required Global Attributes for Timeseries Profile Incomplete dataset')
+        required_ctx.assert_true(
+            getattr(dataset, 'nodc_template_version', '').lower() == self.valid_templates[0].lower(),
+            'nodc_template_version attribute must be {}'.format(self.valid_templates[0])
+        )
+        required_ctx.assert_true(
+            getattr(dataset, 'cdm_data_type', '') == 'Station',
+            'cdm_data_type attribute must be set to Station'
+        )
+        required_ctx.assert_true(
+            getattr(dataset, 'featureType', '') == 'timeSeriesProfile',
+            'featureType attribute must be set to timeSeriesProfile'
+        )
+        results.append(required_ctx.to_result())
+        return results
+
+
+class NCEITimeSeriesProfileIncomplete2_0(NCEI2_0Check, NCEITimeSeriesProfileIncompleteBase):
+    register_checker = True
+    _cc_spec_version = '2.0'
+    _cc_description = (
+        'These templates are intended as a service to our community of Data Producers, and are '
+        'also being used internally at NCEI in our own data development efforts. We hope the '
+        'templates will serve as good starting points for Data Producers who wish to create '
+        'preservable, discoverable, accessible, and interoperable data. It is important to note '
+        'that these templates do not represent an attempt to create a new standard, and they are '
+        'not absolutely required for archiving data at NCEI. However, we do hope that you will '
+        'see the benefits in structuring your data following these conventions and NCEI stands '
+        'ready to assist you in doing so.')
+    _cc_url = 'http://www.nodc.noaa.gov/data/formats/netcdf/v2.0/timeSeriesIncomplete.cdl'
+    _cc_authors = 'Luke Campbell, Dan Maher'
+    _cc_checker_version = '2.3.0'
+
+    valid_templates = [
+        "NCEI_NetCDF_TimeSeriesProfile_Incomplete_Template_v2.0"
+    ]
+
+    def check_required_attributes(self, dataset):
+        '''
+        Feature type specific check of global required and highly recommended attributes.
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
+        '''
+        results = []
+        required_ctx = TestCtx(BaseCheck.HIGH, 'Required Global Attributes for Timeseries Profile Incomplete dataset')
+        required_ctx.assert_true(
+            getattr(dataset, 'ncei_template_version', '').lower() == self.valid_templates[0].lower(),
+            'ncei_template_version attribute must be {}'.format(self.valid_templates[0])
+        )
+        required_ctx.assert_true(
+            getattr(dataset, 'cdm_data_type', '') == 'Station',
+            'cdm_data_type attribute must be set to Station'
+        )
+        required_ctx.assert_true(
+            getattr(dataset, 'featureType', '') == 'timeSeriesProfile',
+            'featureType attribute must be set to timeSeriesProfile'
+        )
+        results.append(required_ctx.to_result())
+        return results
+
+    def check_recommended_attributes(self, dataset):
+        '''
+        Feature type specific check of global recommended attributes.
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
+        '''
+        results = []
+        recommended_ctx = TestCtx(BaseCheck.MEDIUM, 'Recommended global attributes')
+        # Check time_coverage_duration and resolution
+        for attr in ['time_coverage_duration', 'time_coverage_resolution']:
+            attr_value = getattr(dataset, attr, '')
+            try:
+                parse_duration(attr_value)
+                recommended_ctx.assert_true(True, '')  # Score it True!
+            except Exception:
+                recommended_ctx.assert_true(False, '{} should exist and be ISO-8601 format (example: PT1M30S), currently: {}'.format(attr, attr_value))
+        results.append(recommended_ctx.to_result())
+        return results
+
+
+class NCEITimeSeriesProfileIncompleteTimeOrthDepthBase(BaseCheck):
+    _cc_spec = 'ncei-timeseries-profile-incompletetime-orthdepth'
+    valid_feature_types = [
+        'timeSeries',
+        'timeseries_id',
+        'timeSeriesProfile',
+        'timeseriesprofile_id'
+    ]
+
     def check_dimensions(self, dataset):
         '''
         Checks that the feature types of this dataset are consistent with a timeseries-profile-orthogonal dataset.
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
         '''
         results = []
         required_ctx = TestCtx(BaseCheck.HIGH, 'All geophysical variables are timeseries-profile-ortho-depth-incomplete-time feature types')
@@ -328,30 +560,11 @@ class NCEITimeSeriesProfileIncompleteTimeOrthDepth(NCEIBaseCheck):
         results.append(required_ctx.to_result())
         return results
 
-    def check_required_attributes(self, dataset):
-        '''
-        Verifies that the dataset contains the NCEI required and highly recommended global attributes
-        '''
-        results = []
-        required_ctx = TestCtx(BaseCheck.HIGH, 'Required Global Attributes for Timeseries Profile orthogonal dataset')
-        required_ctx.assert_true(
-            getattr(dataset, 'nodc_template_version', '') == self.valid_templates[0],
-            'nodc_template_version attribute must be {}'.format(self.valid_templates[0])
-        )
-        required_ctx.assert_true(
-            getattr(dataset, 'cdm_data_type', '') == 'Station',
-            'cdm_data_type attribute must be set to Station'
-        )
-        required_ctx.assert_true(
-            getattr(dataset, 'featureType', '') == 'timeSeriesProfile',
-            'featureType attribute must be set to timeSeriesProfile'
-        )
-        results.append(required_ctx.to_result())
-        return results
-
     def check_timeseries_id(self, dataset):
         '''
         Checks that if a variable exists for the timeseries id it has the appropriate attributes
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
         '''
         results = []
         exists_ctx = TestCtx(BaseCheck.MEDIUM, 'Variable defining "timeseries_id" exists')
@@ -367,4 +580,118 @@ class NCEITimeSeriesProfileIncompleteTimeOrthDepth(NCEIBaseCheck):
             "long_name attribute should exist and not be empty"
         )
         results.append(test_ctx.to_result())
+        return results
+
+
+class NCEITimeSeriesProfileIncompleteTimeOrthDepth1_1(NCEI1_1Check, NCEITimeSeriesProfileIncompleteTimeOrthDepthBase):
+    register_checker = True
+    _cc_spec_version = '1.1'
+    _cc_description = (
+        'These templates are intended as a service to our community of Data Producers, and are '
+        'also being used internally at NCEI in our own data development efforts. We hope the '
+        'templates will serve as good starting points for Data Producers who wish to create '
+        'preservable, discoverable, accessible, and interoperable data. It is important to note '
+        'that these templates do not represent an attempt to create a new standard, and they are '
+        'not absolutely required for archiving data at NCEI. However, we do hope that you will '
+        'see the benefits in structuring your data following these conventions and NCEI stands '
+        'ready to assist you in doing so.')
+    _cc_url = 'http://www.nodc.noaa.gov/data/formats/netcdf/v1.1/timeSeriesIncomplete.cdl'
+    _cc_authors = 'Luke Campbell, Dan Maher'
+    _cc_checker_version = '2.1.0'
+
+    valid_templates = [
+        "NODC_NetCDF_TimeSeriesProfile_OrthogonalVertical_IncompleteTemporal_Template_v1.1"
+    ]
+
+    @classmethod
+    def beliefs(cls):
+        '''
+        Not applicable for gliders
+        '''
+        return {}
+
+    def check_required_attributes(self, dataset):
+        '''
+        Feature type specific check of global required and highly recommended attributes.
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
+        '''
+        results = []
+        required_ctx = TestCtx(BaseCheck.HIGH, 'Required Global Attributes for Timeseries Profile Incomplete Time and Depth')
+        required_ctx.assert_true(
+            getattr(dataset, 'nodc_template_version', '') == self.valid_templates[0],
+            'nodc_template_version attribute must be {}'.format(self.valid_templates[0])
+        )
+        required_ctx.assert_true(
+            getattr(dataset, 'cdm_data_type', '') == 'Station',
+            'cdm_data_type attribute must be set to Station'
+        )
+        required_ctx.assert_true(
+            getattr(dataset, 'featureType', '') == 'timeSeriesProfile',
+            'featureType attribute must be set to timeSeriesProfile'
+        )
+        results.append(required_ctx.to_result())
+        return results
+
+
+class NCEITimeSeriesProfileIncompleteTimeOrthDepth2_0(NCEI2_0Check, NCEITimeSeriesProfileIncompleteTimeOrthDepthBase):
+    register_checker = True
+    _cc_spec_version = '2.0'
+    _cc_description = (
+        'These templates are intended as a service to our community of Data Producers, and are '
+        'also being used internally at NCEI in our own data development efforts. We hope the '
+        'templates will serve as good starting points for Data Producers who wish to create '
+        'preservable, discoverable, accessible, and interoperable data. It is important to note '
+        'that these templates do not represent an attempt to create a new standard, and they are '
+        'not absolutely required for archiving data at NCEI. However, we do hope that you will '
+        'see the benefits in structuring your data following these conventions and NCEI stands '
+        'ready to assist you in doing so.')
+    _cc_url = 'http://www.nodc.noaa.gov/data/formats/netcdf/v2.0/timeSeriesIncomplete.cdl'
+    _cc_authors = 'Luke Campbell, Dan Maher'
+    _cc_checker_version = '2.3.0'
+
+    valid_templates = [
+        "NCEI_NetCDF_TimeSeriesProfile_OrthogonalVertical_IncompleteTemporal_Template_v2.0"
+    ]
+
+    def check_required_attributes(self, dataset):
+        '''
+        Feature type specific check of global required and highly recommended attributes.
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
+        '''
+        results = []
+        required_ctx = TestCtx(BaseCheck.HIGH, 'Required Global Attributes for Timeseries Profile Incomplete Time and Depth')
+        required_ctx.assert_true(
+            getattr(dataset, 'ncei_template_version', '') == self.valid_templates[0],
+            'ncei_template_version attribute must be {}'.format(self.valid_templates[0])
+        )
+        required_ctx.assert_true(
+            getattr(dataset, 'cdm_data_type', '') == 'Station',
+            'cdm_data_type attribute must be set to Station'
+        )
+        required_ctx.assert_true(
+            getattr(dataset, 'featureType', '') == 'timeSeriesProfile',
+            'featureType attribute must be set to timeSeriesProfile'
+        )
+        results.append(required_ctx.to_result())
+        return results
+
+    def check_recommended_attributes(self, dataset):
+        '''
+        Feature type specific check of global recommended attributes.
+
+        :param netCDF4.Dataset dataset: An open netCDF dataset
+        '''
+        results = []
+        recommended_ctx = TestCtx(BaseCheck.MEDIUM, 'Recommended global attributes')
+        # Check time_coverage_duration and resolution
+        for attr in ['time_coverage_duration', 'time_coverage_resolution']:
+            attr_value = getattr(dataset, attr, '')
+            try:
+                parse_duration(attr_value)
+                recommended_ctx.assert_true(True, '')  # Score it True!
+            except Exception:
+                recommended_ctx.assert_true(False, '{} should exist and be ISO-8601 format (example: PT1M30S), currently: {}'.format(attr, attr_value))
+        results.append(recommended_ctx.to_result())
         return results

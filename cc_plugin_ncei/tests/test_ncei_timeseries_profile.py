@@ -2,10 +2,10 @@ from cc_plugin_ncei.tests.ncei_test_case import NCEITestCase
 from cc_plugin_ncei.tests.resources import STATIC_FILES
 
 
-class TestNCEITimeSeriesProfile(NCEITestCase):
+class TestNCEITimeSeriesProfile1_1(NCEITestCase):
 
     def setUp(self):
-        self.run_checker('ncei-timeseries-profile-orthogonal', STATIC_FILES['nodc-timeseries-profile'])
+        self.run_checker('ncei-timeseries-profile-orthogonal:1.1', STATIC_FILES['nodc-timeseries-profile'])
 
     def test_global_profile_score(self):
         assert not self.errors
@@ -21,3 +21,23 @@ class TestNCEITimeSeriesProfile(NCEITestCase):
         failed_messages = self.get_failed_messages(self.results['all_priorities'])
         assert sorted(failed_messages) == sorted(known_messages)
 
+
+class TestNCEITimeSeriesProfile2_0(NCEITestCase):
+
+    def setUp(self):
+        self.run_checker('ncei-timeseries-profile-orthogonal:2.0', STATIC_FILES['ncei-timeseries-profile-orthogonal:2.0'])
+
+    def test_global_profile_score(self):
+        assert not self.errors
+
+        assert self.results['scored_points'] == 143
+        assert self.results['possible_points'] == 148
+        known_messages = [
+            'wmo_code should not be empty if specified',
+            'imo_code should not be empty if specified',
+            'call_sign attribute should not be empty if specified',
+            'sea_name attribute should exist and should be from the NODC sea names list: Cordell Bank National Marine Sanctuary is not a valid sea name',
+            'time_coverage_resolution should exist and be ISO-8601 format (example: PT1M30S), currently: PT10.S'
+        ]
+        failed_messages = self.get_failed_messages(self.results['all_priorities'])
+        assert sorted(failed_messages) == sorted(known_messages)

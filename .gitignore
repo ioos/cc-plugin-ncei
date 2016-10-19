@@ -6,3 +6,5 @@ dist
 *.egg-info
 *.nc
 **/.DS_Store
+.tox/
+.cache
