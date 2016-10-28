@@ -1,6 +1,6 @@
 # NCEI Template Compliance Checker
 
-This is a checker for [NCEI netCDF Templates v1.1](http://www.nodc.noaa.gov/data/formats/netcdf/v1.1/) files.
+This is a checker for [NCEI netCDF Templates v1.1](http://www.nodc.noaa.gov/data/formats/netcdf/v1.1/) and [v2.0](http://www.nodc.noaa.gov/data/formats/netcdf/v2.0/) files.
 
 It works with the [ioos/compliance-checker](https://github.com/ioos/compliance-checker).
 
