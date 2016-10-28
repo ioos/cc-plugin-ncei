@@ -4,9 +4,10 @@
 cc_plugin_ncei/util.py
 '''
 from pkg_resources import resource_filename
-import csv
 import json
-
+from lxml import etree
+from pkgutil import get_data
+import re
 
 _UNITLESS_DB = None
 _SEA_NAMES = None
@@ -27,15 +28,24 @@ def get_sea_names():
     '''
     Returns a list of NODC sea names
 
-    source of list: https://www.nodc.noaa.gov/General/NODC-Archive/seanamelist.txt
+    source of list: https://www.nodc.noaa.gov/cgi-bin/OAS/lookup?format=xml;table=seanames
     '''
     global _SEA_NAMES
     if _SEA_NAMES is None:
+        resource_text = get_data("cc_plugin_ncei", "data/sea_names.xml")
+        parser = etree.XMLParser(remove_blank_text=True)
+        root = etree.fromstring(resource_text, parser)
         buf = {}
-        with open(resource_filename('cc_plugin_ncei', 'data/seanames.csv'), 'r') as f:
-            reader = csv.reader(f)
-            for code, sea_name in reader:
-                buf[sea_name] = code
+        # For parsing out the NODC code
+        regex = re.compile(' \([0-9]')
+        for node in root.iter('item'):
+            value = node.get('value')
+            # Use the regex to strip off the trailing code if it exists
+            output = regex.sub('REMOVE', value)
+            value = output.split('REMOVE')[0]
+            # codes are surrounded by parentheses but the name could also have parentheses
+            buf[value] = node.get('id')
+
         _SEA_NAMES = buf
     return _SEA_NAMES
 
