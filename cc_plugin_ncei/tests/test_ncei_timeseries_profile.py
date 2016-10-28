@@ -10,12 +10,11 @@ class TestNCEITimeSeriesProfile1_1(NCEITestCase):
     def test_global_profile_score(self):
         assert not self.errors
 
-        assert self.results['scored_points'] == 122
+        assert self.results['scored_points'] == 123
         assert self.results['possible_points'] == 126
         known_messages = [
             'geospatial_lat_resolution should exist and not be empty.',
             'geospatial_lon_resolution should exist and not be empty.',
-            'sea_name attribute should exist and should be from the NODC sea names list: Cordell Bank National Marine Sanctuary is not a valid sea name',
             'nodc_template_version attribute must be NODC_NetCDF_TimeSeriesProfile_Orthogonal_Template_v1.1'
         ]
         failed_messages = self.get_failed_messages(self.results['all_priorities'])
@@ -30,13 +29,12 @@ class TestNCEITimeSeriesProfile2_0(NCEITestCase):
     def test_global_profile_score(self):
         assert not self.errors
 
-        assert self.results['scored_points'] == 143
+        assert self.results['scored_points'] == 144
         assert self.results['possible_points'] == 148
         known_messages = [
             'wmo_code should not be empty if specified',
             'imo_code should not be empty if specified',
             'call_sign attribute should not be empty if specified',
-            'sea_name attribute should exist and should be from the NODC sea names list: Cordell Bank National Marine Sanctuary is not a valid sea name',
             'time_coverage_resolution should exist and be ISO-8601 format (example: PT1M30S), currently: PT10.S'
         ]
         failed_messages = self.get_failed_messages(self.results['all_priorities'])
