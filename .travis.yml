@@ -18,6 +18,11 @@ before_install:
     - source activate TEST
     - travis_retry conda install --yes pytest flake8
 
+install:
+    - pip install -r requirements.txt
+    - pip install -r test_requirements.txt
+    - pip install -e .
+
 script:
-    - python setup.py test -a "--verbose"
-    - find . -type f -name "*.py" | xargs flake8 --max-line-length=100
+    - py.test -s -rxs -v
+    - flake8 --ignore=E501,E251,E221,E201,E202,E203 -qq --statistics . || true
