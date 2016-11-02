@@ -34,14 +34,14 @@ Please see LICENSE for the full license text.
 3. Tests should now show up when you run compliance checker:
 
    ```
-   compliance-checker -t ncei-trajectoryprofile-orthogonal -v https://data.nodc.noaa.gov/thredds/dodsC/testdata/mbiddle/GOLD_STANDARD_NETCDF/1.1/NODC_trajectoryProfile_template_v1.1_2016-06-14_125323.993167.nc
+   compliance-checker -t ncei-trajectory-profile-orthogonal -v https://data.nodc.noaa.gov/thredds/dodsC/testdata/mbiddle/GOLD_STANDARD_NETCDF/1.1/NODC_trajectoryProfile_template_v1.1_2016-06-15_133721.704494.nc
 
    --------------------------------------------------------------------------------
                        The dataset scored 124 out of 127 points
                   during the ncei-trajectoryprofile-orthogonal check
    --------------------------------------------------------------------------------
                               Verbose Scoring Breakdown:
-   
+
                                     High Priority
    --------------------------------------------------------------------------------
        Name                            :Priority: Score
