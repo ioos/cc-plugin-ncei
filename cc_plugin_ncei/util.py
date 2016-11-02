@@ -28,23 +28,17 @@ def get_sea_names():
     '''
     Returns a list of NODC sea names
 
-    source of list: https://www.nodc.noaa.gov/cgi-bin/OAS/lookup?format=xml;table=seanames
+    source of list: http://www.nodc.noaa.gov/General/NODC-Archive/seanames.xml
     '''
     global _SEA_NAMES
     if _SEA_NAMES is None:
-        resource_text = get_data("cc_plugin_ncei", "data/sea_names.xml")
+        resource_text = get_data("cc_plugin_ncei", "data/seanames.xml")
         parser = etree.XMLParser(remove_blank_text=True)
         root = etree.fromstring(resource_text, parser)
         buf = {}
-        # For parsing out the NODC code
-        regex = re.compile(' \([0-9]')
-        for node in root.iter('item'):
-            value = node.get('value')
-            # Use the regex to strip off the trailing code if it exists
-            output = regex.sub('REMOVE', value)
-            value = output.split('REMOVE')[0]
-            # codes are surrounded by parentheses but the name could also have parentheses
-            buf[value] = node.get('id')
+        for seaname in root.findall('seaname'):
+            name = seaname.find('seaname').text
+            buf[name] = seaname.find('seacode').text if seaname.find('seacode') is not None else 'N/A'
 
         _SEA_NAMES = buf
     return _SEA_NAMES
