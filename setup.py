@@ -19,7 +19,7 @@ setup(name                 = "cc-plugin-ncei",
       url                  = "https://github.com/ioos/cc-plugin-ncei/",
       packages             = find_packages(),
       install_requires     = reqs,
-      package_data         = {'cc_plugin_ncei': ['data/*.json', 'data/*.csv']},
+      package_data         = {'cc_plugin_ncei': ['data/*.json', 'data/*.xml']},
       classifiers          = [
                              'Development Status :: 5 - Production/Stable',
                              'Intended Audience :: Developers',
