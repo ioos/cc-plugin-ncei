@@ -28,7 +28,7 @@ Please see LICENSE for the full license text.
 2. Install the plugin:
 
    ```
-   pip install 'git+git://github.com/ioos/cc-plugin-ncei.git'
+   pip install cc-plugin-ncei
    ```
 
 3. Tests should now show up when you run compliance checker:
