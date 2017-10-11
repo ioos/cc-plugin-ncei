@@ -13,6 +13,7 @@ class TestNCEIBase(NCEITestCase):
 
 
     def setUp(self):
+        """Create a simple timeseries like NetCDF object."""
         self.ds = MockNetCDF()
         self.ds.createDimension('time', None)
         tvar = self.ds.createVariable('time', 'f8', ('time',))
@@ -28,9 +29,17 @@ class TestNCEIBase(NCEITestCase):
         self.base_check = ncei_base.BaseNCEICheck()
 
     def tearDown(self):
+        """
+        Ensure the NetCDF object closes after each test or if an exception is
+        raised.
+        """
         self.ds.close()
 
     def test_valid_range(self):
+        """
+        Check for defined valid range with same dtype as source variable with
+        two elements in min to max order.
+        """
         var = self.ds.variables['pressure']
         tc1 = ncei_base.TestCtx(BaseCheck.MEDIUM, 'Test context')
         var.valid_range = np.array([101.325, 101.425], dtype=np.float64)
@@ -44,6 +53,11 @@ class TestNCEIBase(NCEITestCase):
         self.assertTrue("valid_range must be a two element vector of min followed by max with the same data type as pressure" in tc2.messages)
 
     def test_valid_min_max(self):
+        """
+        When valid_range is not defined, check for the presence of both
+        attributes valid_min and valid_max which are the same data type as the
+        data in the variable.
+        """
         var = self.ds.variables['pressure']
         var.valid_min, var.valid_max = 101.325, 101.425
         tc1 = ncei_base.TestCtx(BaseCheck.MEDIUM, 'Test context')
