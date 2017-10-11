@@ -1,7 +1,7 @@
 from cc_plugin_ncei.tests.ncei_test_case import NCEITestCase
 from cc_plugin_ncei import ncei_base
 from compliance_checker.base import BaseCheck
-from compliance_checker.tests.helpers import MockNetCDF
+from cc_plugin_ncei.tests.helpers import MockNetCDF
 from netCDF4 import Dataset
 import numpy as np
 
