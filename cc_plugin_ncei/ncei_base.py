@@ -603,8 +603,7 @@ class NCEI1_1Check(BaseNCEICheck):
             test_ctx.assert_true(getattr(ncvar, 'long_name', '') != '', 'long_name should exist and not be empty')
             if not hasattr(ncvar, 'standard_name'):
                 test_ctx.assert_true(getattr(ncvar, 'nodc_name', '') != '', 'nodc_name should exist and not be empty')
-                test_ctx.assert_true(getattr(ncvar, 'valid_min', '') != '', 'valid_min should exist and not be empty or valid_range should be defined')
-                test_ctx.assert_true(getattr(ncvar, 'valid_max', '') != '', 'valid_max should exist and not be empty or valid_range should be defined')
+            self._check_min_max_range(ncvar, test_ctx)
             grid_mapping = getattr(ncvar, 'grid_mapping', '')
             test_ctx.assert_true(grid_mapping != '', 'grid_mapping should exist and not be empty')
             if grid_mapping:
