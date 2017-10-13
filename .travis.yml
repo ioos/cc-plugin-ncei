@@ -15,7 +15,7 @@ before_install:
     - conda update --yes --all
     - conda config --add channels conda-forge --force
     # hopefully fix issues with missing libraries and LXML
-    - conda install 'icu=58.*'
+    - conda install -y 'icu=58.*'
     - travis_retry conda create --yes -n TEST --file requirements.txt $CONDA
     - source activate TEST
     - travis_retry conda install --yes pytest flake8
