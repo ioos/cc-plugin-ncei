@@ -24,8 +24,6 @@ before_install:
   - conda config --set always_yes yes --set changeps1 no --set show_channel_urls true
   - conda update conda
   - conda config --add channels conda-forge --force
-  # hopefully fix issues with missing libraries and LXML
-  - conda install -y 'icu=58.*'
   - conda create --name TEST python=$TRAVIS_PYTHON_VERSION --file requirements.txt --file requirements-dev.txt
   - source activate TEST
 
