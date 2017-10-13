@@ -32,8 +32,7 @@ install:
 
 script:
   - if [[ $TEST_TARGET == 'default' ]]; then
-      cp -r cc_plugin_ncei/tests/ /tmp && cd /tmp ;
-      py.test -s -rxs -v tests ;
+      py.test -s -rxs -v ;
     fi
 
   - if [[ $TEST_TARGET == 'coding_standards' ]]; then
