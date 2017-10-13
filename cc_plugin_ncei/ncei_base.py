@@ -10,6 +10,7 @@ from compliance_checker.cf.util import StandardNameTable, units_convertible
 from cc_plugin_ncei import util
 from cf_units import Unit
 from isodate import parse_datetime, ISO8601Error
+import six
 import re
 
 
@@ -101,7 +102,7 @@ class BaseNCEICheck(BaseNCCheck):
                 warn_msg = '{} attribute should exist, have the same type as {}, and not be empty or valid_range should be defined'.format(bound, var.name)
                 # need to special case str attributes since they aren't directly
                 # comparable to numpy dtypes
-                if type(v_bound) == str:
+                if isinstance(v_bound, six.string_types):
                     test_ctx.assert_true(v_bound != '' and
                                          var.dtype.char == 'S', warn_msg)
                 # otherwise compare the numpy types directly
