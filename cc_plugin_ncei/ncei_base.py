@@ -44,7 +44,7 @@ class BaseNCEICheck(BaseNCCheck):
 
     @classmethod
     def __init__(self):
-        self._std_names = StandardNameTable('cf-standard-name-table.xml')
+        self._std_names = StandardNameTable()
         self.high_rec_atts = []
         self.rec_atts  = [
             'title',
