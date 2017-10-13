@@ -10,6 +10,7 @@ from compliance_checker.cf.util import StandardNameTable, units_convertible
 from cc_plugin_ncei import util
 from cf_units import Unit
 from isodate import parse_datetime, ISO8601Error
+import six
 import re
 
 
@@ -84,6 +85,31 @@ class BaseNCEICheck(BaseNCCheck):
     def setup(self, ds):
         pass
 
+    def _check_min_max_range(self, var, test_ctx):
+        """
+        Checks that either both valid_min and valid_max exist, or valid_range
+        exists.
+        """
+        if 'valid_range' in var.ncattrs():
+            test_ctx.assert_true(var.valid_range.dtype == var.dtype and
+                                 len(var.valid_range) == 2
+                                 and var.valid_range[0] <= var.valid_range[1],
+                                 "valid_range must be a two element vector of min followed by max with the same data type as {}".format(var.name)
+                                 )
+        else:
+            for bound in ('valid_min', 'valid_max'):
+                v_bound = getattr(var, bound, '')
+                warn_msg = '{} attribute should exist, have the same type as {}, and not be empty or valid_range should be defined'.format(bound, var.name)
+                # need to special case str attributes since they aren't directly
+                # comparable to numpy dtypes
+                if isinstance(v_bound, six.string_types):
+                    test_ctx.assert_true(v_bound != '' and
+                                         var.dtype.char == 'S', warn_msg)
+                # otherwise compare the numpy types directly
+                else:
+                    test_ctx.assert_true(v_bound.dtype == var.dtype, warn_msg)
+        return test_ctx
+
     def check_lat(self, dataset):
         '''
         float lat(time) ;//....................................... Depending on the precision used for the variable, the data type could be int or double instead of float.
@@ -113,8 +139,7 @@ class BaseNCEICheck(BaseNCCheck):
 
         test_ctx = TestCtx(BaseCheck.MEDIUM, 'Recommended attributes for variable {}'.format(lat))
         test_ctx.assert_true(getattr(lat_var, 'long_name', '') != '', 'long_name attribute should exist and not be empty')
-        test_ctx.assert_true(getattr(lat_var, 'valid_min', '') != '', 'valid_min attribute should exist and not be empty')
-        test_ctx.assert_true(getattr(lat_var, 'valid_max', '') != '', 'valid_max attribute should exist and not be empty')
+        self._check_min_max_range(lat_var, test_ctx)
         if hasattr(lat_var, 'comment'):
             test_ctx.assert_true(getattr(lat_var, 'comment', '') != '', 'comment attribute should not be empty if specified')
         test_ctx.assert_true(getattr(lat_var, 'comment', '') != '', 'comment attribute should exist and not be empty')
@@ -150,8 +175,7 @@ class BaseNCEICheck(BaseNCCheck):
 
         test_ctx = TestCtx(BaseCheck.MEDIUM, 'Recommended attributes for variable {}'.format(lon))
         test_ctx.assert_true(getattr(lon_var, 'long_name', '') != '', 'long_name attribute should exist and not be empty')
-        test_ctx.assert_true(getattr(lon_var, 'valid_min', '') != '', 'valid_min attribute should exist and not be empty')
-        test_ctx.assert_true(getattr(lon_var, 'valid_max', '') != '', 'valid_max attribute should exist and not be empty')
+        self._check_min_max_range(lon_var, test_ctx)
 
         if hasattr(lon_var, 'comment'):
             test_ctx.assert_true(getattr(lon_var, 'comment', '') != '', 'comment attribute should not be empty if specified')
@@ -261,14 +285,7 @@ class BaseNCEICheck(BaseNCCheck):
         # Check has these attributes
         # We ommit checking ancillary_variables because that only applies if this variable HAS ancillary variables
         recommended_ctx = TestCtx(BaseCheck.MEDIUM, 'Recommended attributes for coordinate variable {}'.format(var))
-        recommended_attrs = [
-            'valid_min',
-            'valid_max'
-        ]
-
-        for attr in recommended_attrs:
-            varattr = getattr(dataset.variables[var], attr, '')
-            recommended_ctx.assert_true(varattr != '', 'it is recommended for height to have a {} attribute and it not be empty'.format(attr))
+        self._check_min_max_range(dataset.variables[var], recommended_ctx)
 
         if hasattr(dataset.variables[var], 'comment'):
             recommended_ctx.assert_true(getattr(dataset.variables[var], 'comment', '') != '', 'comment attribute should not be empty if specified')
@@ -587,8 +604,7 @@ class NCEI1_1Check(BaseNCEICheck):
             test_ctx.assert_true(getattr(ncvar, 'long_name', '') != '', 'long_name should exist and not be empty')
             if not hasattr(ncvar, 'standard_name'):
                 test_ctx.assert_true(getattr(ncvar, 'nodc_name', '') != '', 'nodc_name should exist and not be empty')
-            test_ctx.assert_true(getattr(ncvar, 'valid_min', '') != '', 'valid_min should exist and not be empty')
-            test_ctx.assert_true(getattr(ncvar, 'valid_max', '') != '', 'valid_max should exist and not be empty')
+            self._check_min_max_range(ncvar, test_ctx)
             grid_mapping = getattr(ncvar, 'grid_mapping', '')
             test_ctx.assert_true(grid_mapping != '', 'grid_mapping should exist and not be empty')
             if grid_mapping:
@@ -943,8 +959,7 @@ class NCEI2_0Check(BaseNCEICheck):
             test_ctx.assert_true(getattr(ncvar, 'long_name', '') != '', 'long_name should exist and not be empty')
             if not hasattr(ncvar, 'standard_name'):
                 test_ctx.assert_true(getattr(ncvar, 'ncei_name', '') != '', 'ncei_name should exist and not be empty')
-            test_ctx.assert_true(getattr(ncvar, 'valid_min', '') != '', 'valid_min should exist and not be empty')
-            test_ctx.assert_true(getattr(ncvar, 'valid_max', '') != '', 'valid_max should exist and not be empty')
+            self._check_min_max_range(ncvar, test_ctx)
 
             coverage_content_type_options = ['image', 'thematicClassification', 'physicalMeasurement', 'auxiliaryInformation',
                                              'qualityInformation', 'referenceInformation', 'modelResult', 'coordinate']
