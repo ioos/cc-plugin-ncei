@@ -42,7 +42,11 @@ class TestCtx(object):
 
 class BaseNCEICheck(BaseNCCheck):
     register_checker = True
-
+    _cc_display_headers = {
+        3: 'Required',
+        2: 'Recommended',
+        1: 'Suggested'
+    }
     @classmethod
     def __init__(self):
         self._std_names = StandardNameTable()
