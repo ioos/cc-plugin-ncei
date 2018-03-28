@@ -26,7 +26,20 @@ Please see LICENSE for the full license text.
 1. Activate your virtualenv/conda
 
 2. Install the plugin:
+### Conda
+Installing `cc-plugin-ncei` from the `conda-forge` channel can be achieved by adding `conda-forge` to your channels with:
 
+```
+conda config --add channels conda-forge
+```
+
+Once the `conda-forge` channel has been enabled, `cc-plugin-ncei` can be installed with:
+
+```
+conda install cc-plugin-ncei
+```
+
+### Pip
    ```
    pip install cc-plugin-ncei
    ```
