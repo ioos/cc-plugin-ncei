@@ -1,7 +1,7 @@
-from compliance_checker.suite import CheckSuite
-from compliance_checker.runner import ComplianceChecker
-from netCDF4 import Dataset
 import unittest
+
+from compliance_checker.suite import CheckSuite
+from netCDF4 import Dataset
 
 
 class NCEITestCase(unittest.TestCase):
@@ -14,19 +14,21 @@ class NCEITestCase(unittest.TestCase):
     #  ion.module:TestClassName.test_function_name
     def __repr__(self):
         name = self.id()
-        name = name.split('.')
+        name = name.split(".")
         if name[0] not in ["ion", "pyon"]:
-            return "%s (%s)" % (name[-1], '.'.join(name[:-1]))
+            return "%s (%s)" % (name[-1], ".".join(name[:-1]))
         else:
-            return "%s ( %s )" % (name[-1], '.'.join(name[:-2]) + ":" + '.'.join(name[-2:]))
+            return "%s ( %s )" % (
+                name[-1],
+                ".".join(name[:-2]) + ":" + ".".join(name[-2:]),
+            )
+
     __str__ = __repr__
 
     def load_dataset(self, nc_dataset):
-        '''
-        Return a pairwise object for the dataset
-        '''
+        """Return a pairwise object for the dataset"""
         if isinstance(nc_dataset, basestring):
-            nc_dataset = Dataset(nc_dataset, 'r')
+            nc_dataset = Dataset(nc_dataset, "r")
             self.addCleanup(nc_dataset.close)
         return nc_dataset
 

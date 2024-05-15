@@ -1,37 +1,44 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-'''
-cc_plugin_ncei/ncei_base.py
-'''
-from __future__ import print_function
+"""cc_plugin_ncei/ncei_base.py"""
 
-from compliance_checker.base import Result, BaseCheck, BaseNCCheck
-from compliance_checker.cf.util import StandardNameTable, units_convertible
-from cc_plugin_ncei import util
-from cf_units import Unit
-from isodate import parse_datetime, ISO8601Error
-import six
 import re
 
+import six
+from cf_units import Unit
+from compliance_checker.base import BaseCheck, BaseNCCheck, Result
+from compliance_checker.cf.util import StandardNameTable, units_convertible
+from isodate import ISO8601Error, parse_datetime
 
-class TestCtx(object):
-    '''
-    Simple struct object that holds score values and messages to compile into a result
-    '''
-    def __init__(self, category=None, description='', out_of=0, score=0, messages=None):
+from cc_plugin_ncei import util
+
+
+class TestCtx:
+    """Simple struct object that holds score values and messages to compile into a result"""
+
+    def __init__(
+        self,
+        category=None,
+        description="",
+        out_of=0,
+        score=0,
+        messages=None,
+    ):
         self.category = category or BaseCheck.LOW
         self.out_of = out_of
         self.score = score
         self.messages = messages or []
-        self.description = description or ''
+        self.description = description or ""
 
     def to_result(self):
-        return Result(self.category, (self.score, self.out_of), self.description, self.messages)
+        return Result(
+            self.category,
+            (self.score, self.out_of),
+            self.description,
+            self.messages,
+        )
 
     def assert_true(self, test, message):
-        '''
-        Increments score if test is true otherwise appends a message
-        '''
+        """Increments score if test is true otherwise appends a message"""
         self.out_of += 1
 
         if test:
@@ -43,46 +50,47 @@ class TestCtx(object):
 class BaseNCEICheck(BaseNCCheck):
     register_checker = True
     _cc_display_headers = {
-        3: 'Required',
-        2: 'Recommended',
-        1: 'Suggested'
+        3: "Required",
+        2: "Recommended",
+        1: "Suggested",
     }
+
     @classmethod
     def __init__(self):
         self._std_names = StandardNameTable()
         self.high_rec_atts = []
-        self.rec_atts  = [
-            'title',
-            'summary',
-            'source',
-            'uuid',
-            'id',
-            'naming_authority',
-            'geospatial_lat_min',
-            'geospatial_lat_max',
-            'geospatial_lat_resolution',
-            'geospatial_lon_min',
-            'geospatial_lon_max',
-            'geospatial_lon_resolution',
-            'geospatial_vertical_max',
-            'geospatial_vertical_min',
-            'geospatial_vertical_units',
-            'geospatial_vertical_resolution',
-            'institution',
-            'creator_name',
-            'creator_url',
-            'creator_email',
-            'project',
-            'processing_level',
-            'references',
-            'keywords_vocabulary',
-            'keywords',
-            'publisher_name',
-            'publisher_email',
-            'publisher_url',
-            'history',
-            'license',
-            'metadata_link'
+        self.rec_atts = [
+            "title",
+            "summary",
+            "source",
+            "uuid",
+            "id",
+            "naming_authority",
+            "geospatial_lat_min",
+            "geospatial_lat_max",
+            "geospatial_lat_resolution",
+            "geospatial_lon_min",
+            "geospatial_lon_max",
+            "geospatial_lon_resolution",
+            "geospatial_vertical_max",
+            "geospatial_vertical_min",
+            "geospatial_vertical_units",
+            "geospatial_vertical_resolution",
+            "institution",
+            "creator_name",
+            "creator_url",
+            "creator_email",
+            "project",
+            "processing_level",
+            "references",
+            "keywords_vocabulary",
+            "keywords",
+            "publisher_name",
+            "publisher_email",
+            "publisher_url",
+            "history",
+            "license",
+            "metadata_link",
         ]
         self.sug_atts = []
 
@@ -90,216 +98,320 @@ class BaseNCEICheck(BaseNCCheck):
         pass
 
     def _check_min_max_range(self, var, test_ctx):
-        """
-        Checks that either both valid_min and valid_max exist, or valid_range
+        """Checks that either both valid_min and valid_max exist, or valid_range
         exists.
         """
-        if 'valid_range' in var.ncattrs():
-            test_ctx.assert_true(var.valid_range.dtype == var.dtype and
-                                 len(var.valid_range) == 2
-                                 and var.valid_range[0] <= var.valid_range[1],
-                                 "valid_range must be a two element vector of min followed by max with the same data type as {}".format(var.name)
-                                 )
+        if "valid_range" in var.ncattrs():
+            test_ctx.assert_true(
+                var.valid_range.dtype == var.dtype
+                and len(var.valid_range) == 2
+                and var.valid_range[0] <= var.valid_range[1],
+                f"valid_range must be a two element vector of min followed by max with the same data type as {var.name}",
+            )
         else:
-            for bound in ('valid_min', 'valid_max'):
-                v_bound = getattr(var, bound, '')
-                warn_msg = '{} attribute should exist, have the same type as {}, and not be empty or valid_range should be defined'.format(bound, var.name)
+            for bound in ("valid_min", "valid_max"):
+                v_bound = getattr(var, bound, "")
+                warn_msg = f"{bound} attribute should exist, have the same type as {var.name}, and not be empty or valid_range should be defined"
                 # need to special case str attributes since they aren't directly
                 # comparable to numpy dtypes
                 if isinstance(v_bound, six.string_types):
-                    test_ctx.assert_true(v_bound != '' and
-                                         var.dtype.char == 'S', warn_msg)
+                    test_ctx.assert_true(
+                        v_bound != "" and var.dtype.char == "S",
+                        warn_msg,
+                    )
                 # otherwise compare the numpy types directly
                 else:
                     test_ctx.assert_true(v_bound.dtype == var.dtype, warn_msg)
         return test_ctx
 
     def check_lat(self, dataset):
-        '''
-        float lat(time) ;//....................................... Depending on the precision used for the variable, the data type could be int or double instead of float.
-                lat:long_name = "" ; //...................................... RECOMMENDED - Provide a descriptive, long name for this variable.
-                lat:standard_name = "latitude" ; //.......................... REQUIRED    - Do not change.
-                lat:units = "degrees_north" ; //............................. REQUIRED    - CF recommends degrees_north, but at least must use UDUNITS.
-                lat:axis = "Y" ; //.......................................... REQUIRED    - Do not change.
-                lat:valid_min = 0.0f ; //.................................... RECOMMENDED - Replace with correct value.
-                lat:valid_max = 0.0f ; //.................................... RECOMMENDED - Replace with correct value.
-                lat:_FillValue = 0.0f;//..................................... REQUIRED  if there could be missing values in the data.
-                lat:ancillary_variables = "" ; //............................ RECOMMENDED - List other variables providing information about this variable.
-                lat:comment = "" ; //........................................ RECOMMENDED - Add useful, additional information here.
-        '''
-
+        """Float lat(time) ;//....................................... Depending on the precision used for the variable, the data type could be int or double instead of float.
+        lat:long_name = "" ; //...................................... RECOMMENDED - Provide a descriptive, long name for this variable.
+        lat:standard_name = "latitude" ; //.......................... REQUIRED    - Do not change.
+        lat:units = "degrees_north" ; //............................. REQUIRED    - CF recommends degrees_north, but at least must use UDUNITS.
+        lat:axis = "Y" ; //.......................................... REQUIRED    - Do not change.
+        lat:valid_min = 0.0f ; //.................................... RECOMMENDED - Replace with correct value.
+        lat:valid_max = 0.0f ; //.................................... RECOMMENDED - Replace with correct value.
+        lat:_FillValue = 0.0f;//..................................... REQUIRED  if there could be missing values in the data.
+        lat:ancillary_variables = "" ; //............................ RECOMMENDED - List other variables providing information about this variable.
+        lat:comment = "" ; //........................................ RECOMMENDED - Add useful, additional information here.
+        """
         results = []
         lat = util.get_lat_variable(dataset)
         if not lat:
-            return Result(BaseCheck.HIGH, False, 'latitude', ['a variable for latitude doesn\'t exist'])
+            return Result(
+                BaseCheck.HIGH,
+                False,
+                "latitude",
+                ["a variable for latitude doesn't exist"],
+            )
         lat_var = dataset.variables[lat]
-        test_ctx = TestCtx(BaseCheck.HIGH, 'Required attributes for variable {}'.format(lat))
-        test_ctx.assert_true(getattr(lat_var, 'standard_name', '') == 'latitude', 'standard_name attribute must be latitude')
-        units = getattr(lat_var, 'units', '')
-        test_ctx.assert_true(units and units_convertible(units, 'degrees_north'), 'units are valid UDUNITS for latitude')
-        test_ctx.assert_true(getattr(lat_var, 'axis', '') == 'Y', '{} axis attribute must be Y'.format(lat))
+        test_ctx = TestCtx(
+            BaseCheck.HIGH,
+            f"Required attributes for variable {lat}",
+        )
+        test_ctx.assert_true(
+            getattr(lat_var, "standard_name", "") == "latitude",
+            "standard_name attribute must be latitude",
+        )
+        units = getattr(lat_var, "units", "")
+        test_ctx.assert_true(
+            units and units_convertible(units, "degrees_north"),
+            "units are valid UDUNITS for latitude",
+        )
+        test_ctx.assert_true(
+            getattr(lat_var, "axis", "") == "Y",
+            f"{lat} axis attribute must be Y",
+        )
 
         results.append(test_ctx.to_result())
 
-        test_ctx = TestCtx(BaseCheck.MEDIUM, 'Recommended attributes for variable {}'.format(lat))
-        test_ctx.assert_true(getattr(lat_var, 'long_name', '') != '', 'long_name attribute should exist and not be empty')
+        test_ctx = TestCtx(
+            BaseCheck.MEDIUM,
+            f"Recommended attributes for variable {lat}",
+        )
+        test_ctx.assert_true(
+            getattr(lat_var, "long_name", "") != "",
+            "long_name attribute should exist and not be empty",
+        )
         self._check_min_max_range(lat_var, test_ctx)
-        if hasattr(lat_var, 'comment'):
-            test_ctx.assert_true(getattr(lat_var, 'comment', '') != '', 'comment attribute should not be empty if specified')
-        test_ctx.assert_true(getattr(lat_var, 'comment', '') != '', 'comment attribute should exist and not be empty')
-        test_ctx.assert_true(units == 'degrees_north', '{} should have units degrees_north'.format(lat))
+        if hasattr(lat_var, "comment"):
+            test_ctx.assert_true(
+                getattr(lat_var, "comment", "") != "",
+                "comment attribute should not be empty if specified",
+            )
+        test_ctx.assert_true(
+            getattr(lat_var, "comment", "") != "",
+            "comment attribute should exist and not be empty",
+        )
+        test_ctx.assert_true(
+            units == "degrees_north",
+            f"{lat} should have units degrees_north",
+        )
         results.append(test_ctx.to_result())
         return results
 
     def check_lon(self, dataset):
-        '''
-        float lon(timeSeries) ; //........................................ Depending on the precision used for the variable, the data type could be int or double instead of float.
-            lon:long_name = "" ; //...................................... RECOMMENDED
-            lon:standard_name = "longitude" ; //......................... REQUIRED    - This is fixed, do not change.
-            lon:units = "degrees_east" ; //.............................. REQUIRED    - CF recommends degrees_east, but at least use UDUNITS.
-            lon:axis = "X" ; //.......................................... REQUIRED    - Do not change.
-            lon:valid_min = 0.0f ; //.................................... RECOMMENDED - Replace this with correct value.
-            lon:valid_max = 0.0f ; //.................................... RECOMMENDED - Replace this with correct value.
-            lon:_FillValue = 0.0f;//..................................... REQUIRED  if there could be missing values in the data.
-            lon:ancillary_variables = "" ; //............................ RECOMMENDED - List other variables providing information about this variable.
-            lon:comment = "" ; //........................................ RECOMMENDED - Add useful, additional information here.
-        '''
+        """Float lon(timeSeries) ; //........................................ Depending on the precision used for the variable, the data type could be int or double instead of float.
+        lon:long_name = "" ; //...................................... RECOMMENDED
+        lon:standard_name = "longitude" ; //......................... REQUIRED    - This is fixed, do not change.
+        lon:units = "degrees_east" ; //.............................. REQUIRED    - CF recommends degrees_east, but at least use UDUNITS.
+        lon:axis = "X" ; //.......................................... REQUIRED    - Do not change.
+        lon:valid_min = 0.0f ; //.................................... RECOMMENDED - Replace this with correct value.
+        lon:valid_max = 0.0f ; //.................................... RECOMMENDED - Replace this with correct value.
+        lon:_FillValue = 0.0f;//..................................... REQUIRED  if there could be missing values in the data.
+        lon:ancillary_variables = "" ; //............................ RECOMMENDED - List other variables providing information about this variable.
+        lon:comment = "" ; //........................................ RECOMMENDED - Add useful, additional information here.
+        """
         results = []
         lon = util.get_lon_variable(dataset)
         if not lon:
-            return Result(BaseCheck.HIGH, False, 'longitude', ['a variable for longitude doesn\'t exist'])
+            return Result(
+                BaseCheck.HIGH,
+                False,
+                "longitude",
+                ["a variable for longitude doesn't exist"],
+            )
         lon_var = dataset.variables[lon]
-        test_ctx = TestCtx(BaseCheck.HIGH, 'Required attributes for variable {}'.format(lon))
-        test_ctx.assert_true(getattr(lon_var, 'standard_name', '') == 'longitude', 'standard_name attribute must be longitude')
-        units = getattr(lon_var, 'units', '')
-        test_ctx.assert_true(units and units_convertible(units, 'degrees_east'), 'units are valid UDUNITS for longitude')
-        test_ctx.assert_true(getattr(lon_var, 'axis', '') == 'X', '{} axis attribute must be X'.format(lon))
+        test_ctx = TestCtx(
+            BaseCheck.HIGH,
+            f"Required attributes for variable {lon}",
+        )
+        test_ctx.assert_true(
+            getattr(lon_var, "standard_name", "") == "longitude",
+            "standard_name attribute must be longitude",
+        )
+        units = getattr(lon_var, "units", "")
+        test_ctx.assert_true(
+            units and units_convertible(units, "degrees_east"),
+            "units are valid UDUNITS for longitude",
+        )
+        test_ctx.assert_true(
+            getattr(lon_var, "axis", "") == "X",
+            f"{lon} axis attribute must be X",
+        )
 
         results.append(test_ctx.to_result())
 
-        test_ctx = TestCtx(BaseCheck.MEDIUM, 'Recommended attributes for variable {}'.format(lon))
-        test_ctx.assert_true(getattr(lon_var, 'long_name', '') != '', 'long_name attribute should exist and not be empty')
+        test_ctx = TestCtx(
+            BaseCheck.MEDIUM,
+            f"Recommended attributes for variable {lon}",
+        )
+        test_ctx.assert_true(
+            getattr(lon_var, "long_name", "") != "",
+            "long_name attribute should exist and not be empty",
+        )
         self._check_min_max_range(lon_var, test_ctx)
 
-        if hasattr(lon_var, 'comment'):
-            test_ctx.assert_true(getattr(lon_var, 'comment', '') != '', 'comment attribute should not be empty if specified')
-        test_ctx.assert_true(units == 'degrees_east', '{} should have units degrees_east'.format(lon))
+        if hasattr(lon_var, "comment"):
+            test_ctx.assert_true(
+                getattr(lon_var, "comment", "") != "",
+                "comment attribute should not be empty if specified",
+            )
+        test_ctx.assert_true(
+            units == "degrees_east",
+            f"{lon} should have units degrees_east",
+        )
         results.append(test_ctx.to_result())
         return results
 
     def check_time(self, dataset):
-        '''
-        double time(time) ;//........................................ Depending on the precision used for the variable, the data type could be int or double instead of float.
-            time:long_name = "" ; //..................................... RECOMMENDED - Provide a descriptive, long name for this variable.
-            time:standard_name = "time" ; //............................. REQUIRED    - Do not change
-            time:units = "seconds since 1970-01-01 00:00:00 0:00" ; //... REQUIRED    - Use approved CF convention with approved UDUNITS.
-            time:calendar = "julian" ; //................................ REQUIRED    - IF the calendar is not default calendar, which is "gregorian".
-            time:axis = "T" ; //......................................... REQUIRED    - Do not change.
-            time:_FillValue = 0.0f;//.................................... REQUIRED  if there could be missing values in the data.
-            time:ancillary_variables = "" ; //........................... RECOMMENDED - List other variables providing information about this variable.
-            time:comment = "" ; //....................................... RECOMMENDED - Add useful, additional information here.
-        '''
+        """Double time(time) ;//........................................ Depending on the precision used for the variable, the data type could be int or double instead of float.
+        time:long_name = "" ; //..................................... RECOMMENDED - Provide a descriptive, long name for this variable.
+        time:standard_name = "time" ; //............................. REQUIRED    - Do not change
+        time:units = "seconds since 1970-01-01 00:00:00 0:00" ; //... REQUIRED    - Use approved CF convention with approved UDUNITS.
+        time:calendar = "julian" ; //................................ REQUIRED    - IF the calendar is not default calendar, which is "gregorian".
+        time:axis = "T" ; //......................................... REQUIRED    - Do not change.
+        time:_FillValue = 0.0f;//.................................... REQUIRED  if there could be missing values in the data.
+        time:ancillary_variables = "" ; //........................... RECOMMENDED - List other variables providing information about this variable.
+        time:comment = "" ; //....................................... RECOMMENDED - Add useful, additional information here.
+        """
         results = []
         time_var = util.get_time_variable(dataset)
         if not time_var:
-            return Result(BaseCheck.HIGH, False, 'Coordinate variable time', ['Time coordinate variable was not found'])
-        required_ctx = TestCtx(BaseCheck.HIGH, 'Required attributes for variable time')
-        required_ctx.assert_true(getattr(dataset.variables[time_var], 'standard_name', '') == 'time', 'standard_name is "time"')
-        time_regex = r'(seconds|minutes|hours|days) since.*'
-        time_units = getattr(dataset.variables[time_var], 'units', '')
-        required_ctx.assert_true(re.match(time_regex, time_units) is not None, 'Valid units for time')
-        calendar = getattr(dataset.variables[time_var], 'calendar', '')
+            return Result(
+                BaseCheck.HIGH,
+                False,
+                "Coordinate variable time",
+                ["Time coordinate variable was not found"],
+            )
+        required_ctx = TestCtx(
+            BaseCheck.HIGH,
+            "Required attributes for variable time",
+        )
+        required_ctx.assert_true(
+            getattr(dataset.variables[time_var], "standard_name", "")
+            == "time",
+            'standard_name is "time"',
+        )
+        time_regex = r"(seconds|minutes|hours|days) since.*"
+        time_units = getattr(dataset.variables[time_var], "units", "")
+        required_ctx.assert_true(
+            re.match(time_regex, time_units) is not None,
+            "Valid units for time",
+        )
+        calendar = getattr(dataset.variables[time_var], "calendar", "")
         valid_calendars = [
-            'standard',
-            'gregorian',
-            'proleptic_gregorian',
-            'noleap',
-            '365_day',
-            '360_day',
-            'julian',
-            'all_leap',
-            '366_day'
+            "standard",
+            "gregorian",
+            "proleptic_gregorian",
+            "noleap",
+            "365_day",
+            "360_day",
+            "julian",
+            "all_leap",
+            "366_day",
         ]
 
         if calendar:
-            required_ctx.assert_true(calendar.lower() in valid_calendars, 'calendar attribute should be a valid calendar in ({})'.format(', '.join(valid_calendars)))
+            required_ctx.assert_true(
+                calendar.lower() in valid_calendars,
+                "calendar attribute should be a valid calendar in ({})".format(
+                    ", ".join(valid_calendars),
+                ),
+            )
 
         results.append(required_ctx.to_result())
-        recommended_ctx = TestCtx(BaseCheck.MEDIUM, 'Recommended attributes for variable time')
-        recommended_ctx.assert_true(getattr(dataset.variables[time_var], 'long_name', '') != '', 'long_name attribute should exist and not be empty')
-        if hasattr(dataset.variables[time_var], 'comment'):
-            recommended_ctx.assert_true(getattr(dataset.variables[time_var], 'comment', '') != '', 'comment attribute should not be empty if specified')
+        recommended_ctx = TestCtx(
+            BaseCheck.MEDIUM,
+            "Recommended attributes for variable time",
+        )
+        recommended_ctx.assert_true(
+            getattr(dataset.variables[time_var], "long_name", "") != "",
+            "long_name attribute should exist and not be empty",
+        )
+        if hasattr(dataset.variables[time_var], "comment"):
+            recommended_ctx.assert_true(
+                getattr(dataset.variables[time_var], "comment", "") != "",
+                "comment attribute should not be empty if specified",
+            )
         results.append(recommended_ctx.to_result())
 
         return results
 
     def check_height(self, dataset):
-        '''
-        float z(time) ;//........................................ Depending on the precision used for the variable, the data type could be int or double instead of float. Also the variable "z" could be substituted with a more descriptive name like "depth", "altitude", "pressure", etc.
-                z:long_name = "" ; //........................................ RECOMMENDED - Provide a descriptive, long name for this variable.
-                z:standard_name = "" ; //.................................... REQUIRED    - Usually "depth" or "altitude" is used.
-                z:units = "" ; //............................................ REQUIRED    - Use UDUNITS.
-                z:axis = "Z" ; //............................................ REQUIRED    - Do not change.
-                z:positive = "" ; //......................................... REQUIRED    - Use "up" or "down".
-                z:valid_min = 0.0f ; //...................................... RECOMMENDED - Replace with correct value.
-                z:valid_max = 0.0f ; //...................................... RECOMMENDED - Replace with correct value.
-                z:_FillValue = 0.0f;//....................................... REQUIRED  if there could be missing values in the data.
-                z:ancillary_variables = "" ; //.............................. RECOMMENDED - List other variables providing information about this variable.
-                z:comment = "" ; //.......................................... RECOMMENDED - Add useful, additional information here.
-                '''
+        """Float z(time) ;//........................................ Depending on the precision used for the variable, the data type could be int or double instead of float. Also the variable "z" could be substituted with a more descriptive name like "depth", "altitude", "pressure", etc.
+        z:long_name = "" ; //........................................ RECOMMENDED - Provide a descriptive, long name for this variable.
+        z:standard_name = "" ; //.................................... REQUIRED    - Usually "depth" or "altitude" is used.
+        z:units = "" ; //............................................ REQUIRED    - Use UDUNITS.
+        z:axis = "Z" ; //............................................ REQUIRED    - Do not change.
+        z:positive = "" ; //......................................... REQUIRED    - Use "up" or "down".
+        z:valid_min = 0.0f ; //...................................... RECOMMENDED - Replace with correct value.
+        z:valid_max = 0.0f ; //...................................... RECOMMENDED - Replace with correct value.
+        z:_FillValue = 0.0f;//....................................... REQUIRED  if there could be missing values in the data.
+        z:ancillary_variables = "" ; //.............................. RECOMMENDED - List other variables providing information about this variable.
+        z:comment = "" ; //.......................................... RECOMMENDED - Add useful, additional information here.
+        """
         results = []
 
-        exists_ctx = TestCtx(BaseCheck.HIGH, 'Variable for height must exist')
+        exists_ctx = TestCtx(BaseCheck.HIGH, "Variable for height must exist")
         var = util.get_z_variable(dataset)
-        exists_ctx.assert_true(var is not None, "A variable for height must exist")
+        exists_ctx.assert_true(
+            var is not None,
+            "A variable for height must exist",
+        )
         if var is None:
             return exists_ctx.to_result()
 
         # Check Height Name
-        required_ctx = TestCtx(BaseCheck.HIGH, 'Required attributes for variable {}'.format(var))
-
-        # Check Standard Name
-        standard_name = getattr(dataset.variables[var], 'standard_name', '')
-        required_ctx.assert_true(
-            standard_name in ('depth', 'height', 'altitude'),
-            '{} is not a valid standard_name for height'.format(standard_name)
+        required_ctx = TestCtx(
+            BaseCheck.HIGH,
+            f"Required attributes for variable {var}",
         )
 
-        axis = getattr(dataset.variables[var], 'axis', '')
+        # Check Standard Name
+        standard_name = getattr(dataset.variables[var], "standard_name", "")
         required_ctx.assert_true(
-            axis == 'Z',
-            '{} must have an axis of Z'.format(var)
+            standard_name in ("depth", "height", "altitude"),
+            f"{standard_name} is not a valid standard_name for height",
+        )
+
+        axis = getattr(dataset.variables[var], "axis", "")
+        required_ctx.assert_true(
+            axis == "Z",
+            f"{var} must have an axis of Z",
         )
 
         # Check Units
         valid_units = False
-        units = getattr(dataset.variables[var], 'units', '1')
+        units = getattr(dataset.variables[var], "units", "1")
         try:
             # If cf_units fails to read the units, then it's not a valid unit
             Unit(units)
             valid_units = True
         except:
             pass
-        required_ctx.assert_true(valid_units, '{} are not valid units for height'.format(units))
+        required_ctx.assert_true(
+            valid_units,
+            f"{units} are not valid units for height",
+        )
 
-        positive = getattr(dataset.variables[var], 'positive', '')
-        required_ctx.assert_true(positive in ('up', 'down'), 'height must have a positive attribute that is equal to "up" or "down"')
+        positive = getattr(dataset.variables[var], "positive", "")
+        required_ctx.assert_true(
+            positive in ("up", "down"),
+            'height must have a positive attribute that is equal to "up" or "down"',
+        )
         results.append(required_ctx.to_result())
 
         # Check has these attributes
-        # We ommit checking ancillary_variables because that only applies if this variable HAS ancillary variables
-        recommended_ctx = TestCtx(BaseCheck.MEDIUM, 'Recommended attributes for coordinate variable {}'.format(var))
+        # We omit checking ancillary_variables because that only applies if this variable HAS ancillary variables
+        recommended_ctx = TestCtx(
+            BaseCheck.MEDIUM,
+            f"Recommended attributes for coordinate variable {var}",
+        )
         self._check_min_max_range(dataset.variables[var], recommended_ctx)
 
-        if hasattr(dataset.variables[var], 'comment'):
-            recommended_ctx.assert_true(getattr(dataset.variables[var], 'comment', '') != '', 'comment attribute should not be empty if specified')
+        if hasattr(dataset.variables[var], "comment"):
+            recommended_ctx.assert_true(
+                getattr(dataset.variables[var], "comment", "") != "",
+                "comment attribute should not be empty if specified",
+            )
 
         results.append(recommended_ctx.to_result())
         return results
 
     def check_qaqc(self, dataset):
-        '''
-        byte boolean_flag_variable(timeSeries,time); //............................. A boolean flag variable, in which each bit of the flag can be a 1 or 0.
+        """Byte boolean_flag_variable(timeSeries,time); //............................. A boolean flag variable, in which each bit of the flag can be a 1 or 0.
                 boolean_flag_variable:standard_name= "" ; //................. RECOMMENDED - This attribute should include the standard name of the variable which this flag contributes plus the modifier: "status_flag" (for example, "sea_water_temperature status_flag"). See CF standard name modifiers.
                 boolean_flag_variable:long_name = "" ; //.................... RECOMMENDED - Provide a descriptive, long name for this variable.
                 boolean_flag_variable:flag_masks = ; //...................... REQUIRED    - Provide a comma-separated list describing the binary condition of the flags.
@@ -313,102 +425,163 @@ class BaseNCEICheck(BaseNCCheck):
                 enumerated_flag_variable:flag_meanings = "" ; //............. REQUIRED    - Provide a space-separated list of meanings corresponding to each of the flag_values
                 enumerated_flag_variable:references = "" ; //................ RECOMMENDED - Published or web-based references that describe the data or methods used to produce it.
                 enumerated_flag_variable:comment = "" ; //................... RECOMMENDED - Add useful, additional information here.
-        '''
+        """
         # Check the qaqc variables to ensure they are good
         results = []
 
-        flag_variables = dataset.get_variables_by_attributes(flag_meanings=lambda x: x is not None)
+        flag_variables = dataset.get_variables_by_attributes(
+            flag_meanings=lambda x: x is not None,
+        )
         for flag_variable in flag_variables:
-            required_ctx = TestCtx(BaseCheck.HIGH, 'Required attributes for flag variable {}'.format(flag_variable.name))
-            flag_values = getattr(flag_variable, 'flag_values', None)
-            flag_masks = getattr(flag_variable, 'flag_masks', None)
-            required_ctx.assert_true(flag_values is not None or flag_masks is not None, 'flag variable must define either flag_values or flag_masks')
+            required_ctx = TestCtx(
+                BaseCheck.HIGH,
+                f"Required attributes for flag variable {flag_variable.name}",
+            )
+            flag_values = getattr(flag_variable, "flag_values", None)
+            flag_masks = getattr(flag_variable, "flag_masks", None)
+            required_ctx.assert_true(
+                flag_values is not None or flag_masks is not None,
+                "flag variable must define either flag_values or flag_masks",
+            )
             results.append(required_ctx.to_result())
 
-            recommended_ctx = TestCtx(BaseCheck.MEDIUM, 'Recommended attributes for flag variable {}'.format(flag_variable.name))
-            standard_name = getattr(flag_variable, 'standard_name', '')
-            recommended_ctx.assert_true(standard_name.endswith(' status_flag'), 'The standard_name attribute should end with status_flag')
+            recommended_ctx = TestCtx(
+                BaseCheck.MEDIUM,
+                f"Recommended attributes for flag variable {flag_variable.name}",
+            )
+            standard_name = getattr(flag_variable, "standard_name", "")
+            recommended_ctx.assert_true(
+                standard_name.endswith(" status_flag"),
+                "The standard_name attribute should end with status_flag",
+            )
 
-            varattr = getattr(flag_variable, 'long_name', '')
-            recommended_ctx.assert_true(varattr != '', 'The {} attribute should exist and not be empty'.format('long_name'))
+            varattr = getattr(flag_variable, "long_name", "")
+            recommended_ctx.assert_true(
+                varattr != "",
+                "The {} attribute should exist and not be empty".format(
+                    "long_name",
+                ),
+            )
 
-            if hasattr(flag_variable, 'comment'):
-                recommended_ctx.assert_true(getattr(flag_variable, 'comment', '') != '', 'comment attribute should not be empty if specified')
+            if hasattr(flag_variable, "comment"):
+                recommended_ctx.assert_true(
+                    getattr(flag_variable, "comment", "") != "",
+                    "comment attribute should not be empty if specified",
+                )
 
             results.append(recommended_ctx.to_result())
         return results
 
     def check_instrument(self, dataset):
-        '''
-        int instrument_parameter_variable(timeSeries); // ... RECOMMENDED - an instrument variable storing information about a parameter of the instrument used in the measurement, the dimensions don't have to be specified if the same instrument is used for all the measurements.
-            instrument_parameter_variable:long_name = "" ; // RECOMMENDED - Provide a descriptive, long name for this variable.
-            instrument_parameter_variable:comment = "" ; //.. RECOMMENDED - Add useful, additional information here.
-        '''
+        """Int instrument_parameter_variable(timeSeries); // ... RECOMMENDED - an instrument variable storing information about a parameter of the instrument used in the measurement, the dimensions don't have to be specified if the same instrument is used for all the measurements.
+        instrument_parameter_variable:long_name = "" ; // RECOMMENDED - Provide a descriptive, long name for this variable.
+        instrument_parameter_variable:comment = "" ; //.. RECOMMENDED - Add useful, additional information here.
+        """
         # Check for the instrument variable
         instruments = util.get_instrument_variables(dataset)
         if not instruments:
-            return Result(BaseCheck.MEDIUM, False, 'Recommended variable for instrument should exist', ['No instrument variables found'])
+            return Result(
+                BaseCheck.MEDIUM,
+                False,
+                "Recommended variable for instrument should exist",
+                ["No instrument variables found"],
+            )
         results = []
         for instrument in instruments:
-            test_ctx = TestCtx(BaseCheck.MEDIUM, 'Recommended attributes for instrument variable {}'.format(instrument))
+            test_ctx = TestCtx(
+                BaseCheck.MEDIUM,
+                f"Recommended attributes for instrument variable {instrument}",
+            )
             var = dataset.variables[instrument]
-            test_ctx.assert_true(getattr(var, 'long_name', '') != '', 'long_name attribute should exist and not be empty')
+            test_ctx.assert_true(
+                getattr(var, "long_name", "") != "",
+                "long_name attribute should exist and not be empty",
+            )
 
-            if hasattr(var, 'comment'):
-                test_ctx.assert_true(getattr(var, 'comment', '') != '', 'comment attribute should not be empty if specified')
+            if hasattr(var, "comment"):
+                test_ctx.assert_true(
+                    getattr(var, "comment", "") != "",
+                    "comment attribute should not be empty if specified",
+                )
 
             results.append(test_ctx.to_result())
 
         return results
 
     def check_crs(self, dataset):
-        '''
-        int crs; //.......................................................... RECOMMENDED - A container variable storing information about the grid_mapping. All the attributes within a grid_mapping variable are described in http://cf-pcmdi.llnl.gov/documents/cf-conventions/1.6/cf-conventions.html#appendix-grid-mappings. For all the measurements based on WSG84, the default coordinate system used for GPS measurements, the values shown here should be used.
-                crs:grid_mapping_name = "latitude_longitude"; //............. RECOMMENDED
-                crs:epsg_code = "EPSG:4326" ; //............................. RECOMMENDED - European Petroleum Survey Group code for the grid mapping name.
-                crs:semi_major_axis = 6378137.0 ; //......................... RECOMMENDED
-                crs:inverse_flattening = 298.257223563 ; //.................. RECOMMENDED
-        '''
+        """Int crs; //.......................................................... RECOMMENDED - A container variable storing information about the grid_mapping. All the attributes within a grid_mapping variable are described in http://cf-pcmdi.llnl.gov/documents/cf-conventions/1.6/cf-conventions.html#appendix-grid-mappings. For all the measurements based on WSG84, the default coordinate system used for GPS measurements, the values shown here should be used.
+        crs:grid_mapping_name = "latitude_longitude"; //............. RECOMMENDED
+        crs:epsg_code = "EPSG:4326" ; //............................. RECOMMENDED - European Petroleum Survey Group code for the grid mapping name.
+        crs:semi_major_axis = 6378137.0 ; //......................... RECOMMENDED
+        crs:inverse_flattening = 298.257223563 ; //.................. RECOMMENDED
+        """
         grid_mapping = util.get_crs_variable(dataset)
         if grid_mapping is None:
             return Result(
                 BaseCheck.MEDIUM,
                 False,
-                'Recommended variable for grid mapping should exist',
-                ['A variable to describe the grid mapping should exist']
+                "Recommended variable for grid mapping should exist",
+                ["A variable to describe the grid mapping should exist"],
             )
         crs_variable = dataset.variables[grid_mapping]
-        test_ctx = TestCtx(BaseCheck.MEDIUM, 'Recommended attributes for grid mapping variable {}'.format(crs_variable.name))
-        test_ctx.assert_true(crs_variable is not None, 'A container variable storing the grid mapping should exist for this dataset.')
+        test_ctx = TestCtx(
+            BaseCheck.MEDIUM,
+            f"Recommended attributes for grid mapping variable {crs_variable.name}",
+        )
+        test_ctx.assert_true(
+            crs_variable is not None,
+            "A container variable storing the grid mapping should exist for this dataset.",
+        )
 
-        epsg_code = getattr(crs_variable, 'epsg_code', '')
-        semi_major_axis = getattr(crs_variable, 'semi_major_axis', None)
-        inverse_flattening = getattr(crs_variable, 'inverse_flattening', None)
+        epsg_code = getattr(crs_variable, "epsg_code", "")
+        semi_major_axis = getattr(crs_variable, "semi_major_axis", None)
+        inverse_flattening = getattr(crs_variable, "inverse_flattening", None)
 
-        test_ctx.assert_true(epsg_code != '',
-                             'Attribute epsg_code should exist and not be empty: {}'.format(epsg_code))
-        test_ctx.assert_true(semi_major_axis is not None,
-                             'Attribute semi_major_axis should exist and not be empty: {}'.format(epsg_code))
-        test_ctx.assert_true(inverse_flattening is not None,
-                             'Attribute inverse_flattening should exist and not be empty: {}'.format(epsg_code))
+        test_ctx.assert_true(
+            epsg_code != "",
+            f"Attribute epsg_code should exist and not be empty: {epsg_code}",
+        )
+        test_ctx.assert_true(
+            semi_major_axis is not None,
+            f"Attribute semi_major_axis should exist and not be empty: {epsg_code}",
+        )
+        test_ctx.assert_true(
+            inverse_flattening is not None,
+            f"Attribute inverse_flattening should exist and not be empty: {epsg_code}",
+        )
         return test_ctx.to_result()
 
     def check_high(self, ds):
-        highly_recommended = TestCtx(BaseCheck.HIGH, 'Highly Recommended global attributes')
+        highly_recommended = TestCtx(
+            BaseCheck.HIGH,
+            "Highly Recommended global attributes",
+        )
         for attr in self.high_rec_atts:
-            highly_recommended.assert_true(getattr(ds, attr, '') != '', '{} should exist and not be empty.'.format(attr))
+            highly_recommended.assert_true(
+                getattr(ds, attr, "") != "",
+                f"{attr} should exist and not be empty.",
+            )
         return highly_recommended.to_result()
 
     def check_recommended(self, ds):
-        recommended_ctx = TestCtx(BaseCheck.MEDIUM, 'Recommended global attributes')
+        recommended_ctx = TestCtx(
+            BaseCheck.MEDIUM,
+            "Recommended global attributes",
+        )
         for attr in self.rec_atts:
-            recommended_ctx.assert_true(getattr(ds, attr, '') != '', '{} should exist and not be empty.'.format(attr))
+            recommended_ctx.assert_true(
+                getattr(ds, attr, "") != "",
+                f"{attr} should exist and not be empty.",
+            )
         return recommended_ctx.to_result()
 
     def check_suggested(self, ds):
-        suggested_ctx = TestCtx(BaseCheck.LOW, 'Suggested global attributes')
+        suggested_ctx = TestCtx(BaseCheck.LOW, "Suggested global attributes")
         for attr in self.sug_atts:
-            suggested_ctx.assert_true(getattr(ds, attr, '') != '', '{} should exist and not be empty.'.format(attr))
+            suggested_ctx.assert_true(
+                getattr(ds, attr, "") != "",
+                f"{attr} should exist and not be empty.",
+            )
         return suggested_ctx.to_result()
 
 
@@ -417,8 +590,7 @@ class NCEI1_1Check(BaseNCEICheck):
         super(NCEI1_1Check, self).__init__()
 
     def check_base_required_attributes(self, dataset):
-        '''
-        Check the global required and highly recommended attributes for 1.1 templates. These go an extra step besides
+        """Check the global required and highly recommended attributes for 1.1 templates. These go an extra step besides
         just checking that they exist.
 
         :param netCDF4.Dataset dataset: An open netCDF dataset
@@ -430,35 +602,61 @@ class NCEI1_1Check(BaseNCEICheck):
         :cdm_data_type = "Station" ; //...................................... REQUIRED (ACDD)
         :nodc_template_version = "NODC_NetCDF_TimeSeries_Orthogonal_Template_v1.1" ; //....... REQUIRED (NODC)
         :standard_name_vocabulary = "NetCDF Climate and Forecast (CF) Metadata Convention Standard Name Table "X"" ; //........ REQUIRED    - If using CF standard name attribute for variables. "X" denotes the table number  (ACDD)
-        '''
-        test_ctx = TestCtx(BaseCheck.HIGH, 'Required global attributes')
+        """
+        test_ctx = TestCtx(BaseCheck.HIGH, "Required global attributes")
 
-        conventions = getattr(dataset, 'Conventions', '')
-        metadata_conventions = getattr(dataset, 'Metadata_Conventions', '')
-        feature_type = getattr(dataset, 'featureType', '')
-        cdm_data_type = getattr(dataset, 'cdm_data_type', '')
-        standard_name_vocab = getattr(dataset, 'standard_name_vocabulary', '')
+        conventions = getattr(dataset, "Conventions", "")
+        metadata_conventions = getattr(dataset, "Metadata_Conventions", "")
+        feature_type = getattr(dataset, "featureType", "")
+        cdm_data_type = getattr(dataset, "cdm_data_type", "")
+        standard_name_vocab = getattr(dataset, "standard_name_vocabulary", "")
 
-        accepted_conventions = 'CF-1.6'
+        accepted_conventions = "CF-1.6"
 
-        test_ctx.assert_true(conventions == accepted_conventions,
-                             'Conventions attribute is missing or is not equal to CF-1.6: {}'.format(conventions))
-        test_ctx.assert_true(metadata_conventions == 'Unidata Dataset Discovery v1.0',
-                             "Metadata_Conventions attribute is required to be 'Unidata Dataset Discovery v1.0': {}".format(metadata_conventions))
-        test_ctx.assert_true(feature_type in ['point', 'timeSeries', 'trajectory', 'profile', 'timeSeriesProfile', 'trajectoryProfile'],
-                             'Feature type must be one of point, timeSeries, trajectory, profile, timeSeriesProfile, trajectoryProfile: {}'.format(feature_type))
-        test_ctx.assert_true(cdm_data_type.lower() in ['grid', 'image', 'point', 'radial', 'station', 'swath', 'trajectory'],
-                             'cdm_data_type must be one of Grid, Image, Point, Radial, Station, Swath, Trajectory: {}'.format(cdm_data_type))
+        test_ctx.assert_true(
+            conventions == accepted_conventions,
+            f"Conventions attribute is missing or is not equal to CF-1.6: {conventions}",
+        )
+        test_ctx.assert_true(
+            metadata_conventions == "Unidata Dataset Discovery v1.0",
+            f"Metadata_Conventions attribute is required to be 'Unidata Dataset Discovery v1.0': {metadata_conventions}",
+        )
+        test_ctx.assert_true(
+            feature_type
+            in [
+                "point",
+                "timeSeries",
+                "trajectory",
+                "profile",
+                "timeSeriesProfile",
+                "trajectoryProfile",
+            ],
+            f"Feature type must be one of point, timeSeries, trajectory, profile, timeSeriesProfile, trajectoryProfile: {feature_type}",
+        )
+        test_ctx.assert_true(
+            cdm_data_type.lower()
+            in [
+                "grid",
+                "image",
+                "point",
+                "radial",
+                "station",
+                "swath",
+                "trajectory",
+            ],
+            f"cdm_data_type must be one of Grid, Image, Point, Radial, Station, Swath, Trajectory: {cdm_data_type}",
+        )
 
-        regex = re.compile(r'[sS]tandard [nN]ame [tT]able')
-        test_ctx.assert_true(regex.search(standard_name_vocab),
-                             "standard_name_vocabulary doesn't contain 'Standard Name Table': {}".format(standard_name_vocab))
+        regex = re.compile(r"[sS]tandard [nN]ame [tT]able")
+        test_ctx.assert_true(
+            regex.search(standard_name_vocab),
+            f"standard_name_vocabulary doesn't contain 'Standard Name Table': {standard_name_vocab}",
+        )
 
         return test_ctx.to_result()
 
     def check_recommended_global_attributes(self, dataset):
-        '''
-        Check the global recommended attributes for 1.1 templates. These go an extra step besides
+        """Check the global recommended attributes for 1.1 templates. These go an extra step besides
         just checking that they exist.
 
         :param netCDF4.Dataset dataset: An open netCDF dataset
@@ -510,65 +708,109 @@ class NCEI1_1Check(BaseNCEICheck):
         :history = "" ; //................................................... RECOMMENDED - Record changes made to the netCDF. (ACDD)
         :license = "" ; //................................................... RECOMMENDED - Describe the restrictions to data access and distribution. (ACDD)
         :metadata_link = "" ; //............................................. RECOMMENDED - This attribute provides a link to a complete metadata record for this data set or the collection that contains this data set. (ACDD)
-        '''
-
-        recommended_ctx = TestCtx(BaseCheck.MEDIUM, 'Recommended global attributes')
+        """
+        recommended_ctx = TestCtx(
+            BaseCheck.MEDIUM,
+            "Recommended global attributes",
+        )
 
         # Do any of the variables define platform ?
-        variable_defined_platform = any((hasattr(var, 'platform') for var in dataset.variables))
+        variable_defined_platform = any(
+            hasattr(var, "platform") for var in dataset.variables
+        )
         if not variable_defined_platform:
-            platform_name = getattr(dataset, 'platform', '')
-            recommended_ctx.assert_true(platform_name and platform_name in dataset.variables, 'platform should exist and point to a variable.')
+            platform_name = getattr(dataset, "platform", "")
+            recommended_ctx.assert_true(
+                platform_name and platform_name in dataset.variables,
+                "platform should exist and point to a variable.",
+            )
 
         sea_names = [sn.lower() for sn in util.get_sea_names()]
-        sea_name = getattr(dataset, 'sea_name', '')
-        sea_name = sea_name.replace(', ', ',')
-        sea_name = sea_name.split(',') if sea_name else []
+        sea_name = getattr(dataset, "sea_name", "")
+        sea_name = sea_name.replace(", ", ",")
+        sea_name = sea_name.split(",") if sea_name else []
         for sea in sea_name:
             recommended_ctx.assert_true(
                 sea.lower() in sea_names,
-                'sea_name attribute should exist and should be from the NODC sea names list: {} is not a valid sea name'.format(sea)
+                f"sea_name attribute should exist and should be from the NODC sea names list: {sea} is not a valid sea name",
             )
 
         # Parse dates, check for ISO 8601
-        for attr in ['time_coverage_start', 'time_coverage_end', 'date_created', 'date_modified']:
-            attr_value = getattr(dataset, attr, '')
+        for attr in [
+            "time_coverage_start",
+            "time_coverage_end",
+            "date_created",
+            "date_modified",
+        ]:
+            attr_value = getattr(dataset, attr, "")
             try:
                 parse_datetime(attr_value)
-                recommended_ctx.assert_true(True, '')  # Score it True!
+                recommended_ctx.assert_true(True, "")  # Score it True!
             except ISO8601Error:
-                recommended_ctx.assert_true(False, '{} should exist and be ISO-8601 format (example: PT1M30S), currently: {}'.format(attr, attr_value))
+                recommended_ctx.assert_true(
+                    False,
+                    f"{attr} should exist and be ISO-8601 format (example: PT1M30S), currently: {attr_value}",
+                )
 
-        units = getattr(dataset, 'geospatial_lat_units', '').lower()
-        recommended_ctx.assert_true(units == 'degrees_north', 'geospatial_lat_units attribute should be degrees_north: {}'.format(units))
+        units = getattr(dataset, "geospatial_lat_units", "").lower()
+        recommended_ctx.assert_true(
+            units == "degrees_north",
+            f"geospatial_lat_units attribute should be degrees_north: {units}",
+        )
 
-        units = getattr(dataset, 'geospatial_lon_units', '').lower()
-        recommended_ctx.assert_true(units == 'degrees_east', 'geospatial_lon_units attribute should be degrees_east: {}'.format(units))
+        units = getattr(dataset, "geospatial_lon_units", "").lower()
+        recommended_ctx.assert_true(
+            units == "degrees_east",
+            f"geospatial_lon_units attribute should be degrees_east: {units}",
+        )
 
-        value = getattr(dataset, 'geospatial_vertical_positive', '')
-        recommended_ctx.assert_true(value.lower() in ['up', 'down'], 'geospatial_vertical_positive attribute should be up or down: {}'.format(value))
+        value = getattr(dataset, "geospatial_vertical_positive", "")
+        recommended_ctx.assert_true(
+            value.lower() in ["up", "down"],
+            f"geospatial_vertical_positive attribute should be up or down: {value}",
+        )
 
         # I hate english.
-        ack_exists = any((getattr(dataset, attr, '') != '' for attr in ['acknowledgment', 'acknowledgement']))
-        recommended_ctx.assert_true(ack_exists, 'acknowledgement attribute should exist and not be empty')
+        ack_exists = any(
+            getattr(dataset, attr, "") != ""
+            for attr in ["acknowledgment", "acknowledgement"]
+        )
+        recommended_ctx.assert_true(
+            ack_exists,
+            "acknowledgement attribute should exist and not be empty",
+        )
 
-        contributor_name = getattr(dataset, 'contributor_name', '')
-        contributor_role = getattr(dataset, 'contributor_role', '')
-        names = contributor_role.split(',')
-        roles = contributor_role.split(',')
-        recommended_ctx.assert_true(contributor_name != '', 'contributor_name should exist and not be empty.')
-        recommended_ctx.assert_true(len(names) == len(roles), 'length of contributor names matches length of roles')
-        recommended_ctx.assert_true(contributor_role != '', 'contributor_role should exist and not be empty.')
-        recommended_ctx.assert_true(len(names) == len(roles), 'length of contributor names matches length of roles')
+        contributor_name = getattr(dataset, "contributor_name", "")
+        contributor_role = getattr(dataset, "contributor_role", "")
+        names = contributor_role.split(",")
+        roles = contributor_role.split(",")
+        recommended_ctx.assert_true(
+            contributor_name != "",
+            "contributor_name should exist and not be empty.",
+        )
+        recommended_ctx.assert_true(
+            len(names) == len(roles),
+            "length of contributor names matches length of roles",
+        )
+        recommended_ctx.assert_true(
+            contributor_role != "",
+            "contributor_role should exist and not be empty.",
+        )
+        recommended_ctx.assert_true(
+            len(names) == len(roles),
+            "length of contributor names matches length of roles",
+        )
 
-        if hasattr(dataset, 'comment'):
-            recommended_ctx.assert_true(getattr(dataset, 'comment', '') != '', 'comment attribute should not be empty if specified')
+        if hasattr(dataset, "comment"):
+            recommended_ctx.assert_true(
+                getattr(dataset, "comment", "") != "",
+                "comment attribute should not be empty if specified",
+            )
 
         return recommended_ctx.to_result()
 
     def check_geophysical(self, dataset):
-        '''
-        Check the geophysical variable attributes for 1.1 templates.
+        """Check the geophysical variable attributes for 1.1 templates.
 
         :param netCDF4.Dataset dataset: An open netCDF dataset
 
@@ -591,91 +833,166 @@ class NCEI1_1Check(BaseNCEICheck):
             geophysical_variable_1:platform = "platform_variable" ; //... RECOMMENDED - Refers to name of variable containing information on the platform from which this variable was collected.
             geophysical_variable_1:instrument = "instrument_variable";//..RECOMMENDED - Refers to name of variable containing information on the instrument from which this variable was collected.
             geophysical_variable_1:comment = "" ; //..................... RECOMMENDED - Add useful, additional information here.
-        '''
+        """
         # Check the science variables to ensure they are good
 
         results = []
         for var in util.get_geophysical_variables(dataset):
             ncvar = dataset.variables[var]
-            test_ctx = TestCtx(BaseCheck.HIGH, 'Required attributes for variable {}'.format(var))
-            test_ctx.assert_true(getattr(ncvar, 'standard_name', '') != '', 'standard_name attribute must exist and not be empty')
-            test_ctx.assert_true(getattr(ncvar, 'units', '') != '', 'units attribute must exist and not be empty')
-            coordinates = getattr(ncvar, 'coordinates', '')
-            test_ctx.assert_true(coordinates != '', 'coordinates must exist and not be empty')
+            test_ctx = TestCtx(
+                BaseCheck.HIGH,
+                f"Required attributes for variable {var}",
+            )
+            test_ctx.assert_true(
+                getattr(ncvar, "standard_name", "") != "",
+                "standard_name attribute must exist and not be empty",
+            )
+            test_ctx.assert_true(
+                getattr(ncvar, "units", "") != "",
+                "units attribute must exist and not be empty",
+            )
+            coordinates = getattr(ncvar, "coordinates", "")
+            test_ctx.assert_true(
+                coordinates != "",
+                "coordinates must exist and not be empty",
+            )
             results.append(test_ctx.to_result())
 
-            test_ctx = TestCtx(BaseCheck.MEDIUM, 'Recommended attributes for variable {}'.format(var))
-            test_ctx.assert_true(getattr(ncvar, 'long_name', '') != '', 'long_name should exist and not be empty')
-            if not hasattr(ncvar, 'standard_name'):
-                test_ctx.assert_true(getattr(ncvar, 'nodc_name', '') != '', 'nodc_name should exist and not be empty')
+            test_ctx = TestCtx(
+                BaseCheck.MEDIUM,
+                f"Recommended attributes for variable {var}",
+            )
+            test_ctx.assert_true(
+                getattr(ncvar, "long_name", "") != "",
+                "long_name should exist and not be empty",
+            )
+            if not hasattr(ncvar, "standard_name"):
+                test_ctx.assert_true(
+                    getattr(ncvar, "nodc_name", "") != "",
+                    "nodc_name should exist and not be empty",
+                )
             self._check_min_max_range(ncvar, test_ctx)
-            grid_mapping = getattr(ncvar, 'grid_mapping', '')
-            test_ctx.assert_true(grid_mapping != '', 'grid_mapping should exist and not be empty')
+            grid_mapping = getattr(ncvar, "grid_mapping", "")
+            test_ctx.assert_true(
+                grid_mapping != "",
+                "grid_mapping should exist and not be empty",
+            )
             if grid_mapping:
-                test_ctx.assert_true(grid_mapping in dataset.variables, 'grid_mapping attribute is a variable')
-            test_ctx.assert_true(getattr(ncvar, 'source', '') != '', 'source should exist and not be empty')
-            test_ctx.assert_true(getattr(ncvar, 'references', '') != '', 'references should exist and not be empty')
-            test_ctx.assert_true(getattr(ncvar, 'cell_methods', '') != '', 'cell_methods should exist and not be empty')
-            ancillary_variables = getattr(ncvar, 'ancillary_variables', '')
+                test_ctx.assert_true(
+                    grid_mapping in dataset.variables,
+                    "grid_mapping attribute is a variable",
+                )
+            test_ctx.assert_true(
+                getattr(ncvar, "source", "") != "",
+                "source should exist and not be empty",
+            )
+            test_ctx.assert_true(
+                getattr(ncvar, "references", "") != "",
+                "references should exist and not be empty",
+            )
+            test_ctx.assert_true(
+                getattr(ncvar, "cell_methods", "") != "",
+                "cell_methods should exist and not be empty",
+            )
+            ancillary_variables = getattr(ncvar, "ancillary_variables", "")
             if ancillary_variables:
-                ancillary_variables = ancillary_variables.split(' ')
-            all_variables = all([v in dataset.variables for v in ancillary_variables])
+                ancillary_variables = ancillary_variables.split(" ")
+            all_variables = all(
+                [v in dataset.variables for v in ancillary_variables],
+            )
             if ancillary_variables:
-                test_ctx.assert_true(all_variables, 'ancillary_variables point to variables')
-            platform = getattr(ncvar, 'platform', '')
+                test_ctx.assert_true(
+                    all_variables,
+                    "ancillary_variables point to variables",
+                )
+            platform = getattr(ncvar, "platform", "")
             if platform:
-                test_ctx.assert_true(platform in dataset.variables, 'platform attribute points to variable')
-            instrument = getattr(ncvar, 'instrument', '')
+                test_ctx.assert_true(
+                    platform in dataset.variables,
+                    "platform attribute points to variable",
+                )
+            instrument = getattr(ncvar, "instrument", "")
             if instrument:
-                test_ctx.assert_true(instrument in dataset.variables, 'instrument attribute points to variable')
+                test_ctx.assert_true(
+                    instrument in dataset.variables,
+                    "instrument attribute points to variable",
+                )
 
-            if hasattr(ncvar, 'comment'):
-                test_ctx.assert_true(getattr(ncvar, 'comment', '') != '', 'comment attribute should not be empty if specified')
+            if hasattr(ncvar, "comment"):
+                test_ctx.assert_true(
+                    getattr(ncvar, "comment", "") != "",
+                    "comment attribute should not be empty if specified",
+                )
 
             results.append(test_ctx.to_result())
 
         return results
 
     def check_platform(self, dataset):
-        '''
-        int platform_variable; //............................................ RECOMMENDED - a container variable storing information about the platform. If more than one, can expand each attribute into a variable. For example, platform_call_sign and platform_nodc_code. See instrument_parameter_variable for an example.
-                platform_variable:long_name = "" ; //........................ RECOMMENDED - Provide a descriptive, long name for this variable.
-                platform_variable:comment = "" ; //.......................... RECOMMENDED - Add useful, additional information here.
-                platform_variable:call_sign = "" ; //........................ RECOMMENDED - This attribute identifies the call sign of the platform.
-                platform_variable:nodc_code = ""; //......................... RECOMMENDED - This attribute identifies the NODC code of the platform. Look at http://www.nodc.noaa.gov/cgi-bin/OAS/prd/platform to find if NODC codes are available.
-                platform_variable:wmo_code = "";//........................... RECOMMENDED - This attribute identifies the wmo code of the platform. Information on getting WMO codes is available at http://www.wmo.int/pages/prog/amp/mmop/wmo-number-rules.html
-                platform_variable:imo_code  = "";//.......................... RECOMMENDED - This attribute identifies the International Maritime Organization (IMO) number assigned by Lloyd's register.
-        '''
+        """Int platform_variable; //............................................ RECOMMENDED - a container variable storing information about the platform. If more than one, can expand each attribute into a variable. For example, platform_call_sign and platform_nodc_code. See instrument_parameter_variable for an example.
+        platform_variable:long_name = "" ; //........................ RECOMMENDED - Provide a descriptive, long name for this variable.
+        platform_variable:comment = "" ; //.......................... RECOMMENDED - Add useful, additional information here.
+        platform_variable:call_sign = "" ; //........................ RECOMMENDED - This attribute identifies the call sign of the platform.
+        platform_variable:nodc_code = ""; //......................... RECOMMENDED - This attribute identifies the NODC code of the platform. Look at http://www.nodc.noaa.gov/cgi-bin/OAS/prd/platform to find if NODC codes are available.
+        platform_variable:wmo_code = "";//........................... RECOMMENDED - This attribute identifies the wmo code of the platform. Information on getting WMO codes is available at http://www.wmo.int/pages/prog/amp/mmop/wmo-number-rules.html
+        platform_variable:imo_code  = "";//.......................... RECOMMENDED - This attribute identifies the International Maritime Organization (IMO) number assigned by Lloyd's register.
+        """
         # Check for the platform variable
         platforms = util.get_platform_variables(dataset)
         if not platforms:
-            return Result(BaseCheck.MEDIUM,
-                          False,
-                          'A container variable storing information about the platform exists',
-                          ['Create a variable to store the platform information'])
+            return Result(
+                BaseCheck.MEDIUM,
+                False,
+                "A container variable storing information about the platform exists",
+                ["Create a variable to store the platform information"],
+            )
 
         results = []
         for platform in platforms:
-            test_ctx = TestCtx(BaseCheck.MEDIUM, 'Recommended attributes for platform variable {}'.format(platform))
+            test_ctx = TestCtx(
+                BaseCheck.MEDIUM,
+                f"Recommended attributes for platform variable {platform}",
+            )
             pvar = dataset.variables[platform]
-            test_ctx.assert_true(getattr(pvar, 'long_name', '') != '', 'long_name attribute should exist and not be empty')
-            if hasattr(pvar, 'comment'):
-                test_ctx.assert_true(getattr(pvar, 'comment', '') != '', 'comment attribute should not be empty if specified')
+            test_ctx.assert_true(
+                getattr(pvar, "long_name", "") != "",
+                "long_name attribute should exist and not be empty",
+            )
+            if hasattr(pvar, "comment"):
+                test_ctx.assert_true(
+                    getattr(pvar, "comment", "") != "",
+                    "comment attribute should not be empty if specified",
+                )
             # We only check to see if nodc_code, wmo_code and imo_code are empty. They are only recommended if they exist for the platform.
             found_identifier = False
-            if hasattr(pvar, 'nodc_code'):
-                test_ctx.assert_true(getattr(pvar, 'nodc_code', '') != '', 'nodc_code should not be empty if specified')
+            if hasattr(pvar, "nodc_code"):
+                test_ctx.assert_true(
+                    getattr(pvar, "nodc_code", "") != "",
+                    "nodc_code should not be empty if specified",
+                )
                 found_identifier = True
-            if hasattr(pvar, 'wmo_code'):
-                test_ctx.assert_true(getattr(pvar, 'wmo_code', '') != '', 'wmo_code should not be empty if specified')
+            if hasattr(pvar, "wmo_code"):
+                test_ctx.assert_true(
+                    getattr(pvar, "wmo_code", "") != "",
+                    "wmo_code should not be empty if specified",
+                )
                 found_identifier = True
-            if hasattr(pvar, 'imo_code'):
-                test_ctx.assert_true(getattr(pvar, 'imo_code', '') != '', 'imo_code should not be empty if specified')
+            if hasattr(pvar, "imo_code"):
+                test_ctx.assert_true(
+                    getattr(pvar, "imo_code", "") != "",
+                    "imo_code should not be empty if specified",
+                )
                 found_identifier = True
-            if hasattr(pvar, 'call_sign'):
-                test_ctx.assert_true(getattr(pvar, 'call_sign', '') != '', 'call_sign attribute should not be empty if specified')
+            if hasattr(pvar, "call_sign"):
+                test_ctx.assert_true(
+                    getattr(pvar, "call_sign", "") != "",
+                    "call_sign attribute should not be empty if specified",
+                )
                 found_identifier = True
-            test_ctx.assert_true(found_identifier, 'At least one attribute should be defined to identify the platform: nodc_code, wmo_code, imo_code, call_sign.')
+            test_ctx.assert_true(
+                found_identifier,
+                "At least one attribute should be defined to identify the platform: nodc_code, wmo_code, imo_code, call_sign.",
+            )
             results.append(test_ctx.to_result())
 
         return results
@@ -685,59 +1002,58 @@ class NCEI2_0Check(BaseNCEICheck):
     def __init__(self):
         super(NCEI2_0Check, self).__init__()
         self.high_rec_atts = [
-            'title',
-            'summary',
-            'keywords',
+            "title",
+            "summary",
+            "keywords",
         ]
-        self.rec_atts  = [
-            'source',
-            'uuid',
-            'id',
-            'naming_authority',
-            'geospatial_lat_min',
-            'geospatial_lat_max',
-            'geospatial_lon_min',
-            'geospatial_lon_max',
-            'geospatial_vertical_max',
-            'geospatial_vertical_min',
-            'institution',
-            'creator_name',
-            'creator_url',
-            'creator_email',
-            'project',
-            'processing_level',
-            'publisher_name',
-            'publisher_email',
-            'publisher_url',
-            'history',
-            'license',
-            'geospatial_bounds',
-            'geospatial_bounds_crs',
-            'geospatial_bounds_vertical_crs'
+        self.rec_atts = [
+            "source",
+            "uuid",
+            "id",
+            "naming_authority",
+            "geospatial_lat_min",
+            "geospatial_lat_max",
+            "geospatial_lon_min",
+            "geospatial_lon_max",
+            "geospatial_vertical_max",
+            "geospatial_vertical_min",
+            "institution",
+            "creator_name",
+            "creator_url",
+            "creator_email",
+            "project",
+            "processing_level",
+            "publisher_name",
+            "publisher_email",
+            "publisher_url",
+            "history",
+            "license",
+            "geospatial_bounds",
+            "geospatial_bounds_crs",
+            "geospatial_bounds_vertical_crs",
         ]
         self.sug_atts = [
-            'creator_type',
-            'creator_institution',
-            'publisher_type',
-            'publisher_institution',
-            'program',
-            'contributor_name',
-            'contributor_role',
-            'geospatial_lat_units',
-            'geospatial_lon_units',
-            'geospatial_vertical_units',
-            'product_version',
-            'keywords_vocabulary',
-            'platform_vocabulary',
-            'instrument',
-            'instrument_vocabulary',
-            'metadata_link',
-            'references'
+            "creator_type",
+            "creator_institution",
+            "publisher_type",
+            "publisher_institution",
+            "program",
+            "contributor_name",
+            "contributor_role",
+            "geospatial_lat_units",
+            "geospatial_lon_units",
+            "geospatial_vertical_units",
+            "product_version",
+            "keywords_vocabulary",
+            "platform_vocabulary",
+            "instrument",
+            "instrument_vocabulary",
+            "metadata_link",
+            "references",
         ]
 
     def check_base_required_attributes(self, dataset):
-        '''
-        Check the global required and highly recommended attributes for 2.0 templates. These go an extra step besides
+        """Check the global required and highly recommended attributes for 2.0 templates. These go an extra step besides
         just checking that they exist.
 
         :param netCDF4.Dataset dataset: An open netCDF dataset
@@ -750,31 +1066,43 @@ class NCEI2_0Check(BaseNCEICheck):
         :summary = "" ; //............................................. HIGHLY RECOMMENDED - Provide a useful summary or abstract for the data in the file. (ACDD)
         :keywords = "" ; //............................................ HIGHLY RECOMMENDED - A comma separated list of keywords coming from the keywords_vocabulary. (ACDD)
         :Conventions = "CF-1.6, ACDD-1.3" ; //......................... HIGHLY RECOMMENDED    - A comma separated list of the conventions being followed. Always try to use latest version. (CF/ACDD)
-        '''
-        test_ctx = TestCtx(BaseCheck.HIGH, 'Required global attributes')
+        """
+        test_ctx = TestCtx(BaseCheck.HIGH, "Required global attributes")
 
-        conventions = getattr(dataset, 'Conventions', '')
-        feature_type = getattr(dataset, 'featureType', '')
+        conventions = getattr(dataset, "Conventions", "")
+        feature_type = getattr(dataset, "featureType", "")
 
         # Define conventions
-        accepted_conventions = ['CF-1.6', 'ACDD-1.3']
-        dataset_conventions = conventions.replace(' ', '').split(',')
+        accepted_conventions = ["CF-1.6", "ACDD-1.3"]
+        dataset_conventions = conventions.replace(" ", "").split(",")
         for accepted_convention in accepted_conventions:
             if accepted_convention not in dataset_conventions:
-                test_ctx.assert_true(False, 'Conventions attribute is missing or is not equal to "CF-1.6, ACDD-1.3": {}'.format(conventions))
+                test_ctx.assert_true(
+                    False,
+                    f'Conventions attribute is missing or is not equal to "CF-1.6, ACDD-1.3": {conventions}',
+                )
                 break
         else:
-            test_ctx.assert_true(True, '')
+            test_ctx.assert_true(True, "")
 
         # Check feature types
-        test_ctx.assert_true(feature_type in ['point', 'timeSeries', 'trajectory', 'profile', 'timeSeriesProfile', 'trajectoryProfile'],
-                             'Feature type must be one of point, timeSeries, trajectory, profile, timeSeriesProfile, trajectoryProfile: {}'.format(feature_type))
+        test_ctx.assert_true(
+            feature_type
+            in [
+                "point",
+                "timeSeries",
+                "trajectory",
+                "profile",
+                "timeSeriesProfile",
+                "trajectoryProfile",
+            ],
+            f"Feature type must be one of point, timeSeries, trajectory, profile, timeSeriesProfile, trajectoryProfile: {feature_type}",
+        )
 
         return test_ctx.to_result()
 
     def check_recommended_global_attributes(self, dataset):
-        '''
-        Check the global recommended attributes for 2.0 templates. These go an extra step besides
+        """Check the global recommended attributes for 2.0 templates. These go an extra step besides
         just checking that they exist.
 
         :param netCDF4.Dataset dataset: An open netCDF dataset
@@ -813,48 +1141,71 @@ class NCEI2_0Check(BaseNCEICheck):
         :time_coverage_resolution = "" ; //............................ RECOMMENDED - Describes the targeted time period between each value in the data set. Use ISO 8601:2004 for date and time. (ACDD)
         :uuid = "" ; //................................................ RECOMMENDED - Machine readable unique identifier for each file. A new uuid is created whenever the file is changed. (NCEI)
         :sea_name = "" ; //............................................ RECOMMENDED - The names of the sea in which the data were collected. Use NCEI sea names table. (NCEI)
-        '''
-
-        recommended_ctx = TestCtx(BaseCheck.MEDIUM, 'Recommended global attributes')
+        """
+        recommended_ctx = TestCtx(
+            BaseCheck.MEDIUM,
+            "Recommended global attributes",
+        )
 
         sea_names = [sn.lower() for sn in util.get_sea_names()]
-        sea_name = getattr(dataset, 'sea_name', '')
-        sea_name = sea_name.replace(', ', ',')
-        sea_name = sea_name.split(',') if sea_name else []
+        sea_name = getattr(dataset, "sea_name", "")
+        sea_name = sea_name.replace(", ", ",")
+        sea_name = sea_name.split(",") if sea_name else []
         for sea in sea_name:
             recommended_ctx.assert_true(
                 sea.lower() in sea_names,
-                'sea_name attribute should exist and should be from the NODC sea names list: {} is not a valid sea name'.format(sea)
+                f"sea_name attribute should exist and should be from the NODC sea names list: {sea} is not a valid sea name",
             )
 
         # Parse dates, check for ISO 8601
-        for attr in ['time_coverage_start', 'time_coverage_end', 'date_created', 'date_modified']:
-            attr_value = getattr(dataset, attr, '')
+        for attr in [
+            "time_coverage_start",
+            "time_coverage_end",
+            "date_created",
+            "date_modified",
+        ]:
+            attr_value = getattr(dataset, attr, "")
             try:
                 parse_datetime(attr_value)
-                recommended_ctx.assert_true(True, '')  # Score it True!
+                recommended_ctx.assert_true(True, "")  # Score it True!
             except ISO8601Error:
-                recommended_ctx.assert_true(False, '{} should exist and be ISO-8601 format (example: PT1M30S), currently: {}'.format(attr, attr_value))
+                recommended_ctx.assert_true(
+                    False,
+                    f"{attr} should exist and be ISO-8601 format (example: PT1M30S), currently: {attr_value}",
+                )
 
-        value = getattr(dataset, 'geospatial_vertical_positive', '')
-        recommended_ctx.assert_true(value.lower() in ['up', 'down'], 'geospatial_vertical_positive attribute should be up or down: {}'.format(value))
+        value = getattr(dataset, "geospatial_vertical_positive", "")
+        recommended_ctx.assert_true(
+            value.lower() in ["up", "down"],
+            f"geospatial_vertical_positive attribute should be up or down: {value}",
+        )
 
         # I hate english.
-        ack_exists = any((getattr(dataset, attr, '') != '' for attr in ['acknowledgment', 'acknowledgement']))
-        recommended_ctx.assert_true(ack_exists, 'acknowledgement attribute should exist and not be empty')
+        ack_exists = any(
+            getattr(dataset, attr, "") != ""
+            for attr in ["acknowledgment", "acknowledgement"]
+        )
+        recommended_ctx.assert_true(
+            ack_exists,
+            "acknowledgement attribute should exist and not be empty",
+        )
 
-        standard_name_vocab = getattr(dataset, 'standard_name_vocabulary', '')
-        regex = re.compile(r'[sS]tandard [nN]ame [tT]able')
-        recommended_ctx.assert_true(regex.search(standard_name_vocab),
-                                    "standard_name_vocabulary doesn't contain 'Standard Name Table': {}".format(standard_name_vocab))
+        standard_name_vocab = getattr(dataset, "standard_name_vocabulary", "")
+        regex = re.compile(r"[sS]tandard [nN]ame [tT]able")
+        recommended_ctx.assert_true(
+            regex.search(standard_name_vocab),
+            f"standard_name_vocabulary doesn't contain 'Standard Name Table': {standard_name_vocab}",
+        )
 
-        if hasattr(dataset, 'comment'):
-            recommended_ctx.assert_true(getattr(dataset, 'comment', '') != '', 'comment attribute should not be empty if specified')
+        if hasattr(dataset, "comment"):
+            recommended_ctx.assert_true(
+                getattr(dataset, "comment", "") != "",
+                "comment attribute should not be empty if specified",
+            )
         return recommended_ctx.to_result()
 
     def check_base_suggested_attributes(self, dataset):
-        '''
-        Check the global suggested attributes for 2.0 templates. These go an extra step besides
+        """Check the global suggested attributes for 2.0 templates. These go an extra step besides
         just checking that they exist.
 
         :param netCDF4.Dataset dataset: An open netCDF dataset
@@ -881,46 +1232,80 @@ class NCEI2_0Check(BaseNCEICheck):
         :cdm_data_type = "Point" ; //.................................. SUGGESTED - The data type, as derived from Unidata's Common Data Model Scientific Data types and understood by THREDDS. (ACDD)
         :metadata_link = "" ; //....................................... SUGGESTED - A URL that gives the location of more complete metadata. A persistent URL is recommended for this attribute. (ACDD)
         :references = "" ; //.......................................... SUGGESTED - Published or web-based references that describe the data or methods used to produce it. Recommend URIs (such as a URL or DOI) for papers or other references. (CF)
-        '''
-        suggested_ctx = TestCtx(BaseCheck.LOW, 'Suggested global attributes')
+        """
+        suggested_ctx = TestCtx(BaseCheck.LOW, "Suggested global attributes")
 
         # Do any of the variables define platform ?
-        platform_name = getattr(dataset, 'platform', '')
-        suggested_ctx.assert_true(platform_name != '', 'platform should exist and point to a term in :platform_vocabulary.')
+        platform_name = getattr(dataset, "platform", "")
+        suggested_ctx.assert_true(
+            platform_name != "",
+            "platform should exist and point to a term in :platform_vocabulary.",
+        )
 
-        cdm_data_type = getattr(dataset, 'cdm_data_type', '')
-        suggested_ctx.assert_true(cdm_data_type.lower() in ['grid', 'image', 'point', 'radial', 'station', 'swath', 'trajectory'],
-                     'cdm_data_type must be one of Grid, Image, Point, Radial, Station, Swath, Trajectory: {}'.format(cdm_data_type))
+        cdm_data_type = getattr(dataset, "cdm_data_type", "")
+        suggested_ctx.assert_true(
+            cdm_data_type.lower()
+            in [
+                "grid",
+                "image",
+                "point",
+                "radial",
+                "station",
+                "swath",
+                "trajectory",
+            ],
+            f"cdm_data_type must be one of Grid, Image, Point, Radial, Station, Swath, Trajectory: {cdm_data_type}",
+        )
 
         # Parse dates, check for ISO 8601
-        for attr in ['date_modified', 'date_issued', 'date_metadata_modified']:
-            attr_value = getattr(dataset, attr, '')
+        for attr in ["date_modified", "date_issued", "date_metadata_modified"]:
+            attr_value = getattr(dataset, attr, "")
             try:
                 parse_datetime(attr_value)
-                suggested_ctx.assert_true(True, '')  # Score it True!
+                suggested_ctx.assert_true(True, "")  # Score it True!
             except ISO8601Error:
-                suggested_ctx.assert_true(False, '{} should exist and be ISO-8601 format (example: PT1M30S), currently: {}'.format(attr, attr_value))
+                suggested_ctx.assert_true(
+                    False,
+                    f"{attr} should exist and be ISO-8601 format (example: PT1M30S), currently: {attr_value}",
+                )
 
-        units = getattr(dataset, 'geospatial_lat_units', '').lower()
-        suggested_ctx.assert_true(units == 'degrees_north', 'geospatial_lat_units attribute should be degrees_north: {}'.format(units))
+        units = getattr(dataset, "geospatial_lat_units", "").lower()
+        suggested_ctx.assert_true(
+            units == "degrees_north",
+            f"geospatial_lat_units attribute should be degrees_north: {units}",
+        )
 
-        units = getattr(dataset, 'geospatial_lon_units', '').lower()
-        suggested_ctx.assert_true(units == 'degrees_east', 'geospatial_lon_units attribute should be degrees_east: {}'.format(units))
+        units = getattr(dataset, "geospatial_lon_units", "").lower()
+        suggested_ctx.assert_true(
+            units == "degrees_east",
+            f"geospatial_lon_units attribute should be degrees_east: {units}",
+        )
 
-        contributor_name = getattr(dataset, 'contributor_name', '')
-        contributor_role = getattr(dataset, 'contributor_role', '')
-        names = contributor_role.split(',')
-        roles = contributor_role.split(',')
-        suggested_ctx.assert_true(contributor_name != '', 'contributor_name should exist and not be empty.')
-        suggested_ctx.assert_true(len(names) == len(roles), 'length of contributor names matches length of roles')
-        suggested_ctx.assert_true(contributor_role != '', 'contributor_role should exist and not be empty.')
-        suggested_ctx.assert_true(len(names) == len(roles), 'length of contributor names matches length of roles')
+        contributor_name = getattr(dataset, "contributor_name", "")
+        contributor_role = getattr(dataset, "contributor_role", "")
+        names = contributor_role.split(",")
+        roles = contributor_role.split(",")
+        suggested_ctx.assert_true(
+            contributor_name != "",
+            "contributor_name should exist and not be empty.",
+        )
+        suggested_ctx.assert_true(
+            len(names) == len(roles),
+            "length of contributor names matches length of roles",
+        )
+        suggested_ctx.assert_true(
+            contributor_role != "",
+            "contributor_role should exist and not be empty.",
+        )
+        suggested_ctx.assert_true(
+            len(names) == len(roles),
+            "length of contributor names matches length of roles",
+        )
 
         return suggested_ctx.to_result()
 
     def check_geophysical(self, dataset):
-        '''
-        Check the geophysical variable attributes for 2.0 templates.
+        """Check the geophysical variable attributes for 2.0 templates.
         Attributes missing_value and coverage_content_type have been added in NCEI 2.0
 
         :param netCDF4.Dataset dataset: An open netCDF dataset
@@ -946,98 +1331,185 @@ class NCEI2_0Check(BaseNCEICheck):
             geophysical_variable_1:platform = "platform_variable" ; //... RECOMMENDED - Refers to name of variable containing information on the platform from which this variable was collected.
             geophysical_variable_1:instrument = "instrument_variable";//..RECOMMENDED - Refers to name of variable containing information on the instrument from which this variable was collected.
             geophysical_variable_1:comment = "" ; //..................... RECOMMENDED - Add useful, additional information here.
-        '''
-
+        """
         results = []
         for var in util.get_geophysical_variables(dataset):
             ncvar = dataset.variables[var]
 
-            test_ctx = TestCtx(BaseCheck.HIGH, 'Required attributes for variable {}'.format(var))
-            test_ctx.assert_true(getattr(ncvar, 'standard_name', '') != '', 'standard_name attribute must exist and not be empty')
-            test_ctx.assert_true(getattr(ncvar, 'units', '') != '', 'units attribute must exist and not be empty')
-            coordinates = getattr(ncvar, 'coordinates', '')
-            test_ctx.assert_true(coordinates != '', 'coordinates must exist and not be empty')
+            test_ctx = TestCtx(
+                BaseCheck.HIGH,
+                f"Required attributes for variable {var}",
+            )
+            test_ctx.assert_true(
+                getattr(ncvar, "standard_name", "") != "",
+                "standard_name attribute must exist and not be empty",
+            )
+            test_ctx.assert_true(
+                getattr(ncvar, "units", "") != "",
+                "units attribute must exist and not be empty",
+            )
+            coordinates = getattr(ncvar, "coordinates", "")
+            test_ctx.assert_true(
+                coordinates != "",
+                "coordinates must exist and not be empty",
+            )
             results.append(test_ctx.to_result())
 
-            test_ctx = TestCtx(BaseCheck.MEDIUM, 'Recommended attributes for variable {}'.format(var))
-            test_ctx.assert_true(getattr(ncvar, 'long_name', '') != '', 'long_name should exist and not be empty')
-            if not hasattr(ncvar, 'standard_name'):
-                test_ctx.assert_true(getattr(ncvar, 'ncei_name', '') != '', 'ncei_name should exist and not be empty')
+            test_ctx = TestCtx(
+                BaseCheck.MEDIUM,
+                f"Recommended attributes for variable {var}",
+            )
+            test_ctx.assert_true(
+                getattr(ncvar, "long_name", "") != "",
+                "long_name should exist and not be empty",
+            )
+            if not hasattr(ncvar, "standard_name"):
+                test_ctx.assert_true(
+                    getattr(ncvar, "ncei_name", "") != "",
+                    "ncei_name should exist and not be empty",
+                )
             self._check_min_max_range(ncvar, test_ctx)
 
-            coverage_content_type_options = ['image', 'thematicClassification', 'physicalMeasurement', 'auxiliaryInformation',
-                                             'qualityInformation', 'referenceInformation', 'modelResult', 'coordinate']
-            test_ctx.assert_true(getattr(ncvar, 'coverage_content_type', '') in coverage_content_type_options,
-                                 ('coverage_content_type should exist and be one of the following:'
-                                  'image, thematicClassification, physicalMeasurement, auxiliaryInformation, '
-                                  'qualityInformation, referenceInformation, modelResult, or coordinate'))
+            coverage_content_type_options = [
+                "image",
+                "thematicClassification",
+                "physicalMeasurement",
+                "auxiliaryInformation",
+                "qualityInformation",
+                "referenceInformation",
+                "modelResult",
+                "coordinate",
+            ]
+            test_ctx.assert_true(
+                getattr(ncvar, "coverage_content_type", "")
+                in coverage_content_type_options,
+                (
+                    "coverage_content_type should exist and be one of the following:"
+                    "image, thematicClassification, physicalMeasurement, auxiliaryInformation, "
+                    "qualityInformation, referenceInformation, modelResult, or coordinate"
+                ),
+            )
 
-            grid_mapping = getattr(ncvar, 'grid_mapping', '')
-            test_ctx.assert_true(grid_mapping != '', 'grid_mapping should exist and not be empty')
+            grid_mapping = getattr(ncvar, "grid_mapping", "")
+            test_ctx.assert_true(
+                grid_mapping != "",
+                "grid_mapping should exist and not be empty",
+            )
             if grid_mapping:
-                test_ctx.assert_true(grid_mapping in dataset.variables, 'grid_mapping attribute is a variable')
-            test_ctx.assert_true(getattr(ncvar, 'source', '') != '', 'source should exist and not be empty')
-            test_ctx.assert_true(getattr(ncvar, 'references', '') != '', 'references should exist and not be empty')
-            test_ctx.assert_true(getattr(ncvar, 'cell_methods', '') != '', 'cell_methods should exist and not be empty')
-            ancillary_variables = getattr(ncvar, 'ancillary_variables', '')
+                test_ctx.assert_true(
+                    grid_mapping in dataset.variables,
+                    "grid_mapping attribute is a variable",
+                )
+            test_ctx.assert_true(
+                getattr(ncvar, "source", "") != "",
+                "source should exist and not be empty",
+            )
+            test_ctx.assert_true(
+                getattr(ncvar, "references", "") != "",
+                "references should exist and not be empty",
+            )
+            test_ctx.assert_true(
+                getattr(ncvar, "cell_methods", "") != "",
+                "cell_methods should exist and not be empty",
+            )
+            ancillary_variables = getattr(ncvar, "ancillary_variables", "")
             if ancillary_variables:
-                ancillary_variables = ancillary_variables.split(' ')
-            all_variables = all([v in dataset.variables for v in ancillary_variables])
+                ancillary_variables = ancillary_variables.split(" ")
+            all_variables = all(
+                [v in dataset.variables for v in ancillary_variables],
+            )
             if ancillary_variables:
-                test_ctx.assert_true(all_variables, 'ancillary_variables point to variables')
-            platform = getattr(ncvar, 'platform', '')
+                test_ctx.assert_true(
+                    all_variables,
+                    "ancillary_variables point to variables",
+                )
+            platform = getattr(ncvar, "platform", "")
             if platform:
-                test_ctx.assert_true(platform in dataset.variables, 'platform attribute points to variable')
-            instrument = getattr(ncvar, 'instrument', '')
+                test_ctx.assert_true(
+                    platform in dataset.variables,
+                    "platform attribute points to variable",
+                )
+            instrument = getattr(ncvar, "instrument", "")
             if instrument:
-                test_ctx.assert_true(instrument in dataset.variables, 'instrument attribute points to variable')
+                test_ctx.assert_true(
+                    instrument in dataset.variables,
+                    "instrument attribute points to variable",
+                )
 
-            if hasattr(ncvar, 'comment'):
-                test_ctx.assert_true(getattr(dataset, 'comment', '') != '', 'comment attribute should not be empty if specified')
+            if hasattr(ncvar, "comment"):
+                test_ctx.assert_true(
+                    getattr(dataset, "comment", "") != "",
+                    "comment attribute should not be empty if specified",
+                )
             results.append(test_ctx.to_result())
 
         return results
 
     def check_platform(self, dataset):
-        '''
-        int platform_variable; //............................................ RECOMMENDED - a container variable storing information about the platform. If more than one, can expand each attribute into a variable. For example, platform_call_sign and platform_nodc_code. See instrument_parameter_variable for an example.
-                platform_variable:long_name = "" ; //........................ RECOMMENDED - Provide a descriptive, long name for this variable.
-                platform_variable:comment = "" ; //.......................... RECOMMENDED - Add useful, additional information here.
-                platform_variable:call_sign = "" ; //........................ RECOMMENDED - This attribute identifies the call sign of the platform.
-                platform_variable:ncei_code = ""; //......................... RECOMMENDED - This attribute identifies the NCEI code of the platform. Look at http://www.nodc.noaa.gov/cgi-bin/OAS/prd/platform to find if NCEI codes are available.
-                platform_variable:wmo_code = "";//........................... RECOMMENDED - This attribute identifies the wmo code of the platform. Information on getting WMO codes is available at http://www.wmo.int/pages/prog/amp/mmop/wmo-number-rules.html
-                platform_variable:imo_code  = "";//.......................... RECOMMENDED - This attribute identifies the International Maritime Organization (IMO) number assigned by Lloyd's register.
-        '''
+        """Int platform_variable; //............................................ RECOMMENDED - a container variable storing information about the platform. If more than one, can expand each attribute into a variable. For example, platform_call_sign and platform_nodc_code. See instrument_parameter_variable for an example.
+        platform_variable:long_name = "" ; //........................ RECOMMENDED - Provide a descriptive, long name for this variable.
+        platform_variable:comment = "" ; //.......................... RECOMMENDED - Add useful, additional information here.
+        platform_variable:call_sign = "" ; //........................ RECOMMENDED - This attribute identifies the call sign of the platform.
+        platform_variable:ncei_code = ""; //......................... RECOMMENDED - This attribute identifies the NCEI code of the platform. Look at http://www.nodc.noaa.gov/cgi-bin/OAS/prd/platform to find if NCEI codes are available.
+        platform_variable:wmo_code = "";//........................... RECOMMENDED - This attribute identifies the wmo code of the platform. Information on getting WMO codes is available at http://www.wmo.int/pages/prog/amp/mmop/wmo-number-rules.html
+        platform_variable:imo_code  = "";//.......................... RECOMMENDED - This attribute identifies the International Maritime Organization (IMO) number assigned by Lloyd's register.
+        """
         # Check for the platform variable
         platforms = util.get_platform_variables(dataset)
         if not platforms:
-            return Result(BaseCheck.MEDIUM,
-                          False,
-                          'A container variable storing information about the platform exists',
-                          ['Create a variable to store the platform information'])
+            return Result(
+                BaseCheck.MEDIUM,
+                False,
+                "A container variable storing information about the platform exists",
+                ["Create a variable to store the platform information"],
+            )
 
         results = []
         for platform in platforms:
-            test_ctx = TestCtx(BaseCheck.MEDIUM, 'Recommended attributes for platform variable {}'.format(platform))
+            test_ctx = TestCtx(
+                BaseCheck.MEDIUM,
+                f"Recommended attributes for platform variable {platform}",
+            )
             pvar = dataset.variables[platform]
-            test_ctx.assert_true(getattr(pvar, 'long_name', '') != '', 'long_name attribute should exist and not be empty')
-            if hasattr(pvar, 'comment'):
-                test_ctx.assert_true(getattr(pvar, 'comment', '') != '', 'comment attribute should not be empty if specified')
+            test_ctx.assert_true(
+                getattr(pvar, "long_name", "") != "",
+                "long_name attribute should exist and not be empty",
+            )
+            if hasattr(pvar, "comment"):
+                test_ctx.assert_true(
+                    getattr(pvar, "comment", "") != "",
+                    "comment attribute should not be empty if specified",
+                )
             # We only check to see if nodc_code, wmo_code and imo_code are empty. They are only recommended if they exist for the platform.
             found_identifier = False
-            if hasattr(pvar, 'ncei_code'):
-                test_ctx.assert_true(getattr(pvar, 'ncei_code', '') != '', 'ncei_code should not be empty if specified')
+            if hasattr(pvar, "ncei_code"):
+                test_ctx.assert_true(
+                    getattr(pvar, "ncei_code", "") != "",
+                    "ncei_code should not be empty if specified",
+                )
                 found_identifier = True
-            if hasattr(pvar, 'wmo_code'):
-                test_ctx.assert_true(getattr(pvar, 'wmo_code', '') != '', 'wmo_code should not be empty if specified')
+            if hasattr(pvar, "wmo_code"):
+                test_ctx.assert_true(
+                    getattr(pvar, "wmo_code", "") != "",
+                    "wmo_code should not be empty if specified",
+                )
                 found_identifier = True
-            if hasattr(pvar, 'imo_code'):
-                test_ctx.assert_true(getattr(pvar, 'imo_code', '') != '', 'imo_code should not be empty if specified')
+            if hasattr(pvar, "imo_code"):
+                test_ctx.assert_true(
+                    getattr(pvar, "imo_code", "") != "",
+                    "imo_code should not be empty if specified",
+                )
                 found_identifier = True
-            if hasattr(pvar, 'call_sign'):
-                test_ctx.assert_true(getattr(pvar, 'call_sign', '') != '', 'call_sign attribute should not be empty if specified')
+            if hasattr(pvar, "call_sign"):
+                test_ctx.assert_true(
+                    getattr(pvar, "call_sign", "") != "",
+                    "call_sign attribute should not be empty if specified",
+                )
                 found_identifier = True
-            test_ctx.assert_true(found_identifier, 'At least one attribute should be defined to identify the platform: ncei_code, wmo_code, imo_code, call_sign.')
+            test_ctx.assert_true(
+                found_identifier,
+                "At least one attribute should be defined to identify the platform: ncei_code, wmo_code, imo_code, call_sign.",
+            )
             results.append(test_ctx.to_result())
 
         return results
