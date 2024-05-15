@@ -1,9 +1,7 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 '''
 cc_plugin_ncei/util.py
 '''
-from pkg_resources import resource_filename
+from pathlib import Path
 import json
 from lxml import etree
 from pkgutil import get_data
@@ -18,9 +16,10 @@ def get_unitless_standard_names():
     Returns a list of valid standard_names that are allowed to be unitless
     '''
     global _UNITLESS_DB
+    resource_filename = Path(__file__).parent
     if _UNITLESS_DB is None:
-        with open(resource_filename('cc_plugin_ncei', 'data/unitless.json'), 'r') as f:
-            _UNITLESS_DB = json.load(f)
+        f = resource_filename.joinpath('data/unitless.json').read_text()
+        _UNITLESS_DB = json.loads(f)
     return _UNITLESS_DB
 
 
