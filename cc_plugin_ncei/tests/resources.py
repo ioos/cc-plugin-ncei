@@ -1,5 +1,5 @@
 from pkg_resources import resource_filename
-import sh
+import subprocess
 import os
 
 
@@ -15,7 +15,7 @@ def get_filename(path):
 
 
 def generate_dataset(cdl_path, nc_path):
-    sh.ncgen('-o', nc_path, cdl_path)
+    subprocess.run(["ncgen", '-o', nc_path, cdl_path])
 
 
 STATIC_FILES = {
