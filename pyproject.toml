@@ -6,6 +6,99 @@ requires = [
   "wheel",
 ]
 
+[project]
+name = "cc-plugin-ncei"
+description = "Compliance Checker NCEI Templates Compliance plugin"
+readme = "README.md"
+license = { text = "Apache-2.0" }
+maintainers = [
+  { name = "Benjamin Adams" },
+  { name = "Bob Fratantonio" },
+  { name = "Filipe Fernandes" },
+  { name = "Luke Campbell" },
+]
+requires-python = ">=3.8"
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: Apache Software License",
+  "Operating System :: MacOS :: MacOS X",
+  "Operating System :: Microsoft :: Windows",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering",
+]
+dynamic = [
+  "dependencies",
+  "version",
+]
+
+urls.documentation = "https://ioos.github.io/cc-plugin-ncei"
+urls.homepage = "https://compliance.ioos.us/index.html"
+urls.repository = "https://github.com/ioos/cc-plugin-ncei"
+
+entry-points."compliance_checker.suites"."ncei-grid-1.1" = "cc_plugin_ncei.ncei_grid:NCEIGrid1_1"
+entry-points."compliance_checker.suites"."ncei-grid-2.0" = "cc_plugin_ncei.ncei_grid:NCEIGrid2_0"
+entry-points."compliance_checker.suites"."ncei-point-1.1" = "cc_plugin_ncei.ncei_point:NCEIPoint1_1"
+entry-points."compliance_checker.suites"."ncei-point-2.0" = "cc_plugin_ncei.ncei_point:NCEIPoint2_0"
+entry-points."compliance_checker.suites"."ncei-profile-incomplete-1.1" = "cc_plugin_ncei.ncei_profile:NCEIProfileIncomplete1_1"
+entry-points."compliance_checker.suites"."ncei-profile-incomplete-2.0" = "cc_plugin_ncei.ncei_profile:NCEIProfileIncomplete2_0"
+entry-points."compliance_checker.suites"."ncei-profile-orthogonal-1.1" = "cc_plugin_ncei.ncei_profile:NCEIProfileOrthogonal1_1"
+entry-points."compliance_checker.suites"."ncei-profile-orthogonal-2.0" = "cc_plugin_ncei.ncei_profile:NCEIProfileOrthogonal2_0"
+entry-points."compliance_checker.suites"."ncei-timeseries-incomplete-1.1" = "cc_plugin_ncei.ncei_timeseries:NCEITimeSeriesIncomplete1_1"
+entry-points."compliance_checker.suites"."ncei-timeseries-incomplete-2.0" = "cc_plugin_ncei.ncei_timeseries:NCEITimeSeriesIncomplete2_0"
+entry-points."compliance_checker.suites"."ncei-timeseries-orthogonal-1.1" = "cc_plugin_ncei.ncei_timeseries:NCEITimeSeriesOrthogonal1_1"
+entry-points."compliance_checker.suites"."ncei-timeseries-orthogonal-2.0" = "cc_plugin_ncei.ncei_timeseries:NCEITimeSeriesOrthogonal2_0"
+entry-points."compliance_checker.suites"."ncei-timeseries-profile-incomplete-1.1" = "cc_plugin_ncei.ncei_timeseries_profile:NCEITimeSeriesProfileIncomplete1_1"
+entry-points."compliance_checker.suites"."ncei-timeseries-profile-incomplete-2.0" = "cc_plugin_ncei.ncei_timeseries_profile:NCEITimeSeriesProfileIncomplete2_0"
+entry-points."compliance_checker.suites"."ncei-timeseries-profile-incompletetime-orthdepth-1.1" = "cc_plugin_ncei.ncei_timeseries_profile:NCEITimeSeriesProfileIncompleteTimeOrthDepth1_1"
+entry-points."compliance_checker.suites"."ncei-timeseries-profile-incompletetime-orthdepth-2.0" = "cc_plugin_ncei.ncei_timeseries_profile:NCEITimeSeriesProfileIncompleteTimeOrthDepth2_0"
+entry-points."compliance_checker.suites"."ncei-timeseries-profile-orthogonal-1.1" = "cc_plugin_ncei.ncei_timeseries_profile:NCEITimeSeriesProfileOrthogonal1_1"
+entry-points."compliance_checker.suites"."ncei-timeseries-profile-orthogonal-2.0" = "cc_plugin_ncei.ncei_timeseries_profile:NCEITimeSeriesProfileOrthogonal2_0"
+entry-points."compliance_checker.suites"."ncei-timeseries-profile-orthtime-incompletedepth-1.1" = "cc_plugin_ncei.ncei_timeseries_profile:NCEITimeSeriesProfileOrthTimeIncompleteDepth1_1"
+entry-points."compliance_checker.suites"."ncei-timeseries-profile-orthtime-incompletedepth-2.0" = "cc_plugin_ncei.ncei_timeseries_profile:NCEITimeSeriesProfileOrthTimeIncompleteDepth2_0"
+entry-points."compliance_checker.suites"."ncei-trajectory-1.1" = "cc_plugin_ncei.ncei_trajectory:NCEITrajectory1_1"
+entry-points."compliance_checker.suites"."ncei-trajectory-2.0" = "cc_plugin_ncei.ncei_trajectory:NCEITrajectory2_0"
+entry-points."compliance_checker.suites"."ncei-trajectory-profile-incomplete-1.1" = "cc_plugin_ncei.ncei_trajectory_profile:NCEITrajectoryProfileIncomplete1_1"
+entry-points."compliance_checker.suites"."ncei-trajectory-profile-incomplete-2.0" = "cc_plugin_ncei.ncei_trajectory_profile:NCEITrajectoryProfileIncomplete2_0"
+
+entry-points."compliance_checker.suites"."ncei-trajectory-profile-orthogonal-1.1" = "cc_plugin_ncei.ncei_trajectory_profile:NCEITrajectoryProfileOrthogonal1_1"
+entry-points."compliance_checker.suites"."ncei-trajectory-profile-orthogonal-2.0" = "cc_plugin_ncei.ncei_trajectory_profile:NCEITrajectoryProfileOrthogonal2_0"
+
+[tool.setuptools]
+packages = [
+  "cc_plugin_ncei",
+]
+license-files = [
+  "LICENSE",
+]
+zip-safe = false
+include-package-data = true
+
+[tool.setuptools.package-data]
+cc_plugin_ncei = [
+  "data/*.xml",
+  "data/*.json",
+]
+
+[tool.setuptools.dynamic]
+dependencies = { file = [
+  "requirements.txt",
+] }
+readme = { file = "README.md", content-type = "text/markdown" }
+
+[tool.setuptools_scm]
+write_to = "cc_plugin_ncei/_version.py"
+write_to_template = "__version__ = '{version}'"
+tag_regex = "^(?P<prefix>v)?(?P<version>[^\\+]+)(?P<suffix>.*)?$"
+
 [tool.pytest.ini_options]
 filterwarnings = [
   # We try to use strings instead od floats in puporse in the tests.
