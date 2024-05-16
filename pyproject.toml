@@ -1,0 +1,13 @@
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = [
+  "setuptools>=42",
+  "setuptools-scm",
+  "wheel",
+]
+
+[tool.pytest.ini_options]
+filterwarnings = [
+  # We try to use strings instead od floats in puporse in the tests.
+  "ignore::UserWarning",
+]
