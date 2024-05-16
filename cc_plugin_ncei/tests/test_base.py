@@ -1,3 +1,7 @@
+"""Tests the base functionality of the checker that should remain the same
+across all of the discrete sampling geometries
+"""
+
 import numpy as np
 import pytest
 from compliance_checker.base import BaseCheck
@@ -5,9 +9,6 @@ from compliance_checker.tests.helpers import MockNetCDF
 
 from cc_plugin_ncei import ncei_base
 
-"""Tests the base functionality of the checker that should remain the same
-across all of the discrete sampling geometries
-"""
 # TestNCEIBase
 
 
