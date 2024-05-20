@@ -8,3 +8,4 @@ dist
 **/.DS_Store
 .tox/
 .cache
+cc_plugin_ncei/_version.py
