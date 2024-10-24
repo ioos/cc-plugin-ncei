@@ -1,3 +1,2 @@
 compliance-checker>=2.2.0
 isodate>=0.5.4
-six>=1.10.0
