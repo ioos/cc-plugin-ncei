@@ -1,20 +1,22 @@
-import os
+"""Test Resources."""
+
 import subprocess
 from pathlib import Path
 
 
 def get_filename(path):
-    """Returns the path to a valid dataset"""
+    """Return the path to a valid dataset."""
     resource_filename = Path(__file__).parent.parent
     filename = resource_filename.joinpath(path)
-    if not os.path.exists(filename):
+    if not filename.exists():
         cdl_path = filename.with_suffix(".cdl")
         generate_dataset(cdl_path, filename)
     return filename
 
 
 def generate_dataset(cdl_path, nc_path):
-    subprocess.run(["ncgen", "-o", nc_path, cdl_path], check=False)
+    """Generate dataset from CDLs."""
+    subprocess.run(["ncgen", "-o", nc_path, cdl_path], check=False)  # noqa: S607, S603
 
 
 STATIC_FILES = {
