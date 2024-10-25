@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-"""cc_plugin_ncei/ncei_profile.py"""
+"""cc_plugin_ncei/ncei_profile.py."""
 
 from compliance_checker.base import BaseCheck
 
@@ -8,14 +7,16 @@ from cc_plugin_ncei.ncei_base import NCEI1_1Check, NCEI2_0Check, TestCtx
 
 
 class NCEIProfileOrthogonalBase(BaseCheck):
+    """NCEIProfileOrthogonalBase."""
+
     _cc_spec = "ncei-profile-orthogonal"
-    valid_feature_types = [
+    valid_feature_types = (
         "profile",
         "profile_id",
-    ]
+    )
 
     def check_dimensions(self, dataset):
-        """Checks that the feature types of this dataset are consistent with a profile-orthogonal dataset.
+        """Check that the feature types of this dataset are consistent with a profile-orthogonal dataset.
 
         :param netCDF4.Dataset dataset: An open netCDF dataset
         """
@@ -37,7 +38,7 @@ class NCEIProfileOrthogonalBase(BaseCheck):
         return results
 
     def check_profile_id(self, dataset):
-        """Checks that if a variable exists for the profile id it has the appropriate attributes
+        """Check that if a variable exists for the profile id it has the appropriate attributes.
 
         :param netCDF4.Dataset dataset: An open netCDF dataset
         """
@@ -68,6 +69,8 @@ class NCEIProfileOrthogonalBase(BaseCheck):
 
 
 class NCEIProfileOrthogonal1_1(NCEI1_1Check, NCEIProfileOrthogonalBase):
+    """NCEIProfileOrthogonal1_1."""
+
     register_checker = True
     _cc_spec_version = "1.1"
     _cc_description = (
@@ -84,13 +87,11 @@ class NCEIProfileOrthogonal1_1(NCEI1_1Check, NCEIProfileOrthogonalBase):
     _cc_authors = "Luke Campbell, Dan Maher"
     _cc_checker_version = "2.1.0"
 
-    valid_templates = [
-        "NODC_NetCDF_Profile_Orthogonal_Template_v1.1",
-    ]
+    valid_templates = ("NODC_NetCDF_Profile_Orthogonal_Template_v1.1",)
 
     @classmethod
     def beliefs(cls):
-        """Not applicable for gliders"""
+        """Not applicable for gliders."""
         return {}
 
     def check_required_attributes(self, dataset):
@@ -121,6 +122,8 @@ class NCEIProfileOrthogonal1_1(NCEI1_1Check, NCEIProfileOrthogonalBase):
 
 
 class NCEIProfileOrthogonal2_0(NCEI2_0Check, NCEIProfileOrthogonalBase):
+    """NCEIProfileOrthogonal2_0."""
+
     register_checker = True
     _cc_spec_version = "2.0"
     _cc_description = (
@@ -137,9 +140,7 @@ class NCEIProfileOrthogonal2_0(NCEI2_0Check, NCEIProfileOrthogonalBase):
     _cc_authors = "Luke Campbell, Dan Maher"
     _cc_checker_version = "2.3.0"
 
-    valid_templates = [
-        "NCEI_NetCDF_Profile_Orthogonal_Template_v2.0",
-    ]
+    valid_templates = ("NCEI_NetCDF_Profile_Orthogonal_Template_v2.0",)
 
     def check_required_attributes(self, dataset):
         """Feature type specific check of global required and highly recommended attributes.
@@ -169,14 +170,16 @@ class NCEIProfileOrthogonal2_0(NCEI2_0Check, NCEIProfileOrthogonalBase):
 
 
 class NCEIProfileIncomplete(BaseCheck):
+    """NCEIProfileIncomplete."""
+
     _cc_spec = "ncei-profile-incomplete"
-    valid_feature_types = [
+    valid_feature_types = (
         "profile",
         "profile_id",
-    ]
+    )
 
     def check_dimensions(self, dataset):
-        """Checks that the feature types of this dataset are consistent with a profile-incomplete dataset.
+        """Check that the feature types of this dataset are consistent with a profile-incomplete dataset.
 
         :param netCDF4.Dataset dataset: An open netCDF dataset
         """
@@ -198,7 +201,7 @@ class NCEIProfileIncomplete(BaseCheck):
         return results
 
     def check_profile_id(self, dataset):
-        """Checks that if a variable exists for the profile id it has the appropriate attributes
+        """Check that if a variable exists for the profile id it has the appropriate attributes.
 
         :param netCDF4.Dataset dataset: An open netCDF dataset
         """
@@ -229,6 +232,8 @@ class NCEIProfileIncomplete(BaseCheck):
 
 
 class NCEIProfileIncomplete1_1(NCEI1_1Check, NCEIProfileIncomplete):
+    """NCEIProfileIncomplete1_1."""
+
     register_checker = True
     _cc_spec_version = "1.1"
     _cc_description = (
@@ -246,13 +251,11 @@ class NCEIProfileIncomplete1_1(NCEI1_1Check, NCEIProfileIncomplete):
     _cc_authors = "Luke Campbell, Dan Maher"
     _cc_checker_version = "2.1.0"
 
-    valid_templates = [
-        "NODC_NetCDF_Profile_Incomplete_Template_v1.1",
-    ]
+    valid_templates = ("NODC_NetCDF_Profile_Incomplete_Template_v1.1",)
 
     @classmethod
     def beliefs(cls):
-        """Not applicable for gliders"""
+        """Not applicable for gliders."""
         return {}
 
     def check_required_attributes(self, dataset):
@@ -283,6 +286,8 @@ class NCEIProfileIncomplete1_1(NCEI1_1Check, NCEIProfileIncomplete):
 
 
 class NCEIProfileIncomplete2_0(NCEI2_0Check, NCEIProfileIncomplete):
+    """NCEIProfileIncomplete2_0."""
+
     register_checker = True
     _cc_spec_version = "2.0"
     _cc_description = (
@@ -300,9 +305,7 @@ class NCEIProfileIncomplete2_0(NCEI2_0Check, NCEIProfileIncomplete):
     _cc_authors = "Luke Campbell, Dan Maher"
     _cc_checker_version = "2.3.0"
 
-    valid_templates = [
-        "NCEI_NetCDF_Profile_Incomplete_Template_v2.0",
-    ]
+    valid_templates = ("NCEI_NetCDF_Profile_Incomplete_Template_v2.0",)
 
     def check_required_attributes(self, dataset):
         """Feature type specific check of global required and highly recommended attributes.

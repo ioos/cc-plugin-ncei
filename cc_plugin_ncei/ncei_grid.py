@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-"""cc_plugin_ncei/ncei_grid.py"""
+"""cc_plugin_ncei/ncei_grid.py."""
 
 from compliance_checker.base import BaseCheck
 from isodate import parse_duration
@@ -9,13 +8,13 @@ from cc_plugin_ncei.ncei_base import NCEI1_1Check, NCEI2_0Check, TestCtx
 
 
 class NCEIGridBase(BaseCheck):
+    """NCEIGridBase."""
+
     _cc_spec = "ncei-grid"
-    valid_feature_types = [
-        "grid",
-    ]
+    valid_feature_types = ("grid",)
 
     def check_dimensions(self, dataset):
-        """Checks that the feature types of this dataset are consistent with a regular gridded dataset
+        """Check that the feature types of this dataset are consistent with a regular gridded dataset.
 
         :param netCDF4.Dataset dataset: An open netCDF dataset
         """
@@ -40,7 +39,7 @@ class NCEIGridBase(BaseCheck):
         return results
 
     def check_bounds_variables(self, dataset):
-        """Checks the grid boundary variables.
+        """Check the grid boundary variables.
 
         :param netCDF4.Dataset dataset: An open netCDF dataset
         """
@@ -107,6 +106,8 @@ class NCEIGridBase(BaseCheck):
 
 
 class NCEIGrid1_1(NCEI1_1Check, NCEIGridBase):
+    """NCEIGrid1_1."""
+
     register_checker = True
     _cc_spec_version = "1.1"
     _cc_description = (
@@ -122,9 +123,7 @@ class NCEIGrid1_1(NCEI1_1Check, NCEIGridBase):
     _cc_authors = "Luke Campbell, Dan Maher"
     _cc_checker_version = "2.1.0"
 
-    valid_templates = [
-        "NODC_NetCDF_Grid_Template_v1.1",
-    ]
+    valid_templates = ("NODC_NetCDF_Grid_Template_v1.1",)
 
     def check_required_attributes(self, dataset):
         """Feature type specific check of global required and highly recommended attributes.
@@ -154,6 +153,8 @@ class NCEIGrid1_1(NCEI1_1Check, NCEIGridBase):
 
 
 class NCEIGrid2_0(NCEI2_0Check, NCEIGridBase):
+    """NCEIGrid2_0."""
+
     register_checker = True
     _cc_spec_version = "2.0"
     _cc_description = (
@@ -169,9 +170,7 @@ class NCEIGrid2_0(NCEI2_0Check, NCEIGridBase):
     _cc_authors = "Luke Campbell, Dan Maher"
     _cc_checker_version = "2.3.0"
 
-    valid_templates = [
-        "NCEI_NetCDF_Grid_Template_v2.0",
-    ]
+    valid_templates = ("NCEI_NetCDF_Grid_Template_v2.0",)
 
     def check_required_attributes(self, dataset):
         """Feature type specific check of global required and highly recommended attributes.
@@ -214,11 +213,14 @@ class NCEIGrid2_0(NCEI2_0Check, NCEIGridBase):
             attr_value = getattr(dataset, attr, "")
             try:
                 parse_duration(attr_value)
-                recommended_ctx.assert_true(True, "")  # Score it True!
-            except Exception:
                 recommended_ctx.assert_true(
-                    False,
-                    f"{attr} should exist and be ISO-8601 format (example: PT1M30S), currently: {attr_value}",
+                    test=True,
+                    message="",
+                )  # Score it True!
+            except Exception:  # noqa: BLE001
+                recommended_ctx.assert_true(
+                    test=False,
+                    message=f"{attr} should exist and be ISO-8601 format (example: PT1M30S), currently: {attr_value}",
                 )
         results.append(recommended_ctx.to_result())
         return results

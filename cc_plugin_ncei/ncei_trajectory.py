@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-"""cc_plugin_ncei/ncei_trajectory.py"""
+"""cc_plugin_ncei/ncei_trajectory.py."""
 
 from compliance_checker.base import BaseCheck
 from isodate import parse_duration
@@ -9,14 +8,16 @@ from cc_plugin_ncei.ncei_base import NCEI1_1Check, NCEI2_0Check, TestCtx
 
 
 class NCEITrajectoryBase(BaseCheck):
+    """NCEITrajectory Base."""
+
     _cc_spec = "ncei-trajectory"
-    valid_feature_types = [
+    valid_feature_types = (
         "trajectory",
         "trajectory_id",
-    ]
+    )
 
     def check_dimensions(self, dataset):
-        """Checks that the feature types of this dataset are consistent with a trajectory dataset
+        """Check that the feature types of this dataset are consistent with a trajectory dataset.
 
         :param netCDF4.Dataset dataset: An open netCDF dataset
         """
@@ -26,10 +27,7 @@ class NCEITrajectoryBase(BaseCheck):
             "All geophysical variables are trajectory feature types",
         )
 
-        message = (
-            "{} must be a valid trajectory feature type. It must have dimensions of (trajectoryID, time)."
-            " And all coordinates must have dimensions (trajectoryID, time)"
-        )
+        message = "{} must be a valid trajectory feature type. It must have dimensions of (trajectoryID, time). And all coordinates must have dimensions (trajectoryID, time)"
         for variable in util.get_geophysical_variables(dataset):
             is_valid = util.is_cf_trajectory(dataset, variable)
             is_valid = is_valid or util.is_single_trajectory(dataset, variable)
@@ -41,7 +39,7 @@ class NCEITrajectoryBase(BaseCheck):
         return results
 
     def check_trajectory_id(self, dataset):
-        """Checks that if a variable exists for the trajectory id it has the appropriate attributes
+        """Check that if a variable exists for the trajectory id it has the appropriate attributes.
 
         :param netCDF4.Dataset dataset: An open netCDF dataset
         """
@@ -74,6 +72,8 @@ class NCEITrajectoryBase(BaseCheck):
 
 
 class NCEITrajectory1_1(NCEI1_1Check, NCEITrajectoryBase):
+    """NODC NetCDF Trajectory Template v1.1."""
+
     register_checker = True
     _cc_spec_version = "1.1"
     _cc_description = (
@@ -91,13 +91,11 @@ class NCEITrajectory1_1(NCEI1_1Check, NCEITrajectoryBase):
     _cc_authors = "Luke Campbell, Dan Maher"
     _cc_checker_version = "2.1.0"
 
-    valid_templates = [
-        "NODC_NetCDF_Trajectory_Template_v1.1",
-    ]
+    valid_templates = ("NODC_NetCDF_Trajectory_Template_v1.1",)
 
     @classmethod
     def beliefs(cls):
-        """Not applicable for gliders"""
+        """Not applicable for gliders."""
         return {}
 
     def check_required_attributes(self, dataset):
@@ -128,6 +126,8 @@ class NCEITrajectory1_1(NCEI1_1Check, NCEITrajectoryBase):
 
 
 class NCEITrajectory2_0(NCEI2_0Check, NCEITrajectoryBase):
+    """NCEI NetCDF Trajectory Template v2.0."""
+
     register_checker = True
     _cc_spec_version = "2.0"
     _cc_description = (
@@ -145,9 +145,7 @@ class NCEITrajectory2_0(NCEI2_0Check, NCEITrajectoryBase):
     _cc_authors = "Luke Campbell, Dan Maher"
     _cc_checker_version = "2.3.0"
 
-    valid_templates = [
-        "NCEI_NetCDF_Trajectory_Template_v2.0",
-    ]
+    valid_templates = ("NCEI_NetCDF_Trajectory_Template_v2.0",)
 
     def check_required_attributes(self, dataset):
         """Feature type specific check of global required and highly recommended attributes.
@@ -190,11 +188,10 @@ class NCEITrajectory2_0(NCEI2_0Check, NCEITrajectoryBase):
             attr_value = getattr(dataset, attr, "")
             try:
                 parse_duration(attr_value)
-                recommended_ctx.assert_true(True, "")  # Score it True!
-            except Exception:
-                recommended_ctx.assert_true(
-                    False,
-                    f"{attr} should exist and be ISO-8601 format (example: PT1M30S), currently: {attr_value}",
-                )
+                # Score it True!
+                recommended_ctx.assert_true(test=True, message="")
+            except Exception:  # noqa: BLE001
+                msg = f"{attr} should exist and be ISO-8601 format (example: PT1M30S), currently: {attr_value}"
+                recommended_ctx.assert_true(test=False, message=msg)
         results.append(recommended_ctx.to_result())
         return results

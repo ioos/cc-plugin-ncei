@@ -1,6 +1,6 @@
 repos:
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v4.6.0
+  rev: v5.0.0
   hooks:
     - id: trailing-whitespace
       exclude: compliance_checker/tests/data
@@ -23,6 +23,19 @@ repos:
   hooks:
     - id: blackdoc
 
+- repo: https://github.com/codespell-project/codespell
+  rev: v2.3.0
+  hooks:
+    - id: codespell
+      args:
+        - --ignore-words-list=pres
+      exclude: >
+          (?x)^(
+              .*\.xml|
+              .*\.cdl|
+              .*\.yaml|
+          )$
+
 - repo: https://github.com/econchick/interrogate
   rev: 1.7.0
   hooks:
@@ -36,29 +49,16 @@ repos:
     - id: add-trailing-comma
 
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.4.4
+  rev: v0.7.1
   hooks:
     - id: ruff
-      args: ["--fix", "--show-fixes"]
+      args: ["--fix", "--show-fixes", "--config=pyproject.toml"]
     - id: ruff-format
 
 - repo: https://github.com/tox-dev/pyproject-fmt
-  rev: 2.1.1
+  rev: v2.4.3
   hooks:
     - id: pyproject-fmt
-
-- repo: https://github.com/codespell-project/codespell
-  rev: v2.2.6
-  hooks:
-    - id: codespell
-      args:
-        - --ignore-words-list=pres
-      exclude: >
-          (?x)^(
-              .*\.xml|
-              .*\.cdl|
-              .*\.yaml|
-          )$
 
 ci:
     autofix_commit_msg: |

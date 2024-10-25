@@ -9,8 +9,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
-        os: [windows-latest, ubuntu-latest, macos-latest]
+        python-version: [ "3.9", "3.10", "3.11", "3.12", "3.13" ]
+        os: [ windows-latest, ubuntu-latest, macos-latest ]
       fail-fast: false
 
     steps:
@@ -32,12 +32,6 @@ jobs:
       run: |
         python -m pip install -e . --no-deps --force-reinstall
 
-    - name: Install unstable dependencies
-      if: ${{ matrix.python-version == 3.9 }}
-      shell: bash -l {0}
-      run: |
-          micromamba install "netcdf4<1.6.5"
-  
     - name: Default Tests
       shell: bash -l {0}
       run: pytest -s -rxs -v cc_plugin_ncei

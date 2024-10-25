@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-"""cc_plugin_ncei/ncei_trajectory_profile.py"""
+"""cc_plugin_ncei/ncei_trajectory_profile.py."""
 
 from compliance_checker.base import BaseCheck
 from isodate import parse_duration
@@ -9,14 +8,16 @@ from cc_plugin_ncei.ncei_base import NCEI1_1Check, NCEI2_0Check, TestCtx
 
 
 class NCEITrajectoryProfileOrthogonalBase(BaseCheck):
+    """NCEI TrajectoryProfileOrthogonal Base."""
+
     _cc_spec = "ncei-trajectory-profile-orthogonal"
-    valid_feature_types = [
+    valid_feature_types = (
         "trajectory",
         "trajectory_id",
-    ]
+    )
 
     def check_dimensions(self, dataset):
-        """Checks that the feature types of this dataset are consistent with a trajectory profile orthogonal dataset
+        """Check that the feature types of this dataset are consistent with a trajectory profile orthogonal dataset.
 
         :param netCDF4.Dataset dataset: An open netCDF dataset
         """
@@ -39,7 +40,7 @@ class NCEITrajectoryProfileOrthogonalBase(BaseCheck):
         return results
 
     def check_trajectory_id(self, dataset):
-        """Checks that if a variable exists for the trajectory id it has the appropriate attributes
+        """Check that if a variable exists for the trajectory id it has the appropriate attributes.
 
         :param netCDF4.Dataset dataset: An open netCDF dataset
         """
@@ -75,6 +76,8 @@ class NCEITrajectoryProfileOrthogonal1_1(
     NCEI1_1Check,
     NCEITrajectoryProfileOrthogonalBase,
 ):
+    """Check the selected file against the NCEI netCDF trajectoryProfile Orthogonal."""
+
     register_checker = True
     _cc_spec_version = "1.1"
     _cc_description = (
@@ -92,13 +95,13 @@ class NCEITrajectoryProfileOrthogonal1_1(
     _cc_authors = "Luke Campbell, Dan Maher"
     _cc_checker_version = "2.1.0"
 
-    valid_templates = [
+    valid_templates = (
         "NODC_NetCDF_TrajectoryProfile_Orthogonal_Template_v1.1",
-    ]
+    )
 
     @classmethod
     def beliefs(cls):
-        """Not applicable for gliders"""
+        """Not applicable for gliders."""
         return {}
 
     def check_required_attributes(self, dataset):
@@ -132,6 +135,8 @@ class NCEITrajectoryProfileOrthogonal2_0(
     NCEI2_0Check,
     NCEITrajectoryProfileOrthogonalBase,
 ):
+    """Check the selected file against the NCEI netCDF trajectoryProfile Orthogonal."""
+
     register_checker = True
     _cc_spec_version = "2.0"
     _cc_description = (
@@ -149,9 +154,9 @@ class NCEITrajectoryProfileOrthogonal2_0(
     _cc_authors = "Luke Campbell, Dan Maher"
     _cc_checker_version = "2.3.0"
 
-    valid_templates = [
+    valid_templates = (
         "NCEI_NetCDF_TrajectoryProfile_Orthogonal_Template_v2.0",
-    ]
+    )
 
     def check_required_attributes(self, dataset):
         """Feature type specific check of global required and highly recommended attributes.
@@ -194,25 +199,30 @@ class NCEITrajectoryProfileOrthogonal2_0(
             attr_value = getattr(dataset, attr, "")
             try:
                 parse_duration(attr_value)
-                recommended_ctx.assert_true(True, "")  # Score it True!
-            except Exception:
                 recommended_ctx.assert_true(
-                    False,
-                    f"{attr} should exist and be ISO-8601 format (example: PT1M30S), currently: {attr_value}",
+                    test=True,
+                    message="",
+                )  # Score it True!
+            except Exception:  # noqa: BLE001
+                recommended_ctx.assert_true(
+                    test=False,
+                    message=f"{attr} should exist and be ISO-8601 format (example: PT1M30S), currently: {attr_value}",
                 )
         results.append(recommended_ctx.to_result())
         return results
 
 
 class NCEITrajectoryProfileIncompleteBase(BaseCheck):
+    """TrajectoryProfileIncomplete Base."""
+
     _cc_spec = "ncei-trajectory-profile-incomplete"
-    valid_feature_types = [
+    valid_feature_types = (
         "trajectory",
         "trajectory_id",
-    ]
+    )
 
     def check_dimensions(self, dataset):
-        """Checks that the feature types of this dataset are consistent with a trajectory profile incomplete dataset
+        """Check that the feature types of this dataset are consistent with a trajectory profile incomplete dataset.
 
         :param netCDF4.Dataset dataset: An open netCDF dataset
         """
@@ -235,7 +245,7 @@ class NCEITrajectoryProfileIncompleteBase(BaseCheck):
         return results
 
     def check_trajectory_id(self, dataset):
-        """Checks that if a variable exists for the trajectory id it has the appropriate attributes
+        """Check that if a variable exists for the trajectory id it has the appropriate attributes.
 
         :param netCDF4.Dataset dataset: An open netCDF dataset
         """
@@ -271,6 +281,8 @@ class NCEITrajectoryProfileIncomplete1_1(
     NCEI1_1Check,
     NCEITrajectoryProfileIncompleteBase,
 ):
+    """Check the selected file against the NCEI netCDF trajectoryProfile."""
+
     register_checker = True
     _cc_spec_version = "1.1"
     _cc_description = (
@@ -288,9 +300,9 @@ class NCEITrajectoryProfileIncomplete1_1(
     _cc_authors = "Luke Campbell, Dan Maher"
     _cc_checker_version = "2.1.0"
 
-    valid_templates = [
+    valid_templates = (
         "NODC_NetCDF_TrajectoryProfile_Incomplete_Template_v1.1",
-    ]
+    )
 
     def check_required_attributes(self, dataset):
         """Feature type specific check of global required and highly recommended attributes.
@@ -323,6 +335,8 @@ class NCEITrajectoryProfileIncomplete2_0(
     NCEI2_0Check,
     NCEITrajectoryProfileIncompleteBase,
 ):
+    """Checks the selected file against the NCEI netCDF trajectoryProfile."""
+
     register_checker = True
     _cc_spec_version = "2.0"
     _cc_description = (
@@ -340,9 +354,9 @@ class NCEITrajectoryProfileIncomplete2_0(
     _cc_authors = "Luke Campbell, Dan Maher"
     _cc_checker_version = "2.3.0"
 
-    valid_templates = [
+    valid_templates = (
         "NCEI_NetCDF_TrajectoryProfile_Incomplete_Template_v2.0",
-    ]
+    )
 
     def check_required_attributes(self, dataset):
         """Feature type specific check of global required and highly recommended attributes.
@@ -385,11 +399,14 @@ class NCEITrajectoryProfileIncomplete2_0(
             attr_value = getattr(dataset, attr, "")
             try:
                 parse_duration(attr_value)
-                recommended_ctx.assert_true(True, "")  # Score it True!
-            except Exception:
                 recommended_ctx.assert_true(
-                    False,
-                    f"{attr} should exist and be ISO-8601 format (example: PT1M30S), currently: {attr_value}",
+                    test=True,
+                    message="",
+                )  # Score it True!
+            except Exception:  # noqa: BLE001
+                recommended_ctx.assert_true(
+                    test=False,
+                    message=f"{attr} should exist and be ISO-8601 format (example: PT1M30S), currently: {attr_value}",
                 )
         results.append(recommended_ctx.to_result())
         return results

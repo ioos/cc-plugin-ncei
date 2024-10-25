@@ -1,5 +1,7 @@
-"""Tests the base functionality of the checker that should remain the same
-across all of the discrete sampling geometries
+"""TestNCEIBase.
+
+Tests the base functionality of the checker that should remain the same
+across all of the discrete sampling geometries.
 """
 
 import numpy as np
@@ -9,10 +11,8 @@ from compliance_checker.tests.helpers import MockNetCDF
 
 from cc_plugin_ncei import ncei_base
 
-# TestNCEIBase
 
-
-@pytest.fixture()
+@pytest.fixture
 def nc():
     """Create a simple timeseries like NetCDF object."""
     nc = MockNetCDF()
@@ -54,9 +54,8 @@ def test_valid_range(nc):
 
 
 def test_valid_min_max(nc):
-    """When valid_range is not defined, check for the presence of both
-    attributes valid_min and valid_max which are the same data type as the
-    data in the variable.
+    """When valid_range is not defined, check for the presence of both attributes
+    valid_min and valid_max which are the same data type as the data in the variable.
     """
     base_check = ncei_base.BaseNCEICheck()
 
