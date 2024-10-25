@@ -1,9 +1,8 @@
-#!/usr/bin/env python
-"""cc_plugin_ncei/ncei_base.py"""
+"""cc_plugin_ncei/ncei_base.py."""
 
 import re
+import typing
 
-import six
 from cf_units import Unit
 from compliance_checker.base import BaseCheck, BaseNCCheck, Result
 from compliance_checker.cf.util import StandardNameTable, units_convertible
@@ -13,7 +12,7 @@ from cc_plugin_ncei import util
 
 
 class TestCtx:
-    """Simple struct object that holds score values and messages to compile into a result"""
+    """Simple struct object that holds score values and messages to compile into a result."""
 
     def __init__(
         self,
@@ -30,6 +29,7 @@ class TestCtx:
         self.description = description or ""
 
     def to_result(self):
+        """Show results."""
         return Result(
             self.category,
             (self.score, self.out_of),
@@ -38,7 +38,7 @@ class TestCtx:
         )
 
     def assert_true(self, test, message):
-        """Increments score if test is true otherwise appends a message"""
+        """Increments score if test is true otherwise appends a message."""
         self.out_of += 1
 
         if test:
@@ -48,18 +48,20 @@ class TestCtx:
 
 
 class BaseNCEICheck(BaseNCCheck):
+    """BaseNCEICheck."""
+
     register_checker = True
-    _cc_display_headers = {
+    _cc_display_headers: typing.ClassVar[dict] = {
         3: "Required",
         2: "Recommended",
         1: "Suggested",
     }
 
     @classmethod
-    def __init__(self):
-        self._std_names = StandardNameTable()
-        self.high_rec_atts = []
-        self.rec_atts = [
+    def __init__(cls):
+        cls._std_names = StandardNameTable()
+        cls.high_rec_atts = []
+        cls.rec_atts = [
             "title",
             "summary",
             "source",
@@ -92,15 +94,13 @@ class BaseNCEICheck(BaseNCCheck):
             "license",
             "metadata_link",
         ]
-        self.sug_atts = []
+        cls.sug_atts = []
 
-    def setup(self, ds):
+    def setup(self, ds):  # noqa: D102
         pass
 
     def _check_min_max_range(self, var, test_ctx):
-        """Checks that either both valid_min and valid_max exist, or valid_range
-        exists.
-        """
+        """Check that either both valid_min and valid_max exist, or valid_range exists."""
         if "valid_range" in var.ncattrs():
             test_ctx.assert_true(
                 var.valid_range.dtype == var.dtype
@@ -114,7 +114,7 @@ class BaseNCEICheck(BaseNCCheck):
                 warn_msg = f"{bound} attribute should exist, have the same type as {var.name}, and not be empty or valid_range should be defined"
                 # need to special case str attributes since they aren't directly
                 # comparable to numpy dtypes
-                if isinstance(v_bound, six.string_types):
+                if isinstance(v_bound, str):
                     test_ctx.assert_true(
                         v_bound != "" and var.dtype.char == "S",
                         warn_msg,
@@ -125,25 +125,27 @@ class BaseNCEICheck(BaseNCCheck):
         return test_ctx
 
     def check_lat(self, dataset):
-        """Float lat(time) ;//....................................... Depending on the precision used for the variable, the data type could be int or double instead of float.
-        lat:long_name = "" ; //...................................... RECOMMENDED - Provide a descriptive, long name for this variable.
-        lat:standard_name = "latitude" ; //.......................... REQUIRED    - Do not change.
-        lat:units = "degrees_north" ; //............................. REQUIRED    - CF recommends degrees_north, but at least must use UDUNITS.
-        lat:axis = "Y" ; //.......................................... REQUIRED    - Do not change.
-        lat:valid_min = 0.0f ; //.................................... RECOMMENDED - Replace with correct value.
-        lat:valid_max = 0.0f ; //.................................... RECOMMENDED - Replace with correct value.
-        lat:_FillValue = 0.0f;//..................................... REQUIRED  if there could be missing values in the data.
-        lat:ancillary_variables = "" ; //............................ RECOMMENDED - List other variables providing information about this variable.
-        lat:comment = "" ; //........................................ RECOMMENDED - Add useful, additional information here.
+        """Check lat.
+
+        Float lat(time) ;//................. Depending on the precision used for the variable, the data type could be int or double instead of float.
+        lat:long_name = "" ; //............. RECOMMENDED - Provide a descriptive, long name for this variable.
+        lat:standard_name = "latitude" ; //. REQUIRED    - Do not change.
+        lat:units = "degrees_north" ; //.... REQUIRED    - CF recommends degrees_north, but at least must use UDUNITS.
+        lat:axis = "Y" ; //................. REQUIRED    - Do not change.
+        lat:valid_min = 0.0f ; //........... RECOMMENDED - Replace with correct value.
+        lat:valid_max = 0.0f ; //........... RECOMMENDED - Replace with correct value.
+        lat:_FillValue = 0.0f;//............ REQUIRED  if there could be missing values in the data.
+        lat:ancillary_variables = "" ; //... RECOMMENDED - List other variables providing information about this variable.
+        lat:comment = "" ; //............... RECOMMENDED - Add useful, additional information here.
         """
         results = []
         lat = util.get_lat_variable(dataset)
         if not lat:
             return Result(
-                BaseCheck.HIGH,
-                False,
-                "latitude",
-                ["a variable for latitude doesn't exist"],
+                weight=BaseCheck.HIGH,
+                value=False,
+                name="latitude",
+                msgs=["a variable for latitude doesn't exist"],
             )
         lat_var = dataset.variables[lat]
         test_ctx = TestCtx(
@@ -192,25 +194,27 @@ class BaseNCEICheck(BaseNCCheck):
         return results
 
     def check_lon(self, dataset):
-        """Float lon(timeSeries) ; //........................................ Depending on the precision used for the variable, the data type could be int or double instead of float.
-        lon:long_name = "" ; //...................................... RECOMMENDED
-        lon:standard_name = "longitude" ; //......................... REQUIRED    - This is fixed, do not change.
-        lon:units = "degrees_east" ; //.............................. REQUIRED    - CF recommends degrees_east, but at least use UDUNITS.
-        lon:axis = "X" ; //.......................................... REQUIRED    - Do not change.
-        lon:valid_min = 0.0f ; //.................................... RECOMMENDED - Replace this with correct value.
-        lon:valid_max = 0.0f ; //.................................... RECOMMENDED - Replace this with correct value.
-        lon:_FillValue = 0.0f;//..................................... REQUIRED  if there could be missing values in the data.
-        lon:ancillary_variables = "" ; //............................ RECOMMENDED - List other variables providing information about this variable.
-        lon:comment = "" ; //........................................ RECOMMENDED - Add useful, additional information here.
+        """Check lon.
+
+        Float lon(timeSeries) ; //........... Depending on the precision used for the variable, the data type could be int or double instead of float.
+        lon:long_name = "" ; //.............. RECOMMENDED
+        lon:standard_name = "longitude" ; //. REQUIRED    - This is fixed, do not change.
+        lon:units = "degrees_east" ; //...... REQUIRED    - CF recommends degrees_east, but at least use UDUNITS.
+        lon:axis = "X" ; //.................. REQUIRED    - Do not change.
+        lon:valid_min = 0.0f ; //............ RECOMMENDED - Replace this with correct value.
+        lon:valid_max = 0.0f ; //............ RECOMMENDED - Replace this with correct value.
+        lon:_FillValue = 0.0f;//............. REQUIRED  if there could be missing values in the data.
+        lon:ancillary_variables = "" ; //.... RECOMMENDED - List other variables providing information about this variable.
+        lon:comment = "" ; //................ RECOMMENDED - Add useful, additional information here.
         """
         results = []
         lon = util.get_lon_variable(dataset)
         if not lon:
             return Result(
-                BaseCheck.HIGH,
-                False,
-                "longitude",
-                ["a variable for longitude doesn't exist"],
+                weight=BaseCheck.HIGH,
+                value=False,
+                name="longitude",
+                msgs=["a variable for longitude doesn't exist"],
             )
         lon_var = dataset.variables[lon]
         test_ctx = TestCtx(
@@ -256,7 +260,9 @@ class BaseNCEICheck(BaseNCCheck):
         return results
 
     def check_time(self, dataset):
-        """Double time(time) ;//........................................ Depending on the precision used for the variable, the data type could be int or double instead of float.
+        """Check time.
+
+        Double time(time) ;//........................................ Depending on the precision used for the variable, the data type could be int or double instead of float.
         time:long_name = "" ; //..................................... RECOMMENDED - Provide a descriptive, long name for this variable.
         time:standard_name = "time" ; //............................. REQUIRED    - Do not change
         time:units = "seconds since 1970-01-01 00:00:00 0:00" ; //... REQUIRED    - Use approved CF convention with approved UDUNITS.
@@ -270,10 +276,10 @@ class BaseNCEICheck(BaseNCCheck):
         time_var = util.get_time_variable(dataset)
         if not time_var:
             return Result(
-                BaseCheck.HIGH,
-                False,
-                "Coordinate variable time",
-                ["Time coordinate variable was not found"],
+                weight=BaseCheck.HIGH,
+                value=False,
+                name="Coordinate variable time",
+                msgs=["Time coordinate variable was not found"],
             )
         required_ctx = TestCtx(
             BaseCheck.HIGH,
@@ -330,17 +336,19 @@ class BaseNCEICheck(BaseNCCheck):
         return results
 
     def check_height(self, dataset):
-        """Float z(time) ;//........................................ Depending on the precision used for the variable, the data type could be int or double instead of float. Also the variable "z" could be substituted with a more descriptive name like "depth", "altitude", "pressure", etc.
-        z:long_name = "" ; //........................................ RECOMMENDED - Provide a descriptive, long name for this variable.
-        z:standard_name = "" ; //.................................... REQUIRED    - Usually "depth" or "altitude" is used.
-        z:units = "" ; //............................................ REQUIRED    - Use UDUNITS.
-        z:axis = "Z" ; //............................................ REQUIRED    - Do not change.
-        z:positive = "" ; //......................................... REQUIRED    - Use "up" or "down".
-        z:valid_min = 0.0f ; //...................................... RECOMMENDED - Replace with correct value.
-        z:valid_max = 0.0f ; //...................................... RECOMMENDED - Replace with correct value.
-        z:_FillValue = 0.0f;//....................................... REQUIRED  if there could be missing values in the data.
-        z:ancillary_variables = "" ; //.............................. RECOMMENDED - List other variables providing information about this variable.
-        z:comment = "" ; //.......................................... RECOMMENDED - Add useful, additional information here.
+        """Check height.
+
+        Float z(time) ;//............... Depending on the precision used for the variable, the data type could be int or double instead of float. Also the variable "z" could be substituted with a more descriptive name like "depth", "altitude", "pressure", etc.
+        z:long_name = "" ; //........... RECOMMENDED - Provide a descriptive, long name for this variable.
+        z:standard_name = "" ; //....... REQUIRED    - Usually "depth" or "altitude" is used.
+        z:units = "" ; //............... REQUIRED    - Use UDUNITS.
+        z:axis = "Z" ; //............... REQUIRED    - Do not change.
+        z:positive = "" ; //............ REQUIRED    - Use "up" or "down".
+        z:valid_min = 0.0f ; //......... RECOMMENDED - Replace with correct value.
+        z:valid_max = 0.0f ; //......... RECOMMENDED - Replace with correct value.
+        z:_FillValue = 0.0f;//.......... REQUIRED  if there could be missing values in the data.
+        z:ancillary_variables = "" ; //. RECOMMENDED - List other variables providing information about this variable.
+        z:comment = "" ; //............. RECOMMENDED - Add useful, additional information here.
         """
         results = []
 
@@ -373,14 +381,13 @@ class BaseNCEICheck(BaseNCCheck):
         )
 
         # Check Units
-        valid_units = False
         units = getattr(dataset.variables[var], "units", "1")
         try:
             # If cf_units fails to read the units, then it's not a valid unit
             Unit(units)
             valid_units = True
-        except:
-            pass
+        except ValueError:
+            valid_units = False
         required_ctx.assert_true(
             valid_units,
             f"{units} are not valid units for height",
@@ -411,7 +418,9 @@ class BaseNCEICheck(BaseNCCheck):
         return results
 
     def check_qaqc(self, dataset):
-        """Byte boolean_flag_variable(timeSeries,time); //............................. A boolean flag variable, in which each bit of the flag can be a 1 or 0.
+        """Check QA/QC.
+
+        Byte boolean_flag_variable(timeSeries,time); //............................. A boolean flag variable, in which each bit of the flag can be a 1 or 0.
                 boolean_flag_variable:standard_name= "" ; //................. RECOMMENDED - This attribute should include the standard name of the variable which this flag contributes plus the modifier: "status_flag" (for example, "sea_water_temperature status_flag"). See CF standard name modifiers.
                 boolean_flag_variable:long_name = "" ; //.................... RECOMMENDED - Provide a descriptive, long name for this variable.
                 boolean_flag_variable:flag_masks = ; //...................... REQUIRED    - Provide a comma-separated list describing the binary condition of the flags.
@@ -473,7 +482,9 @@ class BaseNCEICheck(BaseNCCheck):
         return results
 
     def check_instrument(self, dataset):
-        """Int instrument_parameter_variable(timeSeries); // ... RECOMMENDED - an instrument variable storing information about a parameter of the instrument used in the measurement, the dimensions don't have to be specified if the same instrument is used for all the measurements.
+        """Check instrument.
+
+        Int instrument_parameter_variable(timeSeries); // ... RECOMMENDED - an instrument variable storing information about a parameter of the instrument used in the measurement, the dimensions don't have to be specified if the same instrument is used for all the measurements.
         instrument_parameter_variable:long_name = "" ; // RECOMMENDED - Provide a descriptive, long name for this variable.
         instrument_parameter_variable:comment = "" ; //.. RECOMMENDED - Add useful, additional information here.
         """
@@ -481,10 +492,10 @@ class BaseNCEICheck(BaseNCCheck):
         instruments = util.get_instrument_variables(dataset)
         if not instruments:
             return Result(
-                BaseCheck.MEDIUM,
-                False,
-                "Recommended variable for instrument should exist",
-                ["No instrument variables found"],
+                weight=BaseCheck.MEDIUM,
+                value=False,
+                name="Recommended variable for instrument should exist",
+                msgs=["No instrument variables found"],
             )
         results = []
         for instrument in instruments:
@@ -509,19 +520,21 @@ class BaseNCEICheck(BaseNCCheck):
         return results
 
     def check_crs(self, dataset):
-        """Int crs; //.......................................................... RECOMMENDED - A container variable storing information about the grid_mapping. All the attributes within a grid_mapping variable are described in http://cf-pcmdi.llnl.gov/documents/cf-conventions/1.6/cf-conventions.html#appendix-grid-mappings. For all the measurements based on WSG84, the default coordinate system used for GPS measurements, the values shown here should be used.
-        crs:grid_mapping_name = "latitude_longitude"; //............. RECOMMENDED
-        crs:epsg_code = "EPSG:4326" ; //............................. RECOMMENDED - European Petroleum Survey Group code for the grid mapping name.
-        crs:semi_major_axis = 6378137.0 ; //......................... RECOMMENDED
-        crs:inverse_flattening = 298.257223563 ; //.................. RECOMMENDED
+        """Check crs.
+
+        Int crs; //...................................... RECOMMENDED - A container variable storing information about the grid_mapping. All the attributes within a grid_mapping variable are described in http://cf-pcmdi.llnl.gov/documents/cf-conventions/1.6/cf-conventions.html#appendix-grid-mappings. For all the measurements based on WSG84, the default coordinate system used for GPS measurements, the values shown here should be used.
+        crs:grid_mapping_name = "latitude_longitude"; //. RECOMMENDED
+        crs:epsg_code = "EPSG:4326" ; //................. RECOMMENDED - European Petroleum Survey Group code for the grid mapping name.
+        crs:semi_major_axis = 6378137.0 ; //............. RECOMMENDED
+        crs:inverse_flattening = 298.257223563 ; //...... RECOMMENDED.
         """
         grid_mapping = util.get_crs_variable(dataset)
         if grid_mapping is None:
             return Result(
-                BaseCheck.MEDIUM,
-                False,
-                "Recommended variable for grid mapping should exist",
-                ["A variable to describe the grid mapping should exist"],
+                weight=BaseCheck.MEDIUM,
+                value=False,
+                name="Recommended variable for grid mapping should exist",
+                msgs=["A variable to describe the grid mapping should exist"],
             )
         crs_variable = dataset.variables[grid_mapping]
         test_ctx = TestCtx(
@@ -552,6 +565,7 @@ class BaseNCEICheck(BaseNCCheck):
         return test_ctx.to_result()
 
     def check_high(self, ds):
+        """Check high."""
         highly_recommended = TestCtx(
             BaseCheck.HIGH,
             "Highly Recommended global attributes",
@@ -564,6 +578,7 @@ class BaseNCEICheck(BaseNCCheck):
         return highly_recommended.to_result()
 
     def check_recommended(self, ds):
+        """Check recommended."""
         recommended_ctx = TestCtx(
             BaseCheck.MEDIUM,
             "Recommended global attributes",
@@ -576,6 +591,7 @@ class BaseNCEICheck(BaseNCCheck):
         return recommended_ctx.to_result()
 
     def check_suggested(self, ds):
+        """Check suggested."""
         suggested_ctx = TestCtx(BaseCheck.LOW, "Suggested global attributes")
         for attr in self.sug_atts:
             suggested_ctx.assert_true(
@@ -586,12 +602,15 @@ class BaseNCEICheck(BaseNCCheck):
 
 
 class NCEI1_1Check(BaseNCEICheck):
+    """NCEI1_1Check."""
+
     def __init__(self):
-        super(NCEI1_1Check, self).__init__()
+        super().__init__()
 
     def check_base_required_attributes(self, dataset):
-        """Check the global required and highly recommended attributes for 1.1 templates. These go an extra step besides
-        just checking that they exist.
+        """Check the global required and highly recommended attributes for 1.1 templates.
+
+        These go an extra step besides just checking that they exist.
 
         :param netCDF4.Dataset dataset: An open netCDF dataset
 
@@ -656,8 +675,9 @@ class NCEI1_1Check(BaseNCEICheck):
         return test_ctx.to_result()
 
     def check_recommended_global_attributes(self, dataset):
-        """Check the global recommended attributes for 1.1 templates. These go an extra step besides
-        just checking that they exist.
+        """Check the global recommended attributes for 1.1 templates.
+
+        These go an extra step besides just checking that they exist.
 
         :param netCDF4.Dataset dataset: An open netCDF dataset
 
@@ -745,11 +765,14 @@ class NCEI1_1Check(BaseNCEICheck):
             attr_value = getattr(dataset, attr, "")
             try:
                 parse_datetime(attr_value)
-                recommended_ctx.assert_true(True, "")  # Score it True!
+                recommended_ctx.assert_true(
+                    test=True,
+                    message="",
+                )  # Score it True!
             except ISO8601Error:
                 recommended_ctx.assert_true(
-                    False,
-                    f"{attr} should exist and be ISO-8601 format (example: PT1M30S), currently: {attr_value}",
+                    test=False,
+                    message=f"{attr} should exist and be ISO-8601 format (example: PT1M30S), currently: {attr_value}",
                 )
 
         units = getattr(dataset, "geospatial_lat_units", "").lower()
@@ -898,7 +921,7 @@ class NCEI1_1Check(BaseNCEICheck):
             if ancillary_variables:
                 ancillary_variables = ancillary_variables.split(" ")
             all_variables = all(
-                [v in dataset.variables for v in ancillary_variables],
+                v in dataset.variables for v in ancillary_variables
             )
             if ancillary_variables:
                 test_ctx.assert_true(
@@ -929,22 +952,24 @@ class NCEI1_1Check(BaseNCEICheck):
         return results
 
     def check_platform(self, dataset):
-        """Int platform_variable; //............................................ RECOMMENDED - a container variable storing information about the platform. If more than one, can expand each attribute into a variable. For example, platform_call_sign and platform_nodc_code. See instrument_parameter_variable for an example.
-        platform_variable:long_name = "" ; //........................ RECOMMENDED - Provide a descriptive, long name for this variable.
-        platform_variable:comment = "" ; //.......................... RECOMMENDED - Add useful, additional information here.
-        platform_variable:call_sign = "" ; //........................ RECOMMENDED - This attribute identifies the call sign of the platform.
-        platform_variable:nodc_code = ""; //......................... RECOMMENDED - This attribute identifies the NODC code of the platform. Look at http://www.nodc.noaa.gov/cgi-bin/OAS/prd/platform to find if NODC codes are available.
-        platform_variable:wmo_code = "";//........................... RECOMMENDED - This attribute identifies the wmo code of the platform. Information on getting WMO codes is available at http://www.wmo.int/pages/prog/amp/mmop/wmo-number-rules.html
-        platform_variable:imo_code  = "";//.......................... RECOMMENDED - This attribute identifies the International Maritime Organization (IMO) number assigned by Lloyd's register.
+        """Check platform.
+
+        Int platform_variable; //............. RECOMMENDED - a container variable storing information about the platform. If more than one, can expand each attribute into a variable. For example, platform_call_sign and platform_nodc_code. See instrument_parameter_variable for an example.
+        platform_variable:long_name = "" ; //. RECOMMENDED - Provide a descriptive, long name for this variable.
+        platform_variable:comment = "" ; //... RECOMMENDED - Add useful, additional information here.
+        platform_variable:call_sign = "" ; //. RECOMMENDED - This attribute identifies the call sign of the platform.
+        platform_variable:nodc_code = ""; //.. RECOMMENDED - This attribute identifies the NODC code of the platform. Look at http://www.nodc.noaa.gov/cgi-bin/OAS/prd/platform to find if NODC codes are available.
+        platform_variable:wmo_code = "";//.... RECOMMENDED - This attribute identifies the wmo code of the platform. Information on getting WMO codes is available at http://www.wmo.int/pages/prog/amp/mmop/wmo-number-rules.html
+        platform_variable:imo_code  = "";//... RECOMMENDED - This attribute identifies the International Maritime Organization (IMO) number assigned by Lloyd's register.
         """
         # Check for the platform variable
         platforms = util.get_platform_variables(dataset)
         if not platforms:
             return Result(
-                BaseCheck.MEDIUM,
-                False,
-                "A container variable storing information about the platform exists",
-                ["Create a variable to store the platform information"],
+                weight=BaseCheck.MEDIUM,
+                value=False,
+                name="A container variable storing information about the platform exists",
+                msgs=["Create a variable to store the platform information"],
             )
 
         results = []
@@ -999,8 +1024,10 @@ class NCEI1_1Check(BaseNCEICheck):
 
 
 class NCEI2_0Check(BaseNCEICheck):
+    """NCEI2_0Check."""
+
     def __init__(self):
-        super(NCEI2_0Check, self).__init__()
+        super().__init__()
         self.high_rec_atts = [
             "title",
             "summary",
@@ -1053,8 +1080,9 @@ class NCEI2_0Check(BaseNCEICheck):
         ]
 
     def check_base_required_attributes(self, dataset):
-        """Check the global required and highly recommended attributes for 2.0 templates. These go an extra step besides
-        just checking that they exist.
+        """Check the global required and highly recommended attributes for 2.0 templates.
+
+        These go an extra step besides just checking that they exist.
 
         :param netCDF4.Dataset dataset: An open netCDF dataset
 
@@ -1078,12 +1106,12 @@ class NCEI2_0Check(BaseNCEICheck):
         for accepted_convention in accepted_conventions:
             if accepted_convention not in dataset_conventions:
                 test_ctx.assert_true(
-                    False,
-                    f'Conventions attribute is missing or is not equal to "CF-1.6, ACDD-1.3": {conventions}',
+                    test=False,
+                    message=f'Conventions attribute is missing or is not equal to "CF-1.6, ACDD-1.3": {conventions}',
                 )
                 break
         else:
-            test_ctx.assert_true(True, "")
+            test_ctx.assert_true(test=True, message="")
 
         # Check feature types
         test_ctx.assert_true(
@@ -1102,8 +1130,9 @@ class NCEI2_0Check(BaseNCEICheck):
         return test_ctx.to_result()
 
     def check_recommended_global_attributes(self, dataset):
-        """Check the global recommended attributes for 2.0 templates. These go an extra step besides
-        just checking that they exist.
+        """Check the global recommended attributes for 2.0 templates.
+
+        These go an extra step besides just checking that they exist.
 
         :param netCDF4.Dataset dataset: An open netCDF dataset
 
@@ -1167,11 +1196,14 @@ class NCEI2_0Check(BaseNCEICheck):
             attr_value = getattr(dataset, attr, "")
             try:
                 parse_datetime(attr_value)
-                recommended_ctx.assert_true(True, "")  # Score it True!
+                recommended_ctx.assert_true(
+                    test=True,
+                    message="",
+                )  # Score it True!
             except ISO8601Error:
                 recommended_ctx.assert_true(
-                    False,
-                    f"{attr} should exist and be ISO-8601 format (example: PT1M30S), currently: {attr_value}",
+                    test=False,
+                    message=f"{attr} should exist and be ISO-8601 format (example: PT1M30S), currently: {attr_value}",
                 )
 
         value = getattr(dataset, "geospatial_vertical_positive", "")
@@ -1205,8 +1237,9 @@ class NCEI2_0Check(BaseNCEICheck):
         return recommended_ctx.to_result()
 
     def check_base_suggested_attributes(self, dataset):
-        """Check the global suggested attributes for 2.0 templates. These go an extra step besides
-        just checking that they exist.
+        """Check the global suggested attributes for 2.0 templates.
+
+        These go an extra step besides just checking that they exist.
 
         :param netCDF4.Dataset dataset: An open netCDF dataset
 
@@ -1226,9 +1259,9 @@ class NCEI2_0Check(BaseNCEICheck):
         :product_version = "" ; //..................................... SUGGESTED - Version identifier of the data file or product as assigned by the data creator. (ACDD)
         :keywords_vocabulary = "" ; //................................. SUGGESTED - Identifies the controlled keyword vocabulary used to specify the values within the attribute "keywords". Example: 'GCMD:GCMD Keywords' ACDD)
         :platform = "" ; //............................................ SUGGESTED - Name of the platform(s) that supported the sensor data used to create this data set or product. Platforms can be of any type, including satellite, ship, station, aircraft or other. (ACDD)
-        :platform_vocabulary = "" ; //................................. SUGGESTED - Controlled vocabulary for the names used in the "platform" attribute . Example: ‘NASA/GCMD Platform Keywords Version 8.1’ (ACDD)
+        :platform_vocabulary = "" ; //................................. SUGGESTED - Controlled vocabulary for the names used in the "platform" attribute . Example: 'NASA/GCMD Platform Keywords Version 8.1' (ACDD)
         :instrument = "" ; //.......................................... SUGGESTED - Name of the contributing instrument(s) or sensor(s) used to create this data set or product. (ACDD)
-        :instrument_vocabulary = "" ; //............................... SUGGESTED - Controlled vocabulary for the names used in the "instrument" attribute. Example: ‘NASA/GCMD Instrument Keywords Version 8.1’ (ACDD)
+        :instrument_vocabulary = "" ; //............................... SUGGESTED - Controlled vocabulary for the names used in the "instrument" attribute. Example: 'NASA/GCMD Instrument Keywords Version 8.1' (ACDD)
         :cdm_data_type = "Point" ; //.................................. SUGGESTED - The data type, as derived from Unidata's Common Data Model Scientific Data types and understood by THREDDS. (ACDD)
         :metadata_link = "" ; //....................................... SUGGESTED - A URL that gives the location of more complete metadata. A persistent URL is recommended for this attribute. (ACDD)
         :references = "" ; //.......................................... SUGGESTED - Published or web-based references that describe the data or methods used to produce it. Recommend URIs (such as a URL or DOI) for papers or other references. (CF)
@@ -1262,11 +1295,14 @@ class NCEI2_0Check(BaseNCEICheck):
             attr_value = getattr(dataset, attr, "")
             try:
                 parse_datetime(attr_value)
-                suggested_ctx.assert_true(True, "")  # Score it True!
+                suggested_ctx.assert_true(
+                    test=True,
+                    message="",
+                )  # Score it True!
             except ISO8601Error:
                 suggested_ctx.assert_true(
-                    False,
-                    f"{attr} should exist and be ISO-8601 format (example: PT1M30S), currently: {attr_value}",
+                    test=False,
+                    message=f"{attr} should exist and be ISO-8601 format (example: PT1M30S), currently: {attr_value}",
                 )
 
         units = getattr(dataset, "geospatial_lat_units", "").lower()
@@ -1306,7 +1342,8 @@ class NCEI2_0Check(BaseNCEICheck):
 
     def check_geophysical(self, dataset):
         """Check the geophysical variable attributes for 2.0 templates.
-        Attributes missing_value and coverage_content_type have been added in NCEI 2.0
+
+        Attributes missing_value and coverage_content_type have been added in NCEI 2.0.
 
         :param netCDF4.Dataset dataset: An open netCDF dataset
 
@@ -1416,7 +1453,7 @@ class NCEI2_0Check(BaseNCEICheck):
             if ancillary_variables:
                 ancillary_variables = ancillary_variables.split(" ")
             all_variables = all(
-                [v in dataset.variables for v in ancillary_variables],
+                v in dataset.variables for v in ancillary_variables
             )
             if ancillary_variables:
                 test_ctx.assert_true(
@@ -1446,22 +1483,24 @@ class NCEI2_0Check(BaseNCEICheck):
         return results
 
     def check_platform(self, dataset):
-        """Int platform_variable; //............................................ RECOMMENDED - a container variable storing information about the platform. If more than one, can expand each attribute into a variable. For example, platform_call_sign and platform_nodc_code. See instrument_parameter_variable for an example.
-        platform_variable:long_name = "" ; //........................ RECOMMENDED - Provide a descriptive, long name for this variable.
-        platform_variable:comment = "" ; //.......................... RECOMMENDED - Add useful, additional information here.
-        platform_variable:call_sign = "" ; //........................ RECOMMENDED - This attribute identifies the call sign of the platform.
-        platform_variable:ncei_code = ""; //......................... RECOMMENDED - This attribute identifies the NCEI code of the platform. Look at http://www.nodc.noaa.gov/cgi-bin/OAS/prd/platform to find if NCEI codes are available.
-        platform_variable:wmo_code = "";//........................... RECOMMENDED - This attribute identifies the wmo code of the platform. Information on getting WMO codes is available at http://www.wmo.int/pages/prog/amp/mmop/wmo-number-rules.html
-        platform_variable:imo_code  = "";//.......................... RECOMMENDED - This attribute identifies the International Maritime Organization (IMO) number assigned by Lloyd's register.
+        """Check platform.
+
+        Int platform_variable; //............. RECOMMENDED - a container variable storing information about the platform. If more than one, can expand each attribute into a variable. For example, platform_call_sign and platform_nodc_code. See instrument_parameter_variable for an example.
+        platform_variable:long_name = "" ; //. RECOMMENDED - Provide a descriptive, long name for this variable.
+        platform_variable:comment = "" ; //... RECOMMENDED - Add useful, additional information here.
+        platform_variable:call_sign = "" ; //. RECOMMENDED - This attribute identifies the call sign of the platform.
+        platform_variable:ncei_code = ""; //.. RECOMMENDED - This attribute identifies the NCEI code of the platform. Look at http://www.nodc.noaa.gov/cgi-bin/OAS/prd/platform to find if NCEI codes are available.
+        platform_variable:wmo_code = "";//.... RECOMMENDED - This attribute identifies the wmo code of the platform. Information on getting WMO codes is available at http://www.wmo.int/pages/prog/amp/mmop/wmo-number-rules.html
+        platform_variable:imo_code  = "";//... RECOMMENDED - This attribute identifies the International Maritime Organization (IMO) number assigned by Lloyd's register.
         """
         # Check for the platform variable
         platforms = util.get_platform_variables(dataset)
         if not platforms:
             return Result(
-                BaseCheck.MEDIUM,
-                False,
-                "A container variable storing information about the platform exists",
-                ["Create a variable to store the platform information"],
+                weight=BaseCheck.MEDIUM,
+                value=False,
+                name="A container variable storing information about the platform exists",
+                msgs=["Create a variable to store the platform information"],
             )
 
         results = []

@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-"""cc_plugin_ncei/ncei_timeseries.py"""
+"""cc_plugin_ncei/ncei_timeseries.py."""
 
 from compliance_checker.base import BaseCheck
 from isodate import parse_duration
@@ -9,14 +8,16 @@ from cc_plugin_ncei.ncei_base import NCEI1_1Check, NCEI2_0Check, TestCtx
 
 
 class NCEITimeSeriesOrthogonalBase(BaseCheck):
+    """NCEITimeSeriesOrthogonalBase."""
+
     _cc_spec = "ncei-timeseries-orthogonal"
-    valid_feature_types = [
+    valid_feature_types = (
         "timeSeries",
         "timeseries_id",
-    ]
+    )
 
     def check_dimensions(self, dataset):
-        """Checks that the feature types of this dataset are consistent with a time series orthogonal dataset
+        """Check that the feature types of this dataset are consistent with a time series orthogonal dataset.
 
         :param netCDF4.Dataset dataset: An open netCDF dataset
         """
@@ -38,7 +39,7 @@ class NCEITimeSeriesOrthogonalBase(BaseCheck):
         return required_ctx.to_result()
 
     def check_timeseries_id(self, dataset):
-        """Checks that if a variable exists for the time series id it has the appropriate attributes
+        """Check that if a variable exists for the time series id it has the appropriate attributes.
 
         :param netCDF4.Dataset dataset: An open netCDF dataset
         """
@@ -61,6 +62,8 @@ class NCEITimeSeriesOrthogonalBase(BaseCheck):
 
 
 class NCEITimeSeriesOrthogonal1_1(NCEI1_1Check, NCEITimeSeriesOrthogonalBase):
+    """NCEITimeSeriesOrthogonal1_1."""
+
     register_checker = True
     _cc_spec_version = "1.1"
     _cc_description = (
@@ -79,13 +82,11 @@ class NCEITimeSeriesOrthogonal1_1(NCEI1_1Check, NCEITimeSeriesOrthogonalBase):
     _cc_authors = "Luke Campbell, Dan Maher"
     _cc_checker_version = "2.1.0"
 
-    valid_templates = [
-        "NODC_NetCDF_TimeSeries_Orthogonal_Template_v1.1",
-    ]
+    valid_templates = ("NODC_NetCDF_TimeSeries_Orthogonal_Template_v1.1",)
 
     @classmethod
     def beliefs(cls):
-        """Not applicable for gliders"""
+        """Not applicable for gliders."""
         return {}
 
     def check_required_attributes(self, dataset):
@@ -116,6 +117,8 @@ class NCEITimeSeriesOrthogonal1_1(NCEI1_1Check, NCEITimeSeriesOrthogonalBase):
 
 
 class NCEITimeSeriesOrthogonal2_0(NCEI2_0Check, NCEITimeSeriesOrthogonalBase):
+    """NCEITimeSeriesOrthogonal2_0."""
+
     register_checker = True
     _cc_spec_version = "2.0"
     _cc_description = (
@@ -134,9 +137,7 @@ class NCEITimeSeriesOrthogonal2_0(NCEI2_0Check, NCEITimeSeriesOrthogonalBase):
     _cc_authors = "Luke Campbell, Dan Maher"
     _cc_checker_version = "2.3.0"
 
-    valid_templates = [
-        "NCEI_NetCDF_TimeSeries_Orthogonal_Template_v2.0",
-    ]
+    valid_templates = ("NCEI_NetCDF_TimeSeries_Orthogonal_Template_v2.0",)
 
     def check_required_attributes(self, dataset):
         """Feature type specific check of global required and highly recommended attributes.
@@ -179,25 +180,30 @@ class NCEITimeSeriesOrthogonal2_0(NCEI2_0Check, NCEITimeSeriesOrthogonalBase):
             attr_value = getattr(dataset, attr, "")
             try:
                 parse_duration(attr_value)
-                recommended_ctx.assert_true(True, "")  # Score it True!
-            except Exception:
                 recommended_ctx.assert_true(
-                    False,
-                    f"{attr} should exist and be ISO-8601 format (example: PT1M30S), currently: {attr_value}",
+                    test=True,
+                    message="",
+                )  # Score it True!
+            except Exception:  # noqa: BLE001
+                recommended_ctx.assert_true(
+                    test=False,
+                    message=f"{attr} should exist and be ISO-8601 format (example: PT1M30S), currently: {attr_value}",
                 )
         results.append(recommended_ctx.to_result())
         return results
 
 
 class NCEITimeSeriesIncompleteBase(BaseCheck):
+    """NCEITimeSeriesIncompleteBase."""
+
     _cc_spec = "ncei-timeseries-incomplete"
-    valid_feature_types = [
+    valid_feature_types = (
         "timeSeries",
         "timeseries_id",
-    ]
+    )
 
     def check_dimensions(self, dataset):
-        """Checks that the feature types of this dataset are consistent with a time series incomplete dataset
+        """Check that the feature types of this dataset are consistent with a time series incomplete dataset.
 
         :param netCDF4.Dataset dataset: An open netCDF dataset
         """
@@ -216,7 +222,7 @@ class NCEITimeSeriesIncompleteBase(BaseCheck):
         return required_ctx.to_result()
 
     def check_timeseries_id(self, dataset):
-        """Checks that if a variable exists for the time series id it has the appropriate attributes
+        """Check that if a variable exists for the time series id it has the appropriate attributes.
 
         :param netCDF4.Dataset dataset: An open netCDF dataset
         """
@@ -260,6 +266,8 @@ class NCEITimeSeriesIncompleteBase(BaseCheck):
 
 
 class NCEITimeSeriesIncomplete1_1(NCEI1_1Check, NCEITimeSeriesIncompleteBase):
+    """NCEITimeSeriesIncomplete1_1."""
+
     register_checker = True
     _cc_spec_version = "1.1"
     _cc_description = (
@@ -278,13 +286,11 @@ class NCEITimeSeriesIncomplete1_1(NCEI1_1Check, NCEITimeSeriesIncompleteBase):
     _cc_authors = "Luke Campbell, Dan Maher"
     _cc_checker_version = "2.1.0"
 
-    valid_templates = [
-        "NODC_NetCDF_TimeSeries_Incomplete_Template_v1.1",
-    ]
+    valid_templates = ("NODC_NetCDF_TimeSeries_Incomplete_Template_v1.1",)
 
     @classmethod
     def beliefs(cls):
-        """Not applicable for gliders"""
+        """Not applicable for gliders."""
         return {}
 
     def check_required_attributes(self, dataset):
@@ -315,6 +321,8 @@ class NCEITimeSeriesIncomplete1_1(NCEI1_1Check, NCEITimeSeriesIncompleteBase):
 
 
 class NCEITimeSeriesIncomplete2_0(NCEI2_0Check, NCEITimeSeriesIncompleteBase):
+    """NCEITimeSeriesIncomplete2_0."""
+
     register_checker = True
     _cc_spec_version = "2.0"
     _cc_description = (
@@ -333,9 +341,7 @@ class NCEITimeSeriesIncomplete2_0(NCEI2_0Check, NCEITimeSeriesIncompleteBase):
     _cc_authors = "Luke Campbell, Dan Maher"
     _cc_checker_version = "2.3.0"
 
-    valid_templates = [
-        "NCEI_NetCDF_TimeSeries_Incomplete_Template_v2.0",
-    ]
+    valid_templates = ("NCEI_NetCDF_TimeSeries_Incomplete_Template_v2.0",)
 
     def check_required_attributes(self, dataset):
         """Feature type specific check of global required and highly recommended attributes.
@@ -378,11 +384,14 @@ class NCEITimeSeriesIncomplete2_0(NCEI2_0Check, NCEITimeSeriesIncompleteBase):
             attr_value = getattr(dataset, attr, "")
             try:
                 parse_duration(attr_value)
-                recommended_ctx.assert_true(True, "")  # Score it True!
-            except Exception:
                 recommended_ctx.assert_true(
-                    False,
-                    f"{attr} should exist and be ISO-8601 format (example: PT1M30S), currently: {attr_value}",
+                    test=True,
+                    message="",
+                )  # Score it True!
+            except Exception:  # noqa: BLE001
+                recommended_ctx.assert_true(
+                    test=False,
+                    message=f"{attr} should exist and be ISO-8601 format (example: PT1M30S), currently: {attr_value}",
                 )
         results.append(recommended_ctx.to_result())
         return results

@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-"""cc_plugin_ncei/ncei_point.py"""
+"""cc_plugin_ncei/ncei_point.py."""
 
 from compliance_checker.base import BaseCheck
 
@@ -8,14 +7,16 @@ from cc_plugin_ncei.ncei_base import NCEI1_1Check, NCEI2_0Check, TestCtx
 
 
 class NCEIPointBase(BaseCheck):
+    """NCEIPointBase."""
+
     _cc_spec = "ncei-point"
-    valid_feature_types = [
+    valid_feature_types = (
         "station",
         "point",
-    ]
+    )
 
     def check_dimensions(self, dataset):
-        """Checks that the feature types of this dataset are consistent with a point dataset"""
+        """Check that the feature types of this dataset are consistent with a point dataset."""
         required_ctx = TestCtx(
             BaseCheck.HIGH,
             "All geophysical variables are point feature types",
@@ -25,8 +26,8 @@ class NCEIPointBase(BaseCheck):
         # Exit prematurely
         if not t:
             required_ctx.assert_true(
-                False,
-                "A dimension representing time is required for point feature types",
+                test=False,
+                message="A dimension representing time is required for point feature types",
             )
             return required_ctx.to_result()
         t_dims = dataset.variables[t].dimensions
@@ -43,6 +44,8 @@ class NCEIPointBase(BaseCheck):
 
 
 class NCEIPoint1_1(NCEI1_1Check, NCEIPointBase):
+    """NCEIPoint1_1."""
+
     register_checker = True
     _cc_spec_version = "1.1"
     _cc_description = (
@@ -59,17 +62,15 @@ class NCEIPoint1_1(NCEI1_1Check, NCEIPointBase):
     _cc_authors = "Luke Campbell, Dan Maher"
     _cc_checker_version = "2.1.0"
 
-    valid_templates = [
-        "NODC_NetCDF_Point_Template_v1.1",
-    ]
+    valid_templates = ("NODC_NetCDF_Point_Template_v1.1",)
 
     @classmethod
     def beliefs(cls):
-        """Not applicable for gliders"""
+        """Not applicable for gliders."""
         return {}
 
     def check_required_attributes(self, dataset):
-        """Verifies that the dataset contains the NCEI required and highly recommended global attributes"""
+        """Verify that the dataset contains the NCEI required and highly recommended global attributes."""
         results = []
         required_ctx = TestCtx(
             BaseCheck.HIGH,
@@ -93,6 +94,8 @@ class NCEIPoint1_1(NCEI1_1Check, NCEIPointBase):
 
 
 class NCEIPoint2_0(NCEI2_0Check, NCEIPointBase):
+    """NCEIPoint2_0."""
+
     register_checker = True
     _cc_spec_version = "2.0"
     _cc_description = (
@@ -109,12 +112,10 @@ class NCEIPoint2_0(NCEI2_0Check, NCEIPointBase):
     _cc_authors = "Luke Campbell, Dan Maher"
     _cc_checker_version = "2.3.0"
 
-    valid_templates = [
-        "NCEI_NetCDF_Point_Template_v2.0",
-    ]
+    valid_templates = ("NCEI_NetCDF_Point_Template_v2.0",)
 
     def check_required_attributes(self, dataset):
-        """Verifies that the dataset contains the NCEI required and highly recommended global attributes"""
+        """Verify that the dataset contains the NCEI required and highly recommended global attributes."""
         results = []
         required_ctx = TestCtx(
             BaseCheck.HIGH,
