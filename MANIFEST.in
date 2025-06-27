@@ -1,9 +1,22 @@
 include *.txt
+include pyproject.toml
 include README.md
-include LICENSE
+
+graft cc_plugin_ncei
+
+prune .github
+prune *.egg-info
+
+include cc_plugin_ncei/data/*.csv
 include cc_plugin_ncei/data/*.json
 include cc_plugin_ncei/data/*.xml
 include cc_plugin_ncei/data/templates/*.j2
 include cc_plugin_ncei/tests/data/*.cdl
 include cc_plugin_ncei/tests/data/non-comp/*.cdl
-include cc_plugin_ncei/data/*.csv
+
+exclude .gitignore
+exclude .pre-commit-config.yaml
+exclude *.yaml
+exclude *.yml
+exclude cc_plugin_ncei/_version.py
+exclude ruff.toml

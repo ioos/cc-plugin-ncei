@@ -24,7 +24,7 @@ def get_sea_names():
     """
     resource_text = get_data("cc_plugin_ncei", "data/seanames.xml")
     parser = etree.XMLParser(remove_blank_text=True)
-    root = etree.fromstring(resource_text, parser)  # noqa: S320
+    root = etree.fromstring(resource_text, parser)
     _sea_names = {}
     for seaname in root.findall("seaname"):
         name = seaname.find("seaname").text
