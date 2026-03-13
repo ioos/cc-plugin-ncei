@@ -3,9 +3,9 @@
 import re
 import typing
 
-from cf_units import Unit
 from compliance_checker.base import BaseCheck, BaseNCCheck, Result
 from compliance_checker.cf.util import StandardNameTable, units_convertible
+from compliance_checker.cfunits import Unit
 from isodate import ISO8601Error, parse_datetime
 
 from cc_plugin_ncei import util
@@ -383,7 +383,7 @@ class BaseNCEICheck(BaseNCCheck):
         # Check Units
         units = getattr(dataset.variables[var], "units", "1")
         try:
-            # If cf_units fails to read the units, then it's not a valid unit
+            # If Units fails to read the units, then it's not a valid unit
             Unit(units)
             valid_units = True
         except ValueError:
@@ -527,7 +527,7 @@ class BaseNCEICheck(BaseNCCheck):
         crs:epsg_code = "EPSG:4326" ; //................. RECOMMENDED - European Petroleum Survey Group code for the grid mapping name.
         crs:semi_major_axis = 6378137.0 ; //............. RECOMMENDED
         crs:inverse_flattening = 298.257223563 ; //...... RECOMMENDED.
-        """
+        """  # noqa: E501
         grid_mapping = util.get_crs_variable(dataset)
         if grid_mapping is None:
             return Result(
@@ -856,7 +856,7 @@ class NCEI1_1Check(BaseNCEICheck):
             geophysical_variable_1:platform = "platform_variable" ; //... RECOMMENDED - Refers to name of variable containing information on the platform from which this variable was collected.
             geophysical_variable_1:instrument = "instrument_variable";//..RECOMMENDED - Refers to name of variable containing information on the instrument from which this variable was collected.
             geophysical_variable_1:comment = "" ; //..................... RECOMMENDED - Add useful, additional information here.
-        """
+        """  # noqa: E501
         # Check the science variables to ensure they are good
 
         results = []
@@ -1368,7 +1368,7 @@ class NCEI2_0Check(BaseNCEICheck):
             geophysical_variable_1:platform = "platform_variable" ; //... RECOMMENDED - Refers to name of variable containing information on the platform from which this variable was collected.
             geophysical_variable_1:instrument = "instrument_variable";//..RECOMMENDED - Refers to name of variable containing information on the instrument from which this variable was collected.
             geophysical_variable_1:comment = "" ; //..................... RECOMMENDED - Add useful, additional information here.
-        """
+        """  # noqa: E501
         results = []
         for var in util.get_geophysical_variables(dataset):
             ncvar = dataset.variables[var]
